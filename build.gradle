@@ -11,8 +11,8 @@ def protobufVersion = "3.19.2"
 
 def grpcVersion = "1.14.0"
 
-group 'org.example'
-version '1.0-SNAPSHOT'
+group 'org.tron'
+version '1.0'
 
 repositories {
     mavenCentral()
@@ -21,11 +21,28 @@ repositories {
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
 
+    //spring boot
+    implementation('org.springframework.boot:spring-boot-starter-web') {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-tomcat'
+    }
+    implementation('org.apache.logging.log4j:log4j-to-slf4j') {
+        version {
+            strictly '2.15.0'
+        }
+    }
+    implementation('org.apache.logging.log4j:log4j-api') {
+        version {
+            strictly '2.15.0'
+        }
+    }
+    implementation "org.springframework.boot:spring-boot-starter-jetty"
+    implementation "org.springframework.boot:spring-boot-configuration-processor"
+    //end spring boot
+
     compile group: 'com.google.protobuf', name: 'protobuf-java', version: protobufVersion
     compile group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
     compile group: 'net.jcip', name: 'jcip-annotations', version: '1.0'
 
-//    checkstyleConfig "com.puppycrawl.tools:checkstyle:${versions.checkstyle}"
     // google grpc
     compile group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
     compile group: 'io.grpc', name: 'grpc-protobuf', version: grpcVersion
@@ -33,6 +50,9 @@ dependencies {
     // end google grpc
 
     compile group: 'com.google.api.grpc', name: 'googleapis-common-protos', version: '0.0.3'
+
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
 }
 
 tasks.matching { it instanceof Test }.all {
