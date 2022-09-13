@@ -1,0 +1,29 @@
+# IDEA
+.idea
+*iml
+.DS_Store
+
+# gradle
+.gradle
+build
+
+# log
+logs
+
+# lombok
+out
+
+# doc
+doc
+
+# gossip
+pernodedata.*
+ringstate.*
+shareddata.*
+
+# Eclipse IDE specific files and folders
+/.project
+/.classpath
+/.settings/
+/.apt_generated/
+
