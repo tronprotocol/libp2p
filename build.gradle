@@ -1,6 +1,15 @@
 plugins {
+    id 'org.springframework.boot' version '2.3.8.RELEASE'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
     id 'java'
+    id "com.google.protobuf" version "0.8.17"
 }
+
+apply plugin: 'com.google.protobuf'
+
+def protobufVersion = "3.19.2"
+
+def grpcVersion = "1.14.0"
 
 group 'org.example'
 version '1.0-SNAPSHOT'
@@ -11,4 +20,74 @@ repositories {
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
+
+    compile group: 'com.google.protobuf', name: 'protobuf-java', version: protobufVersion
+    compile group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
+    compile group: 'net.jcip', name: 'jcip-annotations', version: '1.0'
+
+//    checkstyleConfig "com.puppycrawl.tools:checkstyle:${versions.checkstyle}"
+    // google grpc
+    compile group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
+    compile group: 'io.grpc', name: 'grpc-protobuf', version: grpcVersion
+    compile group: 'io.grpc', name: 'grpc-stub', version: grpcVersion
+    // end google grpc
+
+    compile group: 'com.google.api.grpc', name: 'googleapis-common-protos', version: '0.0.3'
 }
+
+tasks.matching { it instanceof Test }.all {
+    testLogging.events = ["failed", "passed", "skipped"]
+}
+
+sourceSets {
+    main {
+        proto {
+            srcDir 'src/main/protos'
+        }
+        java {
+            srcDir 'src/main/gen'
+            srcDir 'src/main/java'
+        }
+    }
+
+}
+
+protobuf {
+    generatedFilesBaseDir = "$projectDir/src/"
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.5.1-1"
+    }
+
+    plugins {
+        grpc {
+            artifact = 'io.grpc:protoc-gen-grpc-java:1.9.0'
+        }
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.builtins {
+                java { outputSubDir = "gen" }
+            }
+        }
+        all()*.plugins {
+            grpc {
+                outputSubDir = "gen"
+            }
+        }
+    }
+}
+
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled = true
+}
+
+
+clean.doFirst {
+    delete "src/main/gen"
+}
+
+

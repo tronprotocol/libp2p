@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option java_package = "org.tron.p2p.protobuf";
+option java_package = "org.tron.protobuf";
 option java_outer_classname = "Discover";
 
 message Endpoint {
