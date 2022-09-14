@@ -106,7 +106,7 @@ jar {
 
 
 clean.doFirst {
-    delete "src/main/java/org/tron/p2p/discover/protocol/Discover.java"
+    delete "src/main/java/org/tron/p2p/protos"
 }
 
 
