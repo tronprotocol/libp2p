@@ -1,3 +1,6 @@
+server:
+  port: 8012
+
 netconfig:
   tcp_port: 1001
   udp_port: 1002
@@ -6,8 +9,9 @@ task:
   cron: "0/30 * * * * ?"
 
 logging:
+  pattern:
+    file: "%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } --- [%t] %-40.40logger{39} : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
   file:
-    path: logs
-    name: server.log
+    name: logs/server.log
   level:
     root: info

@@ -43,7 +43,9 @@ dependencies {
     compile group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
 
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
-    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
 }
 
 tasks.matching { it instanceof Test }.all {
