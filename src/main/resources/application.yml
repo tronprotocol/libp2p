@@ -1,0 +1,13 @@
+netconfig:
+  tcp_port: 1001
+  udp_port: 1002
+
+task:
+  cron: "0/30 * * * * ?"
+
+logging:
+  file:
+    path: logs
+    name: server.log
+  level:
+    root: info
