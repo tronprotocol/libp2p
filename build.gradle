@@ -41,15 +41,6 @@ dependencies {
 
     compile group: 'com.google.protobuf', name: 'protobuf-java', version: protobufVersion
     compile group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
-    compile group: 'net.jcip', name: 'jcip-annotations', version: '1.0'
-
-    // google grpc
-    compile group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
-    compile group: 'io.grpc', name: 'grpc-protobuf', version: grpcVersion
-    compile group: 'io.grpc', name: 'grpc-stub', version: grpcVersion
-    // end google grpc
-
-    compile group: 'com.google.api.grpc', name: 'googleapis-common-protos', version: '0.0.3'
 
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
     compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
