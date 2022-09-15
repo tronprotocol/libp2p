@@ -14,4 +14,14 @@ public class P2pConfig {
 
   @Value("${netconfig.udp_port:1002}")
   private int udpPort;
+
+  @Value("${netconfig.tcpNettyWorkThreadNum:100}")
+  private int tcpNettyWorkThreadNum;
+
+  @Value("${netconfig.udpNettyWorkThreadNum:100}")
+  private int udpNettyWorkThreadNum;
+
+  @Value("${netconfig.connection.timeout:2000}")
+  private int nodeConnectionTimeout;
+
 }
