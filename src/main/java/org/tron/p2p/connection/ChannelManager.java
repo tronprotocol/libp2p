@@ -4,15 +4,17 @@ import java.net.InetSocketAddress;
 
 public class ChannelManager {
 
-  void init() {
+  public void init() {
+
   }
 
-  void close() {
+  public void close() {
+
   }
 
-  void connect(InetSocketAddress address) {
-  }
+  public void connect(InetSocketAddress address) {
 
+  }
   public void notifyDisconnect(Channel channel) {
 
   }
