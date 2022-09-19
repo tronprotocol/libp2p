@@ -1,9 +1,12 @@
 package org.tron.p2p;
 
+import java.util.Collection;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.tron.p2p.config.Parameter;
+import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.discover.NodeManager;
 import org.tron.p2p.stats.P2pStats;
@@ -49,4 +52,7 @@ public class P2pService {
     return statsManager.getP2pStats();
   }
 
+  public Collection<Channel> getChannels() {
+    return channelManager.getActiveChannels().values();
+  }
 }
