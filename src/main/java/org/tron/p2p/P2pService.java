@@ -12,17 +12,13 @@ import org.tron.p2p.stats.StatsManager;
 import java.net.InetSocketAddress;
 
 @Slf4j
-@Component
 public class P2pService {
 
-  @Autowired
-  private NodeManager nodeManager;
+  private NodeManager nodeManager = new NodeManager();
 
-  @Autowired
-  private ChannelManager channelManager;
+  private ChannelManager channelManager = new ChannelManager();
 
-  @Autowired
-  private StatsManager statsManager;
+  private StatsManager statsManager = new StatsManager();
 
   public void start(P2pConfig p2pConfig) {
     Parameter.p2pConfig = p2pConfig;
