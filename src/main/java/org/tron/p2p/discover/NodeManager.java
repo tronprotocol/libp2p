@@ -17,7 +17,7 @@ public class NodeManager {
     discoverService.close();
   }
 
-  public void updateNode(){
+  public void updateNode(Node node){
 
   }
 
