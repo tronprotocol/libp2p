@@ -1,27 +1,36 @@
 package org.tron.p2p.discover;
 
+import org.tron.p2p.discover.protocol.kad.KadService;
+
 import java.util.List;
 
 public class NodeManager {
 
-  public void init() {
+  private DiscoverService discoverService;
 
+  public void init() {
+    discoverService = new KadService();
+    discoverService.init();
   }
 
   public void close() {
+    discoverService.close();
+  }
+
+  public void updateNode(Node node){
 
   }
 
   public List<Node> getConnectableNodes() {
-    return null;
+    return discoverService.getConnectableNodes();
   }
 
   public List<Node> getTableNodes() {
-    return null;
+    return discoverService.getTableNodes();
   }
 
   public List<Node> getAllNodes() {
-    return null;
+    return discoverService.getAllNodes();
   }
 
 }

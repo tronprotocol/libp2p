@@ -28,10 +28,10 @@ public class Channel {
       ChannelManager channelManager) {
   }
 
-  void disconnect(Channel c, int code) {
+  void disconnect(Channel channel, int code) {
   }
 
-  void send(byte[] b) {
+  void send(byte[] bytes) {
   }
 
   public boolean isDisconnect() {
