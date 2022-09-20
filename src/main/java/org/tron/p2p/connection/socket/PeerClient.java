@@ -1,4 +1,4 @@
-package org.tron.p2p.connection.tcp;
+package org.tron.p2p.connection.socket;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
