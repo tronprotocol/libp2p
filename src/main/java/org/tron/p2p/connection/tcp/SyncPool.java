@@ -6,7 +6,6 @@ import com.google.common.collect.Lists;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -21,15 +20,16 @@ import org.springframework.context.ApplicationContext;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
-import org.tron.p2p.discover.NodeHandler;
+import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
+import org.tron.p2p.utils.CollectionUtils;
 
 @Slf4j(topic = "net")
 public class SyncPool {
 
   private final List<PeerConnection> activePeers = Collections
       .synchronizedList(new ArrayList<>());
-  private Cache<NodeHandler, Long> nodeHandlerCache = CacheBuilder.newBuilder()
+  private Cache<InetAddress, Long> nodeHandlerCache = CacheBuilder.newBuilder()
       .maximumSize(1000).expireAfterWrite(180, TimeUnit.SECONDS).recordStats().build();
   private final AtomicInteger passivePeersCount = new AtomicInteger(0);
   private final AtomicInteger activePeersCount = new AtomicInteger(0);
@@ -51,7 +51,6 @@ public class SyncPool {
   private PeerClient peerClient;
 
   private int disconnectTimeout = 60_000;
-
 
   public void init() {
 
@@ -89,34 +88,53 @@ public class SyncPool {
   }
 
   private void fillUp() {
-    List<NodeHandler> connectNodes = new ArrayList<>();
+    List<Node> connectNodes = new ArrayList<>();
+
+    //collect already used nodes in channelManager
     Set<InetAddress> addressInUse = new HashSet<>();
     Set<String> nodesInUse = new HashSet<>();
-    channelManager.getActivePeers().forEach(channel -> {
+    channelManager.getActiveChannels().forEach(channel -> {
       nodesInUse.add(channel.getPeerId());
       addressInUse.add(channel.getInetAddress());
     });
 
+    //first choose from active nodes that not used
     channelManager.getActiveNodes().forEach((address, node) -> {
       nodesInUse.add(node.getHexId());
       if (!addressInUse.contains(address)) {
-        connectNodes.add(nodeManager.getNodeHandler(node));
+        connectNodes.add(nodeManager.updateNode(node));
       }
     });
 
+    //calculate lackSize
     int size = Math.max(p2pConfig.getMinConnections() - activePeers.size(),
         p2pConfig.getMinActiveConnections() - activePeersCount.get());
     int lackSize = size - connectNodes.size();
+
+    //choose lackSize nodes from nodeManager that meet special requirement
     if (lackSize > 0) {
       nodesInUse.add(nodeManager.getPublicHomeNode().getHexId());
-      List<NodeHandler> newNodes = nodeManager.getNodes(new NodeSelector(nodesInUse), lackSize);
+      List<Node> newNodes = getNodes(new NodeSelector(nodesInUse), lackSize);
       connectNodes.addAll(newNodes);
     }
 
+    //establish tcp connection with chose nodes by peerClient
     connectNodes.forEach(n -> {
       peerClient.connectAsync(n, false);
-      nodeHandlerCache.put(n, System.currentTimeMillis());
+      nodeHandlerCache.put(n.getInetSocketAddress().getAddress(), System.currentTimeMillis());
     });
+  }
+
+  public List<Node> getNodes(Predicate<Node> predicate, int limit) {
+    List<Node> filtered = new ArrayList<>();
+    for (Node node : nodeManager.getConnectableNodes()) {
+      //todo isConnectible
+      if (predicate.test(node)) {
+        filtered.add(node);
+      }
+    }
+    //filtered.sort(Comparator.comparingInt(node -> -handler.getReputation()));
+    return CollectionUtils.truncate(filtered, limit);
   }
 
 //  synchronized void logActivePeers() {
@@ -219,7 +237,7 @@ public class SyncPool {
     return activePeersCount;
   }
 
-  class NodeSelector implements Predicate<NodeHandler> {
+  class NodeSelector implements Predicate<Node> {
 
     private Set<String> nodesInUse;
 
@@ -228,19 +246,17 @@ public class SyncPool {
     }
 
     @Override
-    public boolean test(NodeHandler handler) {
-      long headNum = chainBaseManager.getHeadBlockNum();
-      InetAddress inetAddress = handler.getInetSocketAddress().getAddress();
-      Protocol.HelloMessage message = channelManager.getHelloMessageCache()
-          .getIfPresent(inetAddress.getHostAddress());
-      return !((handler.getNode().getHost().equals(nodeManager.getPublicHomeNode().getHost())
-          && handler.getNode().getPort() == nodeManager.getPublicHomeNode().getPort())
+    public boolean test(Node node) {
+
+      InetAddress inetAddress = node.getInetSocketAddress().getAddress();
+      return !((node.getHost().equals(nodeManager.getPublicHomeNode().getHost())
+          && node.getPort() == nodeManager.getPublicHomeNode().getPort())
           || (channelManager.getRecentlyDisconnected().getIfPresent(inetAddress) != null)
           || (channelManager.getBadPeers().getIfPresent(inetAddress) != null)
-          || (channelManager.getConnectionNum(inetAddress) >= p2pConfig.getMaxConnectionsWithSameIp())
-          || (nodesInUse.contains(handler.getNode().getHexId()))
-          || (nodeHandlerCache.getIfPresent(handler) != null)
-          || (message != null && headNum < message.getLowestBlockNum()));
+          || (channelManager.getConnectionNum(inetAddress)
+          >= p2pConfig.getMaxConnectionsWithSameIp())
+          || (nodesInUse.contains(node.getHexId()))
+          || (nodeHandlerCache.getIfPresent(inetAddress) != null));
     }
   }
 }

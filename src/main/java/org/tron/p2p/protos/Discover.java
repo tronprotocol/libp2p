@@ -14,6 +14,311 @@ public final class Discover {
     registerAllExtensions(
         (com.google.protobuf.ExtensionRegistryLite) registry);
   }
+  /**
+   * Protobuf enum {@code ReasonCode}
+   */
+  public enum ReasonCode
+      implements com.google.protobuf.ProtocolMessageEnum {
+    /**
+     * <code>REQUESTED = 0;</code>
+     */
+    REQUESTED(0),
+    /**
+     * <code>BAD_PROTOCOL = 2;</code>
+     */
+    BAD_PROTOCOL(2),
+    /**
+     * <code>TOO_MANY_PEERS = 4;</code>
+     */
+    TOO_MANY_PEERS(4),
+    /**
+     * <code>DUPLICATE_PEER = 5;</code>
+     */
+    DUPLICATE_PEER(5),
+    /**
+     * <code>INCOMPATIBLE_PROTOCOL = 6;</code>
+     */
+    INCOMPATIBLE_PROTOCOL(6),
+    /**
+     * <code>RANDOM_ELIMINATION = 7;</code>
+     */
+    RANDOM_ELIMINATION(7),
+    /**
+     * <code>PEER_QUITING = 8;</code>
+     */
+    PEER_QUITING(8),
+    /**
+     * <code>UNEXPECTED_IDENTITY = 9;</code>
+     */
+    UNEXPECTED_IDENTITY(9),
+    /**
+     * <code>LOCAL_IDENTITY = 10;</code>
+     */
+    LOCAL_IDENTITY(10),
+    /**
+     * <code>PING_TIMEOUT = 11;</code>
+     */
+    PING_TIMEOUT(11),
+    /**
+     * <code>USER_REASON = 16;</code>
+     */
+    USER_REASON(16),
+    /**
+     * <code>RESET = 17;</code>
+     */
+    RESET(17),
+    /**
+     * <code>SYNC_FAIL = 18;</code>
+     */
+    SYNC_FAIL(18),
+    /**
+     * <code>FETCH_FAIL = 19;</code>
+     */
+    FETCH_FAIL(19),
+    /**
+     * <code>BAD_TX = 20;</code>
+     */
+    BAD_TX(20),
+    /**
+     * <code>BAD_BLOCK = 21;</code>
+     */
+    BAD_BLOCK(21),
+    /**
+     * <code>FORKED = 22;</code>
+     */
+    FORKED(22),
+    /**
+     * <code>UNLINKABLE = 23;</code>
+     */
+    UNLINKABLE(23),
+    /**
+     * <code>INCOMPATIBLE_VERSION = 24;</code>
+     */
+    INCOMPATIBLE_VERSION(24),
+    /**
+     * <code>INCOMPATIBLE_CHAIN = 25;</code>
+     */
+    INCOMPATIBLE_CHAIN(25),
+    /**
+     * <code>TIME_OUT = 32;</code>
+     */
+    TIME_OUT(32),
+    /**
+     * <code>CONNECT_FAIL = 33;</code>
+     */
+    CONNECT_FAIL(33),
+    /**
+     * <code>TOO_MANY_PEERS_WITH_SAME_IP = 34;</code>
+     */
+    TOO_MANY_PEERS_WITH_SAME_IP(34),
+    /**
+     * <code>LIGHT_NODE_SYNC_FAIL = 35;</code>
+     */
+    LIGHT_NODE_SYNC_FAIL(35),
+    /**
+     * <code>UNKNOWN = 255;</code>
+     */
+    UNKNOWN(255),
+    UNRECOGNIZED(-1),
+    ;
+
+    /**
+     * <code>REQUESTED = 0;</code>
+     */
+    public static final int REQUESTED_VALUE = 0;
+    /**
+     * <code>BAD_PROTOCOL = 2;</code>
+     */
+    public static final int BAD_PROTOCOL_VALUE = 2;
+    /**
+     * <code>TOO_MANY_PEERS = 4;</code>
+     */
+    public static final int TOO_MANY_PEERS_VALUE = 4;
+    /**
+     * <code>DUPLICATE_PEER = 5;</code>
+     */
+    public static final int DUPLICATE_PEER_VALUE = 5;
+    /**
+     * <code>INCOMPATIBLE_PROTOCOL = 6;</code>
+     */
+    public static final int INCOMPATIBLE_PROTOCOL_VALUE = 6;
+    /**
+     * <code>RANDOM_ELIMINATION = 7;</code>
+     */
+    public static final int RANDOM_ELIMINATION_VALUE = 7;
+    /**
+     * <code>PEER_QUITING = 8;</code>
+     */
+    public static final int PEER_QUITING_VALUE = 8;
+    /**
+     * <code>UNEXPECTED_IDENTITY = 9;</code>
+     */
+    public static final int UNEXPECTED_IDENTITY_VALUE = 9;
+    /**
+     * <code>LOCAL_IDENTITY = 10;</code>
+     */
+    public static final int LOCAL_IDENTITY_VALUE = 10;
+    /**
+     * <code>PING_TIMEOUT = 11;</code>
+     */
+    public static final int PING_TIMEOUT_VALUE = 11;
+    /**
+     * <code>USER_REASON = 16;</code>
+     */
+    public static final int USER_REASON_VALUE = 16;
+    /**
+     * <code>RESET = 17;</code>
+     */
+    public static final int RESET_VALUE = 17;
+    /**
+     * <code>SYNC_FAIL = 18;</code>
+     */
+    public static final int SYNC_FAIL_VALUE = 18;
+    /**
+     * <code>FETCH_FAIL = 19;</code>
+     */
+    public static final int FETCH_FAIL_VALUE = 19;
+    /**
+     * <code>BAD_TX = 20;</code>
+     */
+    public static final int BAD_TX_VALUE = 20;
+    /**
+     * <code>BAD_BLOCK = 21;</code>
+     */
+    public static final int BAD_BLOCK_VALUE = 21;
+    /**
+     * <code>FORKED = 22;</code>
+     */
+    public static final int FORKED_VALUE = 22;
+    /**
+     * <code>UNLINKABLE = 23;</code>
+     */
+    public static final int UNLINKABLE_VALUE = 23;
+    /**
+     * <code>INCOMPATIBLE_VERSION = 24;</code>
+     */
+    public static final int INCOMPATIBLE_VERSION_VALUE = 24;
+    /**
+     * <code>INCOMPATIBLE_CHAIN = 25;</code>
+     */
+    public static final int INCOMPATIBLE_CHAIN_VALUE = 25;
+    /**
+     * <code>TIME_OUT = 32;</code>
+     */
+    public static final int TIME_OUT_VALUE = 32;
+    /**
+     * <code>CONNECT_FAIL = 33;</code>
+     */
+    public static final int CONNECT_FAIL_VALUE = 33;
+    /**
+     * <code>TOO_MANY_PEERS_WITH_SAME_IP = 34;</code>
+     */
+    public static final int TOO_MANY_PEERS_WITH_SAME_IP_VALUE = 34;
+    /**
+     * <code>LIGHT_NODE_SYNC_FAIL = 35;</code>
+     */
+    public static final int LIGHT_NODE_SYNC_FAIL_VALUE = 35;
+    /**
+     * <code>UNKNOWN = 255;</code>
+     */
+    public static final int UNKNOWN_VALUE = 255;
+
+
+    public final int getNumber() {
+      if (this == UNRECOGNIZED) {
+        throw new java.lang.IllegalArgumentException(
+            "Can't get the number of an unknown enum value.");
+      }
+      return value;
+    }
+
+    /**
+     * @deprecated Use {@link #forNumber(int)} instead.
+     */
+    @java.lang.Deprecated
+    public static ReasonCode valueOf(int value) {
+      return forNumber(value);
+    }
+
+    public static ReasonCode forNumber(int value) {
+      switch (value) {
+        case 0: return REQUESTED;
+        case 2: return BAD_PROTOCOL;
+        case 4: return TOO_MANY_PEERS;
+        case 5: return DUPLICATE_PEER;
+        case 6: return INCOMPATIBLE_PROTOCOL;
+        case 7: return RANDOM_ELIMINATION;
+        case 8: return PEER_QUITING;
+        case 9: return UNEXPECTED_IDENTITY;
+        case 10: return LOCAL_IDENTITY;
+        case 11: return PING_TIMEOUT;
+        case 16: return USER_REASON;
+        case 17: return RESET;
+        case 18: return SYNC_FAIL;
+        case 19: return FETCH_FAIL;
+        case 20: return BAD_TX;
+        case 21: return BAD_BLOCK;
+        case 22: return FORKED;
+        case 23: return UNLINKABLE;
+        case 24: return INCOMPATIBLE_VERSION;
+        case 25: return INCOMPATIBLE_CHAIN;
+        case 32: return TIME_OUT;
+        case 33: return CONNECT_FAIL;
+        case 34: return TOO_MANY_PEERS_WITH_SAME_IP;
+        case 35: return LIGHT_NODE_SYNC_FAIL;
+        case 255: return UNKNOWN;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<ReasonCode>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static final com.google.protobuf.Internal.EnumLiteMap<
+        ReasonCode> internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<ReasonCode>() {
+            public ReasonCode findValueByNumber(int number) {
+              return ReasonCode.forNumber(number);
+            }
+          };
+
+    public final com.google.protobuf.Descriptors.EnumValueDescriptor
+        getValueDescriptor() {
+      return getDescriptor().getValues().get(ordinal());
+    }
+    public final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptorForType() {
+      return getDescriptor();
+    }
+    public static final com.google.protobuf.Descriptors.EnumDescriptor
+        getDescriptor() {
+      return org.tron.p2p.protos.Discover.getDescriptor().getEnumTypes().get(0);
+    }
+
+    private static final ReasonCode[] VALUES = values();
+
+    public static ReasonCode valueOf(
+        com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+      if (desc.getType() != getDescriptor()) {
+        throw new java.lang.IllegalArgumentException(
+          "EnumValueDescriptor is not for this type.");
+      }
+      if (desc.getIndex() == -1) {
+        return UNRECOGNIZED;
+      }
+      return VALUES[desc.getIndex()];
+    }
+
+    private final int value;
+
+    private ReasonCode(int value) {
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:ReasonCode)
+  }
+
   public interface EndpointOrBuilder extends
       // @@protoc_insertion_point(interface_extends:Endpoint)
       com.google.protobuf.MessageOrBuilder {
@@ -3939,6 +4244,486 @@ public final class Discover {
 
   }
 
+  public interface DisconnectMessageOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:DisconnectMessage)
+      com.google.protobuf.MessageOrBuilder {
+
+    /**
+     * <code>.ReasonCode reason = 1;</code>
+     */
+    int getReasonValue();
+    /**
+     * <code>.ReasonCode reason = 1;</code>
+     */
+    org.tron.p2p.protos.Discover.ReasonCode getReason();
+  }
+  /**
+   * Protobuf type {@code DisconnectMessage}
+   */
+  public  static final class DisconnectMessage extends
+      com.google.protobuf.GeneratedMessageV3 implements
+      // @@protoc_insertion_point(message_implements:DisconnectMessage)
+      DisconnectMessageOrBuilder {
+  private static final long serialVersionUID = 0L;
+    // Use DisconnectMessage.newBuilder() to construct.
+    private DisconnectMessage(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      super(builder);
+    }
+    private DisconnectMessage() {
+      reason_ = 0;
+    }
+
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+    getUnknownFields() {
+      return this.unknownFields;
+    }
+    private DisconnectMessage(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      this();
+      if (extensionRegistry == null) {
+        throw new java.lang.NullPointerException();
+      }
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownFieldProto3(
+                  input, unknownFields, extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 8: {
+              int rawValue = input.readEnum();
+
+              reason_ = rawValue;
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.tron.p2p.protos.Discover.internal_static_DisconnectMessage_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.tron.p2p.protos.Discover.internal_static_DisconnectMessage_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.tron.p2p.protos.Discover.DisconnectMessage.class, org.tron.p2p.protos.Discover.DisconnectMessage.Builder.class);
+    }
+
+    public static final int REASON_FIELD_NUMBER = 1;
+    private int reason_;
+    /**
+     * <code>.ReasonCode reason = 1;</code>
+     */
+    public int getReasonValue() {
+      return reason_;
+    }
+    /**
+     * <code>.ReasonCode reason = 1;</code>
+     */
+    public org.tron.p2p.protos.Discover.ReasonCode getReason() {
+      org.tron.p2p.protos.Discover.ReasonCode result = org.tron.p2p.protos.Discover.ReasonCode.valueOf(reason_);
+      return result == null ? org.tron.p2p.protos.Discover.ReasonCode.UNRECOGNIZED : result;
+    }
+
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized == 1) return true;
+      if (isInitialized == 0) return false;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      if (reason_ != org.tron.p2p.protos.Discover.ReasonCode.REQUESTED.getNumber()) {
+        output.writeEnum(1, reason_);
+      }
+      unknownFields.writeTo(output);
+    }
+
+    public int getSerializedSize() {
+      int size = memoizedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (reason_ != org.tron.p2p.protos.Discover.ReasonCode.REQUESTED.getNumber()) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeEnumSize(1, reason_);
+      }
+      size += unknownFields.getSerializedSize();
+      memoizedSize = size;
+      return size;
+    }
+
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof org.tron.p2p.protos.Discover.DisconnectMessage)) {
+        return super.equals(obj);
+      }
+      org.tron.p2p.protos.Discover.DisconnectMessage other = (org.tron.p2p.protos.Discover.DisconnectMessage) obj;
+
+      boolean result = true;
+      result = result && reason_ == other.reason_;
+      result = result && unknownFields.equals(other.unknownFields);
+      return result;
+    }
+
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      hash = (37 * hash) + REASON_FIELD_NUMBER;
+      hash = (53 * hash) + reason_;
+      hash = (29 * hash) + unknownFields.hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static org.tron.p2p.protos.Discover.DisconnectMessage parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.tron.p2p.protos.Discover.DisconnectMessage parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.tron.p2p.protos.Discover.DisconnectMessage parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.tron.p2p.protos.Discover.DisconnectMessage parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.tron.p2p.protos.Discover.DisconnectMessage parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.tron.p2p.protos.Discover.DisconnectMessage parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.tron.p2p.protos.Discover.DisconnectMessage parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.tron.p2p.protos.Discover.DisconnectMessage parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.tron.p2p.protos.Discover.DisconnectMessage parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
+    }
+    public static org.tron.p2p.protos.Discover.DisconnectMessage parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+    }
+    public static org.tron.p2p.protos.Discover.DisconnectMessage parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
+    }
+    public static org.tron.p2p.protos.Discover.DisconnectMessage parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
+    }
+
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
+    }
+    public static Builder newBuilder(org.tron.p2p.protos.Discover.DisconnectMessage prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code DisconnectMessage}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+        // @@protoc_insertion_point(builder_implements:DisconnectMessage)
+        org.tron.p2p.protos.Discover.DisconnectMessageOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.tron.p2p.protos.Discover.internal_static_DisconnectMessage_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.tron.p2p.protos.Discover.internal_static_DisconnectMessage_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.tron.p2p.protos.Discover.DisconnectMessage.class, org.tron.p2p.protos.Discover.DisconnectMessage.Builder.class);
+      }
+
+      // Construct using org.tron.p2p.protos.Discover.DisconnectMessage.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
+        }
+      }
+      public Builder clear() {
+        super.clear();
+        reason_ = 0;
+
+        return this;
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.tron.p2p.protos.Discover.internal_static_DisconnectMessage_descriptor;
+      }
+
+      public org.tron.p2p.protos.Discover.DisconnectMessage getDefaultInstanceForType() {
+        return org.tron.p2p.protos.Discover.DisconnectMessage.getDefaultInstance();
+      }
+
+      public org.tron.p2p.protos.Discover.DisconnectMessage build() {
+        org.tron.p2p.protos.Discover.DisconnectMessage result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public org.tron.p2p.protos.Discover.DisconnectMessage buildPartial() {
+        org.tron.p2p.protos.Discover.DisconnectMessage result = new org.tron.p2p.protos.Discover.DisconnectMessage(this);
+        result.reason_ = reason_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder clone() {
+        return (Builder) super.clone();
+      }
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return (Builder) super.setField(field, value);
+      }
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return (Builder) super.clearField(field);
+      }
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return (Builder) super.clearOneof(oneof);
+      }
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, java.lang.Object value) {
+        return (Builder) super.setRepeatedField(field, index, value);
+      }
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return (Builder) super.addRepeatedField(field, value);
+      }
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.tron.p2p.protos.Discover.DisconnectMessage) {
+          return mergeFrom((org.tron.p2p.protos.Discover.DisconnectMessage)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.tron.p2p.protos.Discover.DisconnectMessage other) {
+        if (other == org.tron.p2p.protos.Discover.DisconnectMessage.getDefaultInstance()) return this;
+        if (other.reason_ != 0) {
+          setReasonValue(other.getReasonValue());
+        }
+        this.mergeUnknownFields(other.unknownFields);
+        onChanged();
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.tron.p2p.protos.Discover.DisconnectMessage parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.tron.p2p.protos.Discover.DisconnectMessage) e.getUnfinishedMessage();
+          throw e.unwrapIOException();
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+
+      private int reason_ = 0;
+      /**
+       * <code>.ReasonCode reason = 1;</code>
+       */
+      public int getReasonValue() {
+        return reason_;
+      }
+      /**
+       * <code>.ReasonCode reason = 1;</code>
+       */
+      public Builder setReasonValue(int value) {
+        reason_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>.ReasonCode reason = 1;</code>
+       */
+      public org.tron.p2p.protos.Discover.ReasonCode getReason() {
+        org.tron.p2p.protos.Discover.ReasonCode result = org.tron.p2p.protos.Discover.ReasonCode.valueOf(reason_);
+        return result == null ? org.tron.p2p.protos.Discover.ReasonCode.UNRECOGNIZED : result;
+      }
+      /**
+       * <code>.ReasonCode reason = 1;</code>
+       */
+      public Builder setReason(org.tron.p2p.protos.Discover.ReasonCode value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        
+        reason_ = value.getNumber();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>.ReasonCode reason = 1;</code>
+       */
+      public Builder clearReason() {
+        
+        reason_ = 0;
+        onChanged();
+        return this;
+      }
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFieldsProto3(unknownFields);
+      }
+
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:DisconnectMessage)
+    }
+
+    // @@protoc_insertion_point(class_scope:DisconnectMessage)
+    private static final org.tron.p2p.protos.Discover.DisconnectMessage DEFAULT_INSTANCE;
+    static {
+      DEFAULT_INSTANCE = new org.tron.p2p.protos.Discover.DisconnectMessage();
+    }
+
+    public static org.tron.p2p.protos.Discover.DisconnectMessage getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<DisconnectMessage>
+        PARSER = new com.google.protobuf.AbstractParser<DisconnectMessage>() {
+      public DisconnectMessage parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new DisconnectMessage(input, extensionRegistry);
+      }
+    };
+
+    public static com.google.protobuf.Parser<DisconnectMessage> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<DisconnectMessage> getParserForType() {
+      return PARSER;
+    }
+
+    public org.tron.p2p.protos.Discover.DisconnectMessage getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
+  }
+
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_Endpoint_descriptor;
   private static final 
@@ -3964,6 +4749,11 @@ public final class Discover {
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_Neighbours_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_DisconnectMessage_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_DisconnectMessage_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -3983,8 +4773,21 @@ public final class Discover {
       "\t.Endpoint\022\020\n\010targetId\030\002 \001(\014\022\021\n\ttimestam" +
       "p\030\003 \001(\003\"W\n\nNeighbours\022\027\n\004from\030\001 \001(\0132\t.En" +
       "dpoint\022\035\n\nneighbours\030\002 \003(\0132\t.Endpoint\022\021\n" +
-      "\ttimestamp\030\003 \001(\003B\037\n\023org.tron.p2p.protosB" +
-      "\010Discoverb\006proto3"
+      "\ttimestamp\030\003 \001(\003\"0\n\021DisconnectMessage\022\033\n" +
+      "\006reason\030\001 \001(\0162\013.ReasonCode*\346\003\n\nReasonCod" +
+      "e\022\r\n\tREQUESTED\020\000\022\020\n\014BAD_PROTOCOL\020\002\022\022\n\016TO" +
+      "O_MANY_PEERS\020\004\022\022\n\016DUPLICATE_PEER\020\005\022\031\n\025IN" +
+      "COMPATIBLE_PROTOCOL\020\006\022\026\n\022RANDOM_ELIMINAT" +
+      "ION\020\007\022\020\n\014PEER_QUITING\020\010\022\027\n\023UNEXPECTED_ID" +
+      "ENTITY\020\t\022\022\n\016LOCAL_IDENTITY\020\n\022\020\n\014PING_TIM" +
+      "EOUT\020\013\022\017\n\013USER_REASON\020\020\022\t\n\005RESET\020\021\022\r\n\tSY" +
+      "NC_FAIL\020\022\022\016\n\nFETCH_FAIL\020\023\022\n\n\006BAD_TX\020\024\022\r\n" +
+      "\tBAD_BLOCK\020\025\022\n\n\006FORKED\020\026\022\016\n\nUNLINKABLE\020\027" +
+      "\022\030\n\024INCOMPATIBLE_VERSION\020\030\022\026\n\022INCOMPATIB" +
+      "LE_CHAIN\020\031\022\014\n\010TIME_OUT\020 \022\020\n\014CONNECT_FAIL" +
+      "\020!\022\037\n\033TOO_MANY_PEERS_WITH_SAME_IP\020\"\022\030\n\024L" +
+      "IGHT_NODE_SYNC_FAIL\020#\022\014\n\007UNKNOWN\020\377\001B\037\n\023o" +
+      "rg.tron.p2p.protosB\010Discoverb\006proto3"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -4028,6 +4831,12 @@ public final class Discover {
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_Neighbours_descriptor,
         new java.lang.String[] { "From", "Neighbours", "Timestamp", });
+    internal_static_DisconnectMessage_descriptor =
+      getDescriptor().getMessageTypes().get(5);
+    internal_static_DisconnectMessage_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_DisconnectMessage_descriptor,
+        new java.lang.String[] { "Reason", });
   }
 
   // @@protoc_insertion_point(outer_class_scope)

@@ -48,8 +48,7 @@ public class PeerClient {
     }
   }
 
-  public ChannelFuture connectAsync(NodeHandler nodeHandler, boolean discoveryMode) {
-    Node node = nodeHandler.getNode();
+  public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
     return connectAsync(node.getHost(), node.getPort(), node.getHexId(), discoveryMode)
         .addListener((ChannelFutureListener) future -> {
           if (!future.isSuccess()) {

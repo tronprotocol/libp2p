@@ -49,6 +49,6 @@ public class P2pService {
   }
 
   public Collection<Channel> getChannels() {
-    return channelManager.getActiveChannels().values();
+    return channelManager.getActiveChannels();
   }
 }

@@ -1,5 +1,6 @@
 package org.tron.p2p.discover;
 
+import java.net.InetSocketAddress;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -7,6 +8,7 @@ import org.bouncycastle.util.encoders.Hex;
 
 @Data
 public class Node {
+
   private byte[] id;
 
   private String host;
@@ -23,5 +25,9 @@ public class Node {
 
   public String getHexId() {
     return Hex.toHexString(id);
+  }
+
+  public InetSocketAddress getInetSocketAddress() {
+    return new InetSocketAddress(host, port);
   }
 }
