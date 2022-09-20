@@ -2,6 +2,9 @@
 .idea
 *iml
 .DS_Store
+gs
+
+src/main/java/org/tron/p2p/protos
 
 # gradle
 .gradle
