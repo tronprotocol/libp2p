@@ -32,6 +32,8 @@ public class P2pConfig {
   private boolean discoverEnable = false;
   @Getter
   private boolean disconnectionPolicyEnable = false;
+  @Getter
+  private int discoveryPingTimeOut = 15000;
 
   public P2pConfig(byte[] nodeID, String ip, int port, int version) {
     this.nodeID = nodeID;
@@ -82,6 +84,11 @@ public class P2pConfig {
 
   public P2pConfig withDisconnectionPolicyEnable(boolean disconnectionPolicyEnable) {
     this.disconnectionPolicyEnable = disconnectionPolicyEnable;
+    return this;
+  }
+
+  public P2pConfig withDiscoveryPingTimeOut(int discoveryPingTimeOut) {
+    this.discoveryPingTimeOut = discoveryPingTimeOut;
     return this;
   }
 }

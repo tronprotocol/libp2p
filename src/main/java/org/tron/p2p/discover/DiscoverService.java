@@ -11,13 +11,15 @@ public interface DiscoverService extends EventHandler {
 
   void close();
 
-  void updateNode();
+  void updateNode(Node node);
 
   List<Node> getConnectableNodes();
 
   List<Node> getTableNodes();
 
   List<Node> getAllNodes();
+
+  Node getPublicHomeNode();
 
   void channelActivated();
 
