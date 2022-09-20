@@ -7,21 +7,37 @@ import org.bouncycastle.util.encoders.Hex;
 
 @Data
 public class Node {
+
   private byte[] id;
 
   private String host;
 
   private int port;
 
-  @Getter
   private int bindPort;
 
-  @Setter
   private int p2pVersion;
 
-  private boolean isFakeNodeId = false;
+  private long updateTime;
+
+  public Node(byte[] id, String host, int port) {
+    this.id = id;
+    this.host = host;
+    this.port = port;
+    this.bindPort = port;
+    this.updateTime = System.currentTimeMillis();
+  }
+
+  public Node(byte[] id, String host, int port, int bindPort) {
+    this.id = id;
+    this.host = host;
+    this.port = port;
+    this.bindPort = bindPort;
+    this.updateTime = System.currentTimeMillis();
+  }
 
   public String getHexId() {
     return Hex.toHexString(id);
   }
+
 }

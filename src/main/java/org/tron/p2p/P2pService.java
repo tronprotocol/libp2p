@@ -1,8 +1,6 @@
 package org.tron.p2p;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.tron.p2p.config.Parameter;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.discover.NodeManager;
@@ -33,8 +31,8 @@ public class P2pService {
     log.info("P2p service closed.");
   }
 
-  public void register(P2pEventHandle p2pEventHandle) {
-    Parameter.addP2pEventHandle(p2pEventHandle);
+  public void register(P2pEventHandler p2PEventHandler) {
+    Parameter.addP2pEventHandle(p2PEventHandler);
   }
 
   public void connect(InetSocketAddress address) {

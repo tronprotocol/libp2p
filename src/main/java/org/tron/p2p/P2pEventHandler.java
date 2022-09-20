@@ -5,7 +5,7 @@ import org.tron.p2p.connection.Channel;
 
 import java.util.List;
 
-public abstract class P2pEventHandle {
+public abstract class P2pEventHandler {
 
   @Getter
   private List<Byte> types;

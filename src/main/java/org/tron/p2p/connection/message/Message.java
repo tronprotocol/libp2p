@@ -1,10 +1,10 @@
 package org.tron.p2p.connection.message;
 
-public class Message {
+public abstract class Message {
 
   public static final byte PING = (byte)0xff;
   public static final byte PONG = (byte)0xfe;
-  public static final byte HI = (byte)0xfd;
+  public static final byte HELLO = (byte)0xfd;
 
   protected byte[] data;
   protected byte type;
