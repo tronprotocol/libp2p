@@ -23,7 +23,6 @@ public class Channel {
   private ChannelHandlerContext ctx;
   private InetSocketAddress inetSocketAddress;
 
-  @Getter
   private volatile boolean isDisconnect;
 
   private Node node;
@@ -47,7 +46,7 @@ public class Channel {
   }
 
   public boolean isDisconnect() {
-    return true;
+    return isDisconnect;
   }
 
   public void setChannelHandlerContext(ChannelHandlerContext ctx) {

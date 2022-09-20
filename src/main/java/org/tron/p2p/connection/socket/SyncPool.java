@@ -1,4 +1,4 @@
-package org.tron.p2p.connection.tcp;
+package org.tron.p2p.connection.socket;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -27,8 +27,7 @@ import org.tron.p2p.utils.CollectionUtils;
 @Slf4j(topic = "net")
 public class SyncPool {
 
-  private final List<PeerConnection> activePeers = Collections
-      .synchronizedList(new ArrayList<>());
+  private final List<PeerConnection> activePeers = Collections.synchronizedList(new ArrayList<>());
   private Cache<InetAddress, Long> nodeHandlerCache = CacheBuilder.newBuilder()
       .maximumSize(1000).expireAfterWrite(180, TimeUnit.SECONDS).recordStats().build();
   private final AtomicInteger passivePeersCount = new AtomicInteger(0);
