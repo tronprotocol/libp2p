@@ -1,10 +1,10 @@
 package org.tron.p2p.connection.business;
 
 
-import org.tron.p2p.P2pEventHandle;
+import org.tron.p2p.P2pEventHandler;
 import org.tron.p2p.connection.Channel;
 
-public class P2pEventHandlerImpl extends P2pEventHandle {
+public class P2pEventHandlerImpl extends P2pEventHandler {
 
   @Override
   public void onMessage(Channel c, byte[] data) {

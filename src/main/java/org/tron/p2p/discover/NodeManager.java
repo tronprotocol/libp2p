@@ -1,8 +1,6 @@
 package org.tron.p2p.discover;
 
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import org.tron.p2p.discover.protocol.kad.KadService;
 
@@ -10,8 +8,6 @@ public class NodeManager {
 
   @Getter
   private Node homeNode;
-
-  private Map<String, NodeHandler> nodeHandlerMap = new ConcurrentHashMap<>();
 
   private DiscoverService discoverService;
 

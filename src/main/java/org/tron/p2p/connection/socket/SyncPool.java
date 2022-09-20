@@ -132,6 +132,7 @@ public class SyncPool {
         filtered.add(node);
       }
     }
+    //todo order by time desc
     //filtered.sort(Comparator.comparingInt(node -> -handler.getReputation()));
     return CollectionUtils.truncate(filtered, limit);
   }
@@ -250,8 +251,8 @@ public class SyncPool {
       InetAddress inetAddress = node.getInetSocketAddress().getAddress();
       return !((node.getHost().equals(nodeManager.getPublicHomeNode().getHost())
           && node.getPort() == nodeManager.getPublicHomeNode().getPort())
-          || (channelManager.getRecentlyDisconnected().getIfPresent(inetAddress) != null)
-          || (channelManager.getBadPeers().getIfPresent(inetAddress) != null)
+//          || (channelManager.getRecentlyDisconnected().getIfPresent(inetAddress) != null)
+//          || (channelManager.getBadPeers().getIfPresent(inetAddress) != null)
           || (channelManager.getConnectionNum(inetAddress)
           >= p2pConfig.getMaxConnectionsWithSameIp())
           || (nodesInUse.contains(node.getHexId()))
