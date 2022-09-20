@@ -1,5 +1,6 @@
 package org.tron.p2p.discover;
 
+import java.net.InetSocketAddress;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -40,4 +41,7 @@ public class Node {
     return Hex.toHexString(id);
   }
 
+  public InetSocketAddress getInetSocketAddress() {
+    return new InetSocketAddress(host, port);
+  }
 }

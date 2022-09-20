@@ -2,21 +2,35 @@ package org.tron.p2p;
 
 import java.net.InetSocketAddress;
 import java.util.List;
+import lombok.Getter;
 
 public class P2pConfig {
 
+  @Getter
   private List<InetSocketAddress> seedNodes;
+  @Getter
   private List<InetSocketAddress> activeNodes;
+  @Getter
   private List<InetSocketAddress> trustNodes;
+  @Getter
   private final byte[] nodeID;
+  @Getter
   private final String ip;
+  @Getter
   private final int port; //udp port and tcp port
+  @Getter
   private final int version;
+  @Getter
   private int minConnections = 10;
+  @Getter
   private int maxConnections = 50;
+  @Getter
   private int minActiveConnections = 6;
+  @Getter
   private int maxConnectionsWithSameIp = 2;
+  @Getter
   private boolean discoverEnable = false;
+  @Getter
   private boolean disconnectionPolicyEnable = false;
 
   public P2pConfig(byte[] nodeID, String ip, int port, int version) {

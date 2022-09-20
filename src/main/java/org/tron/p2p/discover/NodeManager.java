@@ -1,10 +1,17 @@
 package org.tron.p2p.discover;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import lombok.Getter;
 import org.tron.p2p.discover.protocol.kad.KadService;
 
-import java.util.List;
-
 public class NodeManager {
+
+  @Getter
+  private Node homeNode;
+
+  private Map<String, NodeHandler> nodeHandlerMap = new ConcurrentHashMap<>();
 
   private DiscoverService discoverService;
 
@@ -17,8 +24,8 @@ public class NodeManager {
     discoverService.close();
   }
 
-  public void updateNode(Node node){
-
+  public Node updateNode(Node node) {
+    return node;
   }
 
   public List<Node> getConnectableNodes() {
@@ -31,6 +38,10 @@ public class NodeManager {
 
   public List<Node> getAllNodes() {
     return discoverService.getAllNodes();
+  }
+
+  public Node getPublicHomeNode() {
+    return homeNode;
   }
 
 }

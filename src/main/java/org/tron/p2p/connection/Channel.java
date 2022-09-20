@@ -9,6 +9,14 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.exception.P2pException;
+import com.google.protobuf.ByteString;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPipeline;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import lombok.Getter;
+import lombok.Setter;
+import org.tron.p2p.discover.Node;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -20,6 +28,20 @@ public class Channel {
   @Getter
   private volatile long disconnectTime;
   private volatile boolean isDisconnect;
+  @Getter
+  @Setter
+  long lastSendTime = 0;
+  @Getter
+  private boolean isActive;
+  private InetSocketAddress inetSocketAddress;
+  private Node node;
+  private long startTime;
+
+  @Getter
+  @Setter
+  private ByteString address;
+
+  private boolean isTrustPeer;
 
   public void init(ChannelPipeline pipeline, String remoteId, boolean discoveryMode,
       ChannelManager channelManager) {
@@ -72,4 +94,18 @@ public class Channel {
   public boolean isDisconnect() {
     return isDisconnect;
   }
+
+  public void setChannelHandlerContext(ChannelHandlerContext ctx) {
+    this.ctx = ctx;
+    this.inetSocketAddress = ctx == null ? null : (InetSocketAddress) ctx.channel().remoteAddress();
+  }
+
+  public InetAddress getInetAddress() {
+    return ctx == null ? null : ((InetSocketAddress) ctx.channel().remoteAddress()).getAddress();
+  }
+
+  public String getPeerId() {
+    return node == null ? "<null>" : node.getHexId();
+  }
+
 }

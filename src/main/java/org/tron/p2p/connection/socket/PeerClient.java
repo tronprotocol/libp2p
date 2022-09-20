@@ -2,6 +2,7 @@ package org.tron.p2p.connection.socket;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.DefaultMessageSizeEstimator;
 import io.netty.channel.EventLoopGroup;
@@ -13,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.tron.p2p.config.Parameter;
+import org.tron.p2p.discover.Node;
+import org.tron.p2p.discover.NodeHandler;
 
 @Slf4j(topic = "net")
 public class PeerClient {
@@ -45,19 +48,18 @@ public class PeerClient {
     }
   }
 
-//  public ChannelFuture connectAsync(NodeHandler nodeHandler, boolean discoveryMode) {
-//    Node node = nodeHandler.getNode();
-//    return connectAsync(node.getHost(), node.getPort(), node.getHexId(), discoveryMode)
-//        .addListener((ChannelFutureListener) future -> {
-//          if (!future.isSuccess()) {
-//            log.warn("connect to {}:{} fail,cause:{}", node.getHost(), node.getPort(),
-//                future.cause().getMessage());
+  public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
+    return connectAsync(node.getHost(), node.getPort(), node.getHexId(), discoveryMode)
+        .addListener((ChannelFutureListener) future -> {
+          if (!future.isSuccess()) {
+            log.warn("connect to {}:{} fail,cause:{}", node.getHost(), node.getPort(),
+                future.cause().getMessage());
 //            nodeHandler.getNodeStatistics().nodeDisconnectedLocal(ReasonCode.CONNECT_FAIL);
 //            nodeHandler.getNodeStatistics().notifyDisconnect();
-//            future.channel().close();
-//          }
-//        });
-//  }
+            future.channel().close();
+          }
+        });
+  }
 
   private ChannelFuture connectAsync(String host, int port, String remoteId,
       boolean discoveryMode) {
