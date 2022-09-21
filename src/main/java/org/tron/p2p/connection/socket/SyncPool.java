@@ -33,7 +33,6 @@ public class SyncPool {
   private final AtomicInteger passivePeersCount = new AtomicInteger(0);
   private final AtomicInteger activePeersCount = new AtomicInteger(0);
 
-  @Autowired
   private NodeManager nodeManager;
 
   @Autowired
@@ -51,11 +50,11 @@ public class SyncPool {
 
   private int disconnectTimeout = 60_000;
 
-  public void init() {
+  public void init(ChannelManager channelManager, PeerClient peerClient, NodeManager nodeManager) {
 
-    channelManager = ctx.getBean(ChannelManager.class);
-
-    peerClient = ctx.getBean(PeerClient.class);
+    this.channelManager = channelManager;
+    this.nodeManager = nodeManager;
+    this.peerClient = peerClient;
 
     poolLoopExecutor.scheduleWithFixedDelay(() -> {
       try {

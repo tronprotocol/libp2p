@@ -1,23 +1,25 @@
 package org.tron.p2p;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
+import org.tron.p2p.discover.Node;
 
 public class P2pConfig {
 
   @Getter
-  private List<InetSocketAddress> seedNodes;
+  private List<InetSocketAddress> seedNodes = new ArrayList<>();
   @Getter
-  private List<InetSocketAddress> activeNodes;
+  private List<InetSocketAddress> activeNodes = new ArrayList<>();
   @Getter
-  private List<InetSocketAddress> trustNodes;
+  private List<InetSocketAddress> trustNodes = new ArrayList<>();
   @Getter
   private final byte[] nodeID;
   @Getter
   private final String ip;
   @Getter
-  private final int port; //udp port and tcp port
+  private int port = 18888; //udp port and tcp port
   @Getter
   private final int version;
   @Getter
@@ -32,6 +34,13 @@ public class P2pConfig {
   private boolean discoverEnable = false;
   @Getter
   private boolean disconnectionPolicyEnable = false;
+
+  public P2pConfig(String ip, int port, int version) {
+    this.nodeID = Node.getNodeId();
+    this.ip = ip;
+    this.port = port;
+    this.version = version;
+  }
 
   public P2pConfig(byte[] nodeID, String ip, int port, int version) {
     this.nodeID = nodeID;

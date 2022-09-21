@@ -15,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.tron.p2p.config.Parameter;
 import org.tron.p2p.discover.Node;
-import org.tron.p2p.discover.NodeHandler;
 
 @Slf4j(topic = "net")
 public class PeerClient {
@@ -90,10 +89,5 @@ public class PeerClient {
     workerGroup.terminationFuture().syncUninterruptibly();
   }
 //  public void init() {
-//  }
-//
-//  public void connect(InetSocketAddress address){}
-//
-//  public void close() {
 //  }
 }

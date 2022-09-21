@@ -6,8 +6,6 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.tron.p2p.connection.Channel;
@@ -18,10 +16,9 @@ import org.tron.p2p.connection.ChannelManager;
 @Scope("prototype")
 public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> {
 
-  @Autowired
-  private ApplicationContext ctx;
+//  private ApplicationContext ctx;
 
-  @Autowired
+  private Channel channel;
   private ChannelManager channelManager;
 
   private String remoteId;
@@ -35,7 +32,7 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
   @Override
   public void initChannel(NioSocketChannel ch) {
     try {
-      final Channel channel = ctx.getBean(Channel.class);
+      //final Channel channel = ctx.getBean(Channel.class);
 
       channel.init(ch.pipeline(), remoteId, peerDiscoveryMode, channelManager);
 

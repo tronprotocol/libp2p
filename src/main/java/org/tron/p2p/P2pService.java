@@ -24,7 +24,7 @@ public class P2pService {
   public void start(P2pConfig p2pConfig) {
     Parameter.p2pConfig = p2pConfig;
     nodeManager.init();
-    channelManager.init();
+    channelManager.init(p2pConfig, nodeManager);
     log.info("P2p service started.");
   }
 
@@ -46,7 +46,4 @@ public class P2pService {
     return statsManager.getP2pStats();
   }
 
-  public Collection<Channel> getChannels() {
-    return channelManager.getActiveChannels();
-  }
 }
