@@ -1,14 +1,9 @@
 package org.tron.p2p.connection.message;
 
-public class TcpPingMessage extends P2pMessage {
+public class TcpPingMessage extends Message {
 
-  public TcpPingMessage(byte[] data) {
-    super(data);
-    this.type = Message.PING;
+  public TcpPingMessage() {
+    super(Message.PING, FIXED_PAYLOAD);
   }
 
-  @Override
-  public Class<?> getAnswerMessage() {
-    return TcpPongMessage.class;
-  }
 }

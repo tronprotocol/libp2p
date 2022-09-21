@@ -1,16 +1,12 @@
 package org.tron.p2p;
 
-import java.util.Collection;
-import java.util.List;
+import java.net.InetSocketAddress;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.config.Parameter;
-import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.discover.NodeManager;
 import org.tron.p2p.stats.P2pStats;
 import org.tron.p2p.stats.StatsManager;
-
-import java.net.InetSocketAddress;
 
 @Slf4j
 public class P2pService {
@@ -24,7 +20,7 @@ public class P2pService {
   public void start(P2pConfig p2pConfig) {
     Parameter.p2pConfig = p2pConfig;
     nodeManager.init();
-    channelManager.init();
+    channelManager.init(p2pConfig, nodeManager);
     log.info("P2p service started.");
   }
 
@@ -46,7 +42,4 @@ public class P2pService {
     return statsManager.getP2pStats();
   }
 
-  public Collection<Channel> getChannels() {
-    return channelManager.getActiveChannels();
-  }
 }

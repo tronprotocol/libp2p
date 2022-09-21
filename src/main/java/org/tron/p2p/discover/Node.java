@@ -1,18 +1,15 @@
 package org.tron.p2p.discover;
 
+import java.io.Serializable;
 import java.net.InetSocketAddress;
-import lombok.Data;
-import lombok.Getter;
+import java.util.Random;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.util.encoders.Hex;
-
-import java.io.Serializable;
-import java.util.Random;
+import org.tron.p2p.config.Constant;
 
 @Slf4j(topic = "discover")
-@Data
 public class Node implements Serializable {
   private static final long serialVersionUID = -4267600517925770636L;
 
@@ -24,6 +21,7 @@ public class Node implements Serializable {
 
   private int bindPort;
 
+  @Setter
   private int p2pVersion;
 
   private long updateTime;
@@ -44,6 +42,10 @@ public class Node implements Serializable {
     this.updateTime = System.currentTimeMillis();
   }
 
+  public static Node instanceOf(String host, int port) {
+    return new Node(Node.getNodeId(), host, port);
+  }
+
   public static Node instanceOf(String hostPort) {
     try {
       String[] sz = hostPort.split(":");
@@ -56,7 +58,7 @@ public class Node implements Serializable {
   }
 
   public static byte[] getNodeId() {
-    int NODE_ID_LENGTH = 64;
+    int NODE_ID_LENGTH = Constant.NODE_ID_LEN;
     Random gen = new Random();
     byte[] id = new byte[NODE_ID_LENGTH];
     gen.nextBytes(id);

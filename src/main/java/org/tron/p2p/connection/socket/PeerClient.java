@@ -90,9 +90,4 @@ public class PeerClient {
   }
 //  public void init() {
 //  }
-//
-//  public void connect(InetSocketAddress address){}
-//
-//  public void close() {
-//  }
 }
