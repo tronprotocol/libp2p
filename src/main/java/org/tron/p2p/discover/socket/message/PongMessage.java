@@ -1,6 +1,7 @@
 package org.tron.p2p.discover.socket.message;
 
 import com.google.protobuf.ByteString;
+import org.tron.p2p.config.Parameter;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.protos.Discover;
 import org.tron.p2p.protos.Discover.Endpoint;
@@ -25,7 +26,7 @@ public class PongMessage extends Message {
         .build();
     this.pongMessage = Discover.PongMessage.newBuilder()
         .setFrom(toEndpoint)
-        .setEcho(111) // todo config
+        .setEcho(Parameter.p2pConfig.getVersion())
         .setTimestamp(System.currentTimeMillis())
         .build();
     this.data = this.pongMessage.toByteArray();

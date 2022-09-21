@@ -1,15 +1,16 @@
 package org.tron.p2p.discover.protocol.kad.table;
 
-import org.tron.p2p.discover.Node;
-
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import org.tron.p2p.discover.Node;
 
 public class NodeTable {
   private final Node node;  // our node
   private transient NodeBucket[] buckets;
-  private transient List<NodeEntry> nodes;
+  private transient Map<String, NodeEntry> nodes;
 
   public NodeTable(Node n) {
     this.node = n;
@@ -21,7 +22,7 @@ public class NodeTable {
   }
 
   public final void initialize() {
-    nodes = new ArrayList<>();
+    nodes = new HashMap<>();
     buckets = new NodeBucket[KademliaOptions.BINS];
     for (int i = 0; i < KademliaOptions.BINS; i++) {
       buckets[i] = new NodeBucket(i);
@@ -29,7 +30,11 @@ public class NodeTable {
   }
 
   public synchronized Node addNode(Node n) {
-    NodeEntry entry = getNodeEntry(n);
+    if (n.getHost().equals(node.getHost())) {
+      return null;
+    }
+
+    NodeEntry entry = nodes.get(n.getHost());
     if (entry != null) {
       entry.touch();
       return null;
@@ -40,24 +45,24 @@ public class NodeTable {
     if (lastSeen != null) {
       return lastSeen.getNode();
     }
-    nodes.add(e);
+    nodes.put(n.getHost(), e);
     return null;
   }
 
   public synchronized void dropNode(Node n) {
-    NodeEntry entry = getNodeEntry(n);
+    NodeEntry entry = nodes.get(n.getHost());
     if (entry != null) {
-      nodes.remove(entry);
+      nodes.remove(n.getHost());
       buckets[getBucketId(entry)].dropNode(entry);
     }
   }
 
   public synchronized boolean contains(Node n) {
-    return getNodeEntry(n) != null;
+    return nodes.containsKey(n.getHost());
   }
 
   public synchronized void touchNode(Node n) {
-    NodeEntry entry = getNodeEntry(n);
+    NodeEntry entry = nodes.get(n.getHost());
     if (entry != null) {
       entry.touch();
     }
@@ -83,9 +88,7 @@ public class NodeTable {
   }
 
   public synchronized List<NodeEntry> getAllNodes() {
-    List<NodeEntry> list = new ArrayList<>(nodes);
-    list.remove(new NodeEntry(node.getId(), node));
-    return list;
+    return new ArrayList<>(nodes.values());
   }
 
   public synchronized List<Node> getClosestNodes(byte[] targetId) {
@@ -101,14 +104,11 @@ public class NodeTable {
     return closestNodes;
   }
 
-  private NodeEntry getNodeEntry(Node n) {
-    NodeEntry entry = null;
-    for (NodeEntry e: nodes) {
-      if (e.getNode().getHost().equals(n.getHost())) {
-        entry = e;
-        break;
-      }
+  public synchronized List<Node> getTableNodes() {
+    List<Node> nodeList = new ArrayList<>();
+    for (NodeEntry nodeEntry : nodes.values()) {
+      nodeList.add(nodeEntry.getNode());
     }
-    return entry;
+    return nodeList;
   }
 }

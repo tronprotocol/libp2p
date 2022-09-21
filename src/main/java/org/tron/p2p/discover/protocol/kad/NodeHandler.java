@@ -1,18 +1,16 @@
 package org.tron.p2p.discover.protocol.kad;
 
+import java.net.InetSocketAddress;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.config.Parameter;
 import org.tron.p2p.discover.Node;
-import org.tron.p2p.discover.NodeManager;
 import org.tron.p2p.discover.socket.UdpEvent;
 import org.tron.p2p.discover.socket.message.*;
-
-import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j(topic = "discover")
 public class NodeHandler {

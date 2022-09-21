@@ -1,14 +1,13 @@
 package org.tron.p2p.discover.protocol.kad;
 
-import lombok.extern.slf4j.Slf4j;
-import org.tron.p2p.discover.Node;
-import org.tron.p2p.discover.protocol.kad.table.KademliaOptions;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import lombok.extern.slf4j.Slf4j;
+import org.tron.p2p.discover.Node;
+import org.tron.p2p.discover.protocol.kad.table.KademliaOptions;
 
 @Slf4j
 public class DiscoverTask {
@@ -39,6 +38,7 @@ public class DiscoverTask {
         log.error("DiscoverTask fails to be executed", e);
       }
     }, 1, KademliaOptions.DISCOVER_CYCLE, TimeUnit.MILLISECONDS);
+    log.debug("DiscoverTask started");
   }
 
   private void discover(byte[] nodeId, int round, List<Node> prevTriedNodes) {
