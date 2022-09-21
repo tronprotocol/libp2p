@@ -8,14 +8,12 @@ import io.netty.handler.timeout.ReadTimeoutException;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.tron.p2p.connection.business.handshake.HandshakeService;
+import org.tron.p2p.connection.message.HelloMessage;
 import org.tron.p2p.exception.P2pException;
 import com.google.protobuf.ByteString;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPipeline;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import lombok.Getter;
-import lombok.Setter;
 import org.tron.p2p.discover.Node;
 
 import java.io.IOException;
@@ -25,21 +23,26 @@ import java.net.SocketAddress;
 public class Channel {
   @Setter
   private ChannelHandlerContext ctx;
+  private HandshakeService handshakeService = new HandshakeService();
   @Getter
   private volatile long disconnectTime;
   private volatile boolean isDisconnect;
   @Getter
   @Setter
-  long lastSendTime = 0;
+  private long lastSendTime = 0;
+  @Getter
+  private final long startTime = System.currentTimeMillis();
   @Getter
   private boolean isActive;
   private InetSocketAddress inetSocketAddress;
+  @Getter
   private Node node;
-  private long startTime;
-
   @Getter
   @Setter
   private ByteString address;
+  @Getter
+  @Setter
+  private volatile boolean finishHandshake;
 
   private boolean isTrustPeer;
 
@@ -47,7 +50,12 @@ public class Channel {
       ChannelManager channelManager) {
   }
 
-  public void disconnect(Channel channel, int code) {
+  public void disconnect(Channel channel, long code) {
+  }
+
+  public void channelActive(ChannelHandlerContext ctx) {
+    log.info("Channel active, {}", ctx.channel().remoteAddress());
+    this.ctx = ctx;
   }
 
   public void send(byte[] data) {
@@ -62,6 +70,10 @@ public class Channel {
                 ctx.channel().remoteAddress(), data[0]);
       }
     });
+  }
+
+  public void handleHelloMessage(HelloMessage helloMessage) {
+    handshakeService.handleHelloMsg(this, helloMessage);
   }
 
   public void processException(Throwable throwable) {
