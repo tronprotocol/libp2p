@@ -11,7 +11,7 @@ public interface DiscoverService extends EventHandler {
 
   void close();
 
-  void updateNode(Node node);
+  Node updateNode(Node node);
 
   List<Node> getConnectableNodes();
 

@@ -15,8 +15,11 @@ public class KeepAliveTask {
   private ScheduledExecutorService executor =
       Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "KeepAliveTask"));
 
-  public void init(ChannelManager channelManager) {
+  public KeepAliveTask(ChannelManager channelManager) {
     this.channelManager = channelManager;
+  }
+
+  public void init() {
     executor.scheduleWithFixedDelay(() -> {
       try {
         long now = System.currentTimeMillis();

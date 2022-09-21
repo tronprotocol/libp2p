@@ -1,47 +1,55 @@
 package org.tron.p2p.connection;
 
 import com.google.common.base.Throwables;
+import com.google.protobuf.ByteString;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import io.netty.handler.timeout.ReadTimeoutException;
 import io.netty.handler.timeout.ReadTimeoutHandler;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.tron.p2p.connection.business.handshake.HandshakeHandler;
 import org.tron.p2p.connection.socket.MessageHandler;
 import org.tron.p2p.connection.socket.TrxProtobufVarint32FrameDecoder;
-import org.tron.p2p.exception.P2pException;
-import com.google.protobuf.ByteString;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import org.tron.p2p.discover.Node;
-
-import java.io.IOException;
-import java.net.SocketAddress;
+import org.tron.p2p.discover.NodeManager;
+import org.tron.p2p.exception.P2pException;
+import org.tron.p2p.protos.Connect.HelloMessage;
 import org.tron.p2p.stats.P2pStats;
 
 @Slf4j(topic = "net")
 public class Channel {
 
   private ChannelManager channelManager;
+  private NodeManager nodeManager;
   @Setter
   private ChannelHandlerContext ctx;
 
   private P2pStats p2pStats;
   private MessageHandler messageHandler;
+  private HandshakeHandler handshakeHandler;
   @Getter
   private volatile long disconnectTime;
   private volatile boolean isDisconnect;
   @Getter
   @Setter
-  long lastSendTime = 0;
+  private long lastSendTime = 0;
   @Getter
   private boolean isActive;
   private InetSocketAddress inetSocketAddress;
+  @Setter
+  @Getter
   private Node node;
+  @Getter
+  @Setter
   private long startTime;
 
   @Getter
@@ -66,14 +74,26 @@ public class Channel {
     pipeline.addLast("lengthDecode", new TrxProtobufVarint32FrameDecoder(this));
 
     //handshake first
-    //pipeline.addLast("handshakeHandler", handshakeHandler); //todo
+    pipeline.addLast("handshakeHandler", handshakeHandler);
 
-    //messageCodec.setChannel(this);
-    //handshakeHandler.setChannel(this, remoteId); //todo
+    handshakeHandler.setChannel(this, remoteId); //todo
     messageHandler.setChannel(this);
   }
 
-  public void disconnect(Channel channel, int code) {
+  //invoke by handshake
+  public void publicHandshakeFinished(ChannelHandlerContext ctx, HelloMessage msg) {
+    isTrustPeer = channelManager.getTrustNodes().getIfPresent(getInetAddress()) != null;
+
+    ctx.pipeline().remove(handshakeHandler);
+    ctx.pipeline().addLast("messageCodec", messageHandler);
+
+    setStartTime(msg.getTimestamp());
+//    setTronState(TronState.HANDSHAKE_FINISHED);
+//    getNodeStatistics().p2pHandShake.add();
+    log.info("Finish handshake with {}.", ctx.channel().remoteAddress());
+  }
+
+  public void disconnect(int code) {
     this.isDisconnect = true;
     this.disconnectTime = System.currentTimeMillis();
     channelManager.processDisconnect(this, code);
@@ -98,6 +118,12 @@ public class Channel {
             ctx.channel().remoteAddress(), data[0]);
       }
     });
+    setLastSendTime(System.currentTimeMillis());
+  }
+
+  public void initNode(byte[] nodeId, int remotePort) {
+    Node n = new Node(nodeId, inetSocketAddress.getHostString(), remotePort);
+    nodeManager.updateNode(n);
   }
 
   public void processException(Throwable throwable) {

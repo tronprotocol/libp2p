@@ -21,6 +21,7 @@ public class MessageHandler extends ByteToMessageDecoder {
 
   @Override
   public void handlerAdded(ChannelHandlerContext ctx) {
+    //send Ping period, but replace by KeepAliveTask
   }
 
   @Override

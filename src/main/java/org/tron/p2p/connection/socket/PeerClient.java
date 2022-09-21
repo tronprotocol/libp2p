@@ -11,23 +11,20 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.tron.p2p.config.Parameter;
+import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.discover.Node;
 
 @Slf4j(topic = "net")
 public class PeerClient {
 
-  @Autowired
-  private Parameter parameter;
+//  private ApplicationContext ctx;
 
-  @Autowired
-  private ApplicationContext ctx;
-
+  private ChannelManager channelManager;
   private EventLoopGroup workerGroup;
 
-  public PeerClient() {
+  public PeerClient(ChannelManager channelManager) {
+    this.channelManager = channelManager;
     workerGroup = new NioEventLoopGroup(0, new ThreadFactory() {
       private AtomicInteger cnt = new AtomicInteger(0);
 
@@ -65,8 +62,10 @@ public class PeerClient {
 
     log.info("connect peer {} {} {}", host, port, remoteId);
 
-    P2pChannelInitializer tronChannelInitializer = ctx
-        .getBean(P2pChannelInitializer.class, remoteId);
+//    P2pChannelInitializer tronChannelInitializer = ctx
+//        .getBean(P2pChannelInitializer.class, remoteId);
+    P2pChannelInitializer tronChannelInitializer = new P2pChannelInitializer(remoteId,
+        channelManager);
     tronChannelInitializer.setPeerDiscoveryMode(discoveryMode);
 
     Bootstrap b = new Bootstrap();
@@ -75,7 +74,7 @@ public class PeerClient {
 
     b.option(ChannelOption.SO_KEEPALIVE, true);
     b.option(ChannelOption.MESSAGE_SIZE_ESTIMATOR, DefaultMessageSizeEstimator.DEFAULT);
-    b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, parameter.getNodeConnectionTimeout());
+    b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, Parameter.nodeConnectionTimeout);
     b.remoteAddress(host, port);
 
     b.handler(tronChannelInitializer);
