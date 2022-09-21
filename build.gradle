@@ -41,6 +41,7 @@ dependencies {
 
     compile group: 'com.google.protobuf', name: 'protobuf-java', version: protobufVersion
     compile group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
+    compile group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
 
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
     implementation group: 'io.netty', name: 'netty-all', version: '4.1.17.Final'

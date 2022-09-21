@@ -1,26 +1,36 @@
 package org.tron.p2p.discover;
 
 import java.util.List;
-import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.discover.protocol.kad.KadService;
+import org.tron.p2p.discover.socket.DiscoverServer;
 
+@Slf4j
 public class NodeManager {
 
-  @Getter
-  private Node homeNode;
-
   private DiscoverService discoverService;
+  private DiscoverServer discoverServer;
 
   public void init() {
     discoverService = new KadService();
     discoverService.init();
+    discoverServer = new DiscoverServer();
+    new Thread(() -> {
+      try {
+        discoverServer.init(discoverService);
+      } catch (Exception e) {
+        log.error("Discovery server start failed", e);
+      }
+    }, "DiscoverServer").start();
   }
 
   public void close() {
     discoverService.close();
+    discoverServer.close();
   }
 
   public Node updateNode(Node node) {
+    discoverService.updateNode(node);
     return node;
   }
 
@@ -37,7 +47,7 @@ public class NodeManager {
   }
 
   public Node getPublicHomeNode() {
-    return homeNode;
+    return discoverService.getPublicHomeNode();
   }
 
 }

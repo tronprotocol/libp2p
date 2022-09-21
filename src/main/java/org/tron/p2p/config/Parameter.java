@@ -13,7 +13,7 @@ public class Parameter {
 
   private int tcpNettyWorkThreadNum = 100;
 
-  private int udpNettyWorkThreadNum = 100;
+  private int udpNettyWorkThreadNum = 1;
 
   private int nodeConnectionTimeout = 2000;
 
