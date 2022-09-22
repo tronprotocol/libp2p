@@ -18,7 +18,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.config.Parameter;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
-import org.tron.p2p.connection.business.handshake.HandshakeHandler;
 import org.tron.p2p.connection.business.handshake.HandshakeService;
 import org.tron.p2p.connection.message.HelloMessage;
 import org.tron.p2p.connection.socket.MessageHandler;
@@ -40,7 +39,7 @@ public class Channel {
 
   private P2pStats p2pStats;
   private MessageHandler messageHandler;
-  private HandshakeHandler handshakeHandler;
+  //private HandshakeHandler handshakeHandler;
   @Getter
   private volatile long disconnectTime;
   private volatile boolean isDisconnect;
@@ -72,7 +71,7 @@ public class Channel {
     this.nodeManager = nodeManager;
 
     this.messageHandler = new MessageHandler();
-    this.handshakeHandler = new HandshakeHandler();
+    //this.handshakeHandler = new HandshakeHandler();
 
     isActive = remoteId != null && !remoteId.isEmpty();
 
@@ -81,11 +80,12 @@ public class Channel {
     //pipeline.addLast(stats.tcp); // todo
     pipeline.addLast("protoPender", new ProtobufVarint32LengthFieldPrepender());
     pipeline.addLast("lengthDecode", new TrxProtobufVarint32FrameDecoder(this));
+    pipeline.addLast("messageDecode", messageHandler);
 
     //handshake first
-    pipeline.addLast("handshakeHandler", handshakeHandler);
+    //pipeline.addLast("handshakeHandler", handshakeHandler);
 
-    handshakeHandler.setChannel(this, remoteId); //todo
+    //handshakeHandler.setChannel(this, remoteId); //todo
     messageHandler.setChannel(this);
   }
 
@@ -94,7 +94,7 @@ public class Channel {
     isTrustPeer = Parameter.p2pConfig.getTrustNodes()
         .contains((InetSocketAddress) ctx.channel().remoteAddress());
 
-    ctx.pipeline().remove(handshakeHandler);
+    //ctx.pipeline().remove(handshakeHandler);
     ctx.pipeline().addLast("messageCodec", messageHandler);
 
 //    setTronState(TronState.HANDSHAKE_FINISHED);
