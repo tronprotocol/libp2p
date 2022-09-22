@@ -9,33 +9,33 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LoggingHandler;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.tron.p2p.config.Parameter;
+import org.tron.p2p.connection.ChannelManager;
+import org.tron.p2p.discover.NodeManager;
 
 @Slf4j(topic = "net")
 public class PeerServer {
 
-  @Autowired
-  private Parameter parameter;
-
-  private ApplicationContext ctx;
-
   private boolean listening;
-
+  private ChannelManager channelManager;
+  @Setter
+  @Getter
+  private NodeManager nodeManager;
   private ChannelFuture channelFuture;
 
-  @Autowired
-  public PeerServer(final ApplicationContext ctx) {
-    this.ctx = ctx;
+  public PeerServer(ChannelManager channelManager) {
+    this.channelManager = channelManager;
   }
 
   public void start(int port) {
 
     EventLoopGroup bossGroup = new NioEventLoopGroup(1);
-    EventLoopGroup workerGroup = new NioEventLoopGroup(parameter.getTcpNettyWorkThreadNum());
-    P2pChannelInitializer tronChannelInitializer = ctx.getBean(P2pChannelInitializer.class, "");
+    EventLoopGroup workerGroup = new NioEventLoopGroup(Parameter.tcpNettyWorkThreadNum);
+    P2pChannelInitializer tronChannelInitializer = new P2pChannelInitializer("", channelManager,
+        nodeManager);
 
     try {
       ServerBootstrap b = new ServerBootstrap();
@@ -44,7 +44,7 @@ public class PeerServer {
       b.channel(NioServerSocketChannel.class);
 
       b.option(ChannelOption.MESSAGE_SIZE_ESTIMATOR, DefaultMessageSizeEstimator.DEFAULT);
-      b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, parameter.getNodeConnectionTimeout());
+      b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, Parameter.nodeConnectionTimeout);
 
       b.handler(new LoggingHandler());
       b.childHandler(tronChannelInitializer);

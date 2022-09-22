@@ -7,14 +7,15 @@ import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.tron.p2p.P2pConfig;
 import org.tron.p2p.config.Parameter;
+import org.tron.p2p.connection.business.KeepAliveTask;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
-import org.tron.p2p.P2pConfig;
-import org.tron.p2p.connection.business.KeepAliveTask;
 import org.tron.p2p.connection.socket.SyncPool;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
@@ -35,17 +36,32 @@ public class ChannelManager {
 
   @Getter
   private static final Cache<InetAddress, Node> bannedNodes = CacheBuilder
-          .newBuilder().maximumSize(2000).build();
+      .newBuilder().maximumSize(2000).build();
+
+  @Getter
+  private Cache<InetAddress, DisconnectCode> recentlyDisconnected = CacheBuilder.newBuilder()
+      .maximumSize(1000).expireAfterWrite(30, TimeUnit.SECONDS).recordStats().build();
 
   @Getter
   private Map<InetAddress, Node> activeNodes = new ConcurrentHashMap();
 
-  public void init(P2pConfig p2pConfig, NodeManager nodeManager) {
-    if (p2pConfig.getPort() > 0) {
+  private P2pConfig p2pConfig;
+
+  public ChannelManager() {
+    peerServer = new PeerServer(this);
+    peerClient = new PeerClient(this);
+    keepAliveTask = new KeepAliveTask(this);
+    syncPool = new SyncPool(this);
+  }
+
+  public void init(NodeManager nodeManager) {
+    this.p2pConfig = Parameter.p2pConfig;
+    if (this.p2pConfig.getPort() > 0) {
+      peerServer.setNodeManager(nodeManager);
       new Thread(() -> peerServer.start(p2pConfig.getPort()), "PeerServerThread").start();
     }
 
-    peerClient = new PeerClient();
+    peerClient.setNodeManager(nodeManager);
 
     for (InetSocketAddress inetSocketAddress : p2pConfig.getActiveNodes()) {
       InetAddress inetAddress = inetSocketAddress.getAddress();
@@ -58,14 +74,13 @@ public class ChannelManager {
       Node node = Node.instanceOf(inetAddress.getHostAddress(), inetSocketAddress.getPort());
     }
 
+    syncPool.init(peerClient, nodeManager);
 
-    syncPool.init(this, peerClient, nodeManager);
-
-    keepAliveTask.init(this);
+    keepAliveTask.init();
   }
 
   public void connect(InetSocketAddress address) {
-
+    //todo send hello message
   }
 
   public Collection<Channel> getActiveChannels() {
@@ -74,7 +89,9 @@ public class ChannelManager {
 
   public void notifyDisconnect(Channel channel) {
     syncPool.onDisconnect(channel);
-    channels.values().remove(channel);
+    //channels.remove(channel.getNode().getHexId());
+    channels.values().remove(channel); //todo why remove from values, not remove key?
+
 //    if (channel != null) {
 //      if (channel.getNodeStatistics() != null) {
 //        channel.getNodeStatistics().notifyDisconnect();
@@ -96,6 +113,7 @@ public class ChannelManager {
     return cnt;
   }
 
+  //invoke by handshake service
   public static synchronized DisconnectCode processPeer(Channel channel) {
 
     if (!Parameter.p2pConfig.getTrustNodes().contains(channel.getInetAddress())) {
@@ -129,21 +147,19 @@ public class ChannelManager {
     return DisconnectCode.NORMAL;
   }
 
-  public void processDisconnect(Channel channel, int code) {
+  public void processDisconnect(Channel channel, DisconnectCode code) {
     InetAddress inetAddress = channel.getInetAddress();
     if (inetAddress == null) {
       return;
     }
-//    switch (reason) {
-//      case BAD_PROTOCOL:
-//      case BAD_BLOCK:
-//      case BAD_TX:
-//        badPeers.put(channel.getInetAddress(), reason);
-//        break;
-//      default:
-//        recentlyDisconnected.put(channel.getInetAddress(), reason);
-//        break;
-//    }
+    switch (code) {
+      case DIFFERENT_VERSION:
+        bannedNodes.put(channel.getInetAddress(), channel.getNode());
+        break;
+      default:
+        recentlyDisconnected.put(channel.getInetAddress(), code);
+        break;
+    }
 //    MetricsUtil.counterInc(MetricsKey.NET_DISCONNECTION_COUNT);
 //    MetricsUtil.counterInc(MetricsKey.NET_DISCONNECTION_DETAIL + reason);
 //    Metrics.counterInc(MetricKeys.Counter.P2P_DISCONNECT, 1,

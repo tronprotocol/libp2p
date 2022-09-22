@@ -6,27 +6,28 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Component;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
+import org.tron.p2p.discover.NodeManager;
 
 @Slf4j(topic = "net")
-@Component
-@Scope("prototype")
 public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> {
 
 //  private ApplicationContext ctx;
 
   private Channel channel;
+  private NodeManager nodeManager;
   private ChannelManager channelManager;
 
   private String remoteId;
 
   private boolean peerDiscoveryMode = false;
 
-  public P2pChannelInitializer(String remoteId) {
+  public P2pChannelInitializer(String remoteId, ChannelManager channelManager,
+      NodeManager nodeManager) {
     this.remoteId = remoteId;
+    this.channelManager = channelManager;
+    this.nodeManager = nodeManager;
   }
 
   @Override
@@ -34,7 +35,8 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
     try {
       //final Channel channel = ctx.getBean(Channel.class);
 
-      channel.init(ch.pipeline(), remoteId, peerDiscoveryMode, channelManager);
+      channel = new Channel();
+      channel.init(ch.pipeline(), remoteId, peerDiscoveryMode, channelManager, nodeManager);
 
       // limit the size of receiving buffer to 1024
       ch.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(256 * 1024));

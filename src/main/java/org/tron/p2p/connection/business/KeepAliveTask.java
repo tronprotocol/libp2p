@@ -15,12 +15,15 @@ public class KeepAliveTask {
   private ScheduledExecutorService executor =
       Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "KeepAliveTask"));
 
-  public void init(ChannelManager channelManager) {
+  public KeepAliveTask(ChannelManager channelManager) {
     this.channelManager = channelManager;
+  }
+
+  public void init() {
     executor.scheduleWithFixedDelay(() -> {
       try {
         long now = System.currentTimeMillis();
-        ChannelManager.getChannels().values().forEach(p -> {
+        channelManager.getChannels().values().forEach(p -> {
           if (now - p.getLastSendTime() > 10_000) {
             // 1. send ping to p
             p.send(new TcpPingMessage().getData());

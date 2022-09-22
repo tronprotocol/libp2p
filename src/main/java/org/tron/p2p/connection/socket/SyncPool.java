@@ -15,7 +15,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.connection.Channel;
@@ -35,7 +34,6 @@ public class SyncPool {
 
   private NodeManager nodeManager;
 
-  @Autowired
   private ApplicationContext ctx;
 
   public static volatile P2pConfig p2pConfig;
@@ -50,9 +48,11 @@ public class SyncPool {
 
   private int disconnectTimeout = 60_000;
 
-  public void init(ChannelManager channelManager, PeerClient peerClient, NodeManager nodeManager) {
-
+  public SyncPool(ChannelManager channelManager) {
     this.channelManager = channelManager;
+  }
+
+  public void init(PeerClient peerClient, NodeManager nodeManager) {
     this.nodeManager = nodeManager;
     this.peerClient = peerClient;
 
@@ -250,8 +250,8 @@ public class SyncPool {
       InetAddress inetAddress = node.getInetSocketAddress().getAddress();
       return !((node.getHost().equals(nodeManager.getPublicHomeNode().getHost())
           && node.getPort() == nodeManager.getPublicHomeNode().getPort())
-//          || (channelManager.getRecentlyDisconnected().getIfPresent(inetAddress) != null)
-//          || (channelManager.getBadPeers().getIfPresent(inetAddress) != null)
+          || (channelManager.getRecentlyDisconnected().getIfPresent(inetAddress) != null)
+          || (channelManager.getBannedNodes().getIfPresent(inetAddress) != null)
           || (channelManager.getConnectionNum(inetAddress)
           >= p2pConfig.getMaxConnectionsWithSameIp())
           || (nodesInUse.contains(node.getHexId()))

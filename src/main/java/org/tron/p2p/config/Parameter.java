@@ -11,11 +11,11 @@ import org.tron.p2p.P2pEventHandler;
 @Configuration
 public class Parameter {
 
-  private int tcpNettyWorkThreadNum = 100;
+  public static int tcpNettyWorkThreadNum = 100;
 
-  private int udpNettyWorkThreadNum = 1;
+  public static int udpNettyWorkThreadNum = 1;
 
-  private int nodeConnectionTimeout = 2000;
+  public static int nodeConnectionTimeout = 2000;
 
   public static volatile P2pConfig p2pConfig;
 

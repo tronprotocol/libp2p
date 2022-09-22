@@ -30,8 +30,7 @@ public class NodeManager {
   }
 
   public Node updateNode(Node node) {
-    discoverService.updateNode(node);
-    return node;
+    return discoverService.updateNode(node);
   }
 
   public List<Node> getConnectableNodes() {

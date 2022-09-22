@@ -69,8 +69,8 @@ public class KadService implements DiscoverService {
     }
   }
 
-  public void updateNode(Node node) {
-    getNodeHandler(node);
+  public Node updateNode(Node node) {
+   return getNodeHandler(node).getNode();
   }
 
   public List<Node> getConnectableNodes() {
