@@ -77,4 +77,18 @@ public class MessageHandler extends ByteToMessageDecoder {
     this.channel = channel;
   }
 
+  private void handMessage(Channel channel, byte[] data) {
+    P2pEventHandler handler = Parameter.handlerMap.get(data[0]);
+    if (handler != null) {
+      if (!channel.isFinishHandshake()) {
+        channel.setFinishHandshake(true);
+        Parameter.handlerList.forEach(h -> h.onConnect(channel));
+      }
+      handler.onMessage(channel, data);
+    } else {
+      log.warn("Receive bad message from {}, type:{}",
+              channel.getInetAddress(), data[0]);
+      channel.close();
+    }
+  }
 }

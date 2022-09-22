@@ -10,16 +10,22 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.config.Parameter;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.discover.Node;
+import org.tron.p2p.discover.NodeManager;
 
 @Slf4j(topic = "net")
 public class PeerClient {
 
 //  private ApplicationContext ctx;
 
+  @Setter
+  @Getter
+  private NodeManager nodeManager;
   private ChannelManager channelManager;
   private EventLoopGroup workerGroup;
 
@@ -65,7 +71,7 @@ public class PeerClient {
 //    P2pChannelInitializer tronChannelInitializer = ctx
 //        .getBean(P2pChannelInitializer.class, remoteId);
     P2pChannelInitializer tronChannelInitializer = new P2pChannelInitializer(remoteId,
-        channelManager);
+        channelManager, nodeManager);
     tronChannelInitializer.setPeerDiscoveryMode(discoveryMode);
 
     Bootstrap b = new Bootstrap();

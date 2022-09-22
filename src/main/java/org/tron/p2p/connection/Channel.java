@@ -16,22 +16,27 @@ import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.tron.p2p.config.Parameter;
+import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.business.handshake.HandshakeHandler;
+import org.tron.p2p.connection.business.handshake.HandshakeService;
+import org.tron.p2p.connection.message.HelloMessage;
 import org.tron.p2p.connection.socket.MessageHandler;
 import org.tron.p2p.connection.socket.TrxProtobufVarint32FrameDecoder;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
 import org.tron.p2p.exception.P2pException;
-import org.tron.p2p.protos.Connect.HelloMessage;
 import org.tron.p2p.stats.P2pStats;
 
 @Slf4j(topic = "net")
 public class Channel {
 
-  private ChannelManager channelManager;
   private NodeManager nodeManager;
+  private ChannelManager channelManager;
+
   @Setter
   private ChannelHandlerContext ctx;
+  private HandshakeService handshakeService = new HandshakeService();
 
   private P2pStats p2pStats;
   private MessageHandler messageHandler;
@@ -42,30 +47,34 @@ public class Channel {
   @Getter
   @Setter
   private long lastSendTime = 0;
+
+  @Getter
+  private final long startTime = System.currentTimeMillis();
   @Getter
   private boolean isActive;
   private InetSocketAddress inetSocketAddress;
-  @Setter
   @Getter
   private Node node;
-  @Getter
-  @Setter
-  private long startTime;
 
   @Getter
   @Setter
   private ByteString address;
+  @Getter
+  @Setter
+  private volatile boolean finishHandshake;
 
-  private boolean isTrustPeer;
+  private boolean isTrustPeer = false;
 
   public void init(ChannelPipeline pipeline, String remoteId, boolean discoveryMode,
-      ChannelManager channelManager) {
+      ChannelManager channelManager, NodeManager nodeManager) {
 
     this.channelManager = channelManager;
+    this.nodeManager = nodeManager;
+
+    this.messageHandler = new MessageHandler();
+    this.handshakeHandler = new HandshakeHandler();
 
     isActive = remoteId != null && !remoteId.isEmpty();
-
-    startTime = System.currentTimeMillis();
 
     //TODO: use config here
     pipeline.addLast("readTimeoutHandler", new ReadTimeoutHandler(60, TimeUnit.SECONDS));
@@ -82,28 +91,26 @@ public class Channel {
 
   //invoke by handshake
   public void publicHandshakeFinished(ChannelHandlerContext ctx, HelloMessage msg) {
-    isTrustPeer = channelManager.getTrustNodes().getIfPresent(getInetAddress()) != null;
+    isTrustPeer = Parameter.p2pConfig.getTrustNodes()
+        .contains((InetSocketAddress) ctx.channel().remoteAddress());
 
     ctx.pipeline().remove(handshakeHandler);
     ctx.pipeline().addLast("messageCodec", messageHandler);
 
-    setStartTime(msg.getTimestamp());
 //    setTronState(TronState.HANDSHAKE_FINISHED);
 //    getNodeStatistics().p2pHandShake.add();
     log.info("Finish handshake with {}.", ctx.channel().remoteAddress());
   }
 
-  public void disconnect(int code) {
+  public void disconnect(DisconnectCode code) {
     this.isDisconnect = true;
     this.disconnectTime = System.currentTimeMillis();
     channelManager.processDisconnect(this, code);
-//    DisconnectMessage msg = new DisconnectMessage(reason);
-//    logger.info("Send to {} online-time {}s, {}",
-//        ctx.channel().remoteAddress(),
-//        (System.currentTimeMillis() - startTime) / 1000,
-//        msg);
-//    getNodeStatistics().nodeDisconnectedLocal(reason);
-//    ctx.writeAndFlush(msg.getSendData()).addListener(future -> close());
+  }
+
+  public void channelActive(ChannelHandlerContext ctx) {
+    log.info("Channel active, {}", ctx.channel().remoteAddress());
+    this.ctx = ctx;
   }
 
   public void send(byte[] data) {
@@ -123,7 +130,11 @@ public class Channel {
 
   public void initNode(byte[] nodeId, int remotePort) {
     Node n = new Node(nodeId, inetSocketAddress.getHostString(), remotePort);
-    nodeManager.updateNode(n);
+    node = nodeManager.updateNode(n);
+  }
+
+  public void handleHelloMessage(HelloMessage helloMessage) {
+    handshakeService.handleHelloMsg(this, helloMessage);
   }
 
   public void processException(Throwable throwable) {

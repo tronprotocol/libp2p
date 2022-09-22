@@ -9,15 +9,21 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LoggingHandler;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.config.Parameter;
 import org.tron.p2p.connection.ChannelManager;
+import org.tron.p2p.discover.NodeManager;
 
 @Slf4j(topic = "net")
 public class PeerServer {
 
   private boolean listening;
   private ChannelManager channelManager;
+  @Setter
+  @Getter
+  private NodeManager nodeManager;
   private ChannelFuture channelFuture;
 
   public PeerServer(ChannelManager channelManager) {
@@ -28,7 +34,8 @@ public class PeerServer {
 
     EventLoopGroup bossGroup = new NioEventLoopGroup(1);
     EventLoopGroup workerGroup = new NioEventLoopGroup(Parameter.tcpNettyWorkThreadNum);
-    P2pChannelInitializer tronChannelInitializer = new P2pChannelInitializer("", channelManager);
+    P2pChannelInitializer tronChannelInitializer = new P2pChannelInitializer("", channelManager,
+        nodeManager);
 
     try {
       ServerBootstrap b = new ServerBootstrap();

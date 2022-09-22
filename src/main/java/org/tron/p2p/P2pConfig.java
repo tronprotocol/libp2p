@@ -51,52 +51,52 @@ public class P2pConfig {
     this.version = version;
   }
 
-  public P2pConfig withSeedNodes(List<InetSocketAddress> seedNodes) {
+  public P2pConfig setSeedNodes(List<InetSocketAddress> seedNodes) {
     this.seedNodes = seedNodes;
     return this;
   }
 
-  public P2pConfig withTrustNodes(List<InetSocketAddress> trustNodes) {
+  public P2pConfig setTrustNodes(List<InetSocketAddress> trustNodes) {
     this.trustNodes = trustNodes;
     return this;
   }
 
-  public P2pConfig withActiveNodes(List<InetSocketAddress> activeNodes) {
+  public P2pConfig setActiveNodes(List<InetSocketAddress> activeNodes) {
     this.activeNodes = activeNodes;
     return this;
   }
 
-  public P2pConfig withMinConnections(int minConnections) {
+  public P2pConfig setMinConnections(int minConnections) {
     this.minConnections = minConnections;
     return this;
   }
 
-  public P2pConfig withMaxConnections(int maxConnections) {
+  public P2pConfig setMaxConnections(int maxConnections) {
     this.maxConnections = maxConnections;
     return this;
   }
 
-  public P2pConfig withMinActiveConnections(int minActiveConnections) {
+  public P2pConfig setMinActiveConnections(int minActiveConnections) {
     this.minActiveConnections = minActiveConnections;
     return this;
   }
 
-  public P2pConfig withMaxConnectionsWithSameIp(int maxConnectionsWithSameIp) {
+  public P2pConfig setMaxConnectionsWithSameIp(int maxConnectionsWithSameIp) {
     this.maxConnectionsWithSameIp = maxConnectionsWithSameIp;
     return this;
   }
 
-  public P2pConfig withDiscoverEnable(boolean discoverEnable) {
+  public P2pConfig setDiscoverEnable(boolean discoverEnable) {
     this.discoverEnable = discoverEnable;
     return this;
   }
 
-  public P2pConfig withDisconnectionPolicyEnable(boolean disconnectionPolicyEnable) {
+  public P2pConfig setDisconnectionPolicyEnable(boolean disconnectionPolicyEnable) {
     this.disconnectionPolicyEnable = disconnectionPolicyEnable;
     return this;
   }
 
-  public P2pConfig withDiscoveryPingTimeOut(int discoveryPingTimeOut) {
+  public P2pConfig setDiscoveryPingTimeOut(int discoveryPingTimeOut) {
     this.discoveryPingTimeOut = discoveryPingTimeOut;
     return this;
   }

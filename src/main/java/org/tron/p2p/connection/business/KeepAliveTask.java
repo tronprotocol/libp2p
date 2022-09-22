@@ -23,7 +23,7 @@ public class KeepAliveTask {
     executor.scheduleWithFixedDelay(() -> {
       try {
         long now = System.currentTimeMillis();
-        this.channelManager.getActiveChannels().forEach(p -> {
+        channelManager.getChannels().values().forEach(p -> {
           if (now - p.getLastSendTime() > 10_000) {
             // 1. send ping to p
             p.send(new TcpPingMessage().getData());

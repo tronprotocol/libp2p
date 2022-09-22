@@ -7,6 +7,7 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.util.encoders.Hex;
+import org.tron.p2p.config.Constant;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.protos.Connect.HelloMessage;
 
@@ -21,7 +22,7 @@ public class HandshakeHandler extends ByteToMessageDecoder {
   public void channelActive(ChannelHandlerContext ctx) throws Exception {
     log.info("channel active, {}", ctx.channel().remoteAddress());
     channel.setChannelHandlerContext(ctx);
-    if (remoteId.length == 64) {
+    if (remoteId.length == Constant.NODE_ID_LEN) {
       channel.initNode(remoteId, ((InetSocketAddress) ctx.channel().remoteAddress()).getPort());
       sendHelloMsg(ctx, System.currentTimeMillis());
     }
