@@ -10,7 +10,7 @@ import org.tron.p2p.discover.NodeManager;
 import org.tron.p2p.stats.P2pStats;
 import org.tron.p2p.stats.StatsManager;
 
-@Slf4j
+@Slf4j(topic = "net")
 public class P2pService {
 
   private NodeManager nodeManager = new NodeManager();
