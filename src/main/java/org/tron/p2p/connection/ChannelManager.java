@@ -20,6 +20,7 @@ import org.tron.p2p.connection.socket.PeerServer;
 import org.tron.p2p.connection.socket.SyncPool;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
+import org.tron.p2p.utils.ByteArray;
 
 @Slf4j(topic = "net")
 public class ChannelManager {
@@ -78,12 +79,10 @@ public class ChannelManager {
     keepAliveTask.init();
   }
 
+  //used by fast forward node
   public void connect(InetSocketAddress address) {
-    for (Channel channel : channels.values()) {
-      if (channel.getInetAddress().equals(address.getAddress())) {
-        handshakeService.sendHelloMsg(channel, DisconnectCode.NORMAL);
-      }
-    }
+    peerClient.connect(address.getAddress().getHostAddress(), address.getPort(),
+        ByteArray.toHexString(Node.getNodeId()));
   }
 
   public Collection<Channel> getActiveChannels() {
@@ -160,10 +159,6 @@ public class ChannelManager {
         recentlyDisconnected.put(channel.getInetAddress(), code);
         break;
     }
-//    MetricsUtil.counterInc(MetricsKey.NET_DISCONNECTION_COUNT);
-//    MetricsUtil.counterInc(MetricsKey.NET_DISCONNECTION_DETAIL + reason);
-//    Metrics.counterInc(MetricKeys.Counter.P2P_DISCONNECT, 1,
-//        reason.name().toLowerCase(Locale.ROOT));
   }
 
   public void close() {

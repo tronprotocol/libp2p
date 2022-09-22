@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.util.encoders.Hex;
 import org.tron.p2p.config.Parameter;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.business.handshake.HandshakeService;
@@ -72,8 +73,7 @@ public class Channel {
 
     this.channelManager = channelManager;
     this.nodeManager = nodeManager;
-
-    this.messageHandler = new MessageHandler();
+    this.messageHandler = new MessageHandler(this, Hex.decode(remoteId));
 
     isActive = remoteId != null && !remoteId.isEmpty();
 
@@ -83,8 +83,6 @@ public class Channel {
     pipeline.addLast("protoPender", new ProtobufVarint32LengthFieldPrepender());
     pipeline.addLast("lengthDecode", new TrxProtobufVarint32FrameDecoder(this));
     pipeline.addLast("messageDecode", messageHandler);
-
-    messageHandler.setChannel(this);
   }
 
   //invoke by handshake
