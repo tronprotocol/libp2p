@@ -14,6 +14,7 @@ import org.tron.p2p.P2pConfig;
 import org.tron.p2p.config.Parameter;
 import org.tron.p2p.connection.business.KeepAliveTask;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
+import org.tron.p2p.connection.business.handshake.HandshakeService;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
 import org.tron.p2p.connection.socket.SyncPool;
@@ -30,6 +31,8 @@ public class ChannelManager {
   private SyncPool syncPool;
 
   private KeepAliveTask keepAliveTask;
+
+  private HandshakeService handshakeService;
 
   @Getter
   private static final Map<String, Channel> channels = new ConcurrentHashMap<>();
@@ -52,6 +55,7 @@ public class ChannelManager {
     peerClient = new PeerClient(this);
     keepAliveTask = new KeepAliveTask(this);
     syncPool = new SyncPool(this);
+    handshakeService = new HandshakeService();
   }
 
   public void init(NodeManager nodeManager) {
@@ -69,18 +73,17 @@ public class ChannelManager {
       activeNodes.put(inetAddress, node);
     }
 
-    for (InetSocketAddress inetSocketAddress : p2pConfig.getTrustNodes()) {
-      InetAddress inetAddress = inetSocketAddress.getAddress();
-      Node node = Node.instanceOf(inetAddress.getHostAddress(), inetSocketAddress.getPort());
-    }
-
     syncPool.init(peerClient, nodeManager);
 
     keepAliveTask.init();
   }
 
   public void connect(InetSocketAddress address) {
-    //todo send hello message
+    for (Channel channel : channels.values()) {
+      if (channel.getInetAddress().equals(address.getAddress())) {
+        handshakeService.sendHelloMsg(channel, DisconnectCode.NORMAL);
+      }
+    }
   }
 
   public Collection<Channel> getActiveChannels() {
@@ -92,15 +95,12 @@ public class ChannelManager {
     //channels.remove(channel.getNode().getHexId());
     channels.values().remove(channel); //todo why remove from values, not remove key?
 
-//    if (channel != null) {
-//      if (channel.getNodeStatistics() != null) {
-//        channel.getNodeStatistics().notifyDisconnect();
-//      }
-//      InetAddress inetAddress = channel.getInetAddress();
-//      if (inetAddress != null && recentlyDisconnected.getIfPresent(inetAddress) == null) {
-//        recentlyDisconnected.put(channel.getInetAddress(), UNKNOWN);
-//      }
-//    }
+    if (channel != null) {
+      InetAddress inetAddress = channel.getInetAddress();
+      if (inetAddress != null && recentlyDisconnected.getIfPresent(inetAddress) == null) {
+        recentlyDisconnected.put(channel.getInetAddress(), DisconnectCode.UNKNOWN);
+      }
+    }
   }
 
   public static int getConnectionNum(InetAddress inetAddress) {

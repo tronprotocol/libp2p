@@ -64,6 +64,9 @@ public class Channel {
 
   private boolean isTrustPeer = false;
 
+  public Channel() {
+  }
+
   public void init(ChannelPipeline pipeline, String remoteId, boolean discoveryMode,
       ChannelManager channelManager, NodeManager nodeManager) {
 
@@ -71,7 +74,6 @@ public class Channel {
     this.nodeManager = nodeManager;
 
     this.messageHandler = new MessageHandler();
-    //this.handshakeHandler = new HandshakeHandler();
 
     isActive = remoteId != null && !remoteId.isEmpty();
 
@@ -82,10 +84,6 @@ public class Channel {
     pipeline.addLast("lengthDecode", new TrxProtobufVarint32FrameDecoder(this));
     pipeline.addLast("messageDecode", messageHandler);
 
-    //handshake first
-    //pipeline.addLast("handshakeHandler", handshakeHandler);
-
-    //handshakeHandler.setChannel(this, remoteId); //todo
     messageHandler.setChannel(this);
   }
 

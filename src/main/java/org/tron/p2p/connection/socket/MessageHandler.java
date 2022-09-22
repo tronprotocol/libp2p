@@ -16,7 +16,7 @@ import org.tron.p2p.connection.message.TcpPongMessage;
 public class MessageHandler extends ByteToMessageDecoder {
 
   private Channel channel;
-  
+
   @Override
   public void handlerAdded(ChannelHandlerContext ctx) {
     //send Ping period, but replace by KeepAliveTask
@@ -47,6 +47,7 @@ public class MessageHandler extends ByteToMessageDecoder {
           handMessage(channel, data);
           break;
       }
+      channel.setLastSendTime(System.currentTimeMillis());
     } catch (Exception e) {
       channel.processException(e);
     }

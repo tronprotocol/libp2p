@@ -5,6 +5,10 @@ import "Discover.proto";
 option java_package = "org.tron.p2p.protos";
 option java_outer_classname = "Connect";
 
+message TcpKeepAliveMessage {
+  int64 timestamp = 1;
+}
+
 message HelloMessage {
   Endpoint from = 1;
   int32 version = 2;
