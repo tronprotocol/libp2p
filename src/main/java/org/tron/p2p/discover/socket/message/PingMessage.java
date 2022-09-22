@@ -30,7 +30,7 @@ public class PingMessage extends Message {
         .setAddress(ByteString.copyFrom(ByteArray.fromString(to.getHost())))
         .build();
     this.pingMessage = Discover.PingMessage.newBuilder()
-        .setVersion(111) // todo config
+        .setVersion(Parameter.p2pConfig.getVersion())
         .setFrom(fromEndpoint)
         .setTo(toEndpoint)
         .setTimestamp(System.currentTimeMillis())

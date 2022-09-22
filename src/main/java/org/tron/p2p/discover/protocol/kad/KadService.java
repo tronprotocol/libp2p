@@ -1,5 +1,18 @@
 package org.tron.p2p.discover.protocol.kad;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.config.Parameter;
 import org.tron.p2p.discover.DiscoverService;
 import org.tron.p2p.discover.Node;
@@ -12,17 +25,7 @@ import org.tron.p2p.discover.socket.message.NeighborsMessage;
 import org.tron.p2p.discover.socket.message.PingMessage;
 import org.tron.p2p.discover.socket.message.PongMessage;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Consumer;
-
+@Slf4j
 public class KadService implements DiscoverService {
 
   private static final int MAX_NODES = 2000;
@@ -43,6 +46,7 @@ public class KadService implements DiscoverService {
   private DiscoverTask discoverTask;
 
   public void init() {
+    log.debug("KadService init");
     for (InetSocketAddress boot : Parameter.p2pConfig.getSeedNodes()) {
       bootNodes.add(Node.instanceOf(boot.toString()));
     }
@@ -70,15 +74,22 @@ public class KadService implements DiscoverService {
   }
 
   public List<Node> getConnectableNodes() {
-    return null;
+    return getAllNodes().stream()
+        .filter(node -> node.isConnectible(Parameter.p2pConfig.getVersion()))
+        .sorted(Comparator.comparingLong(node -> -node.getUpdateTime()))
+        .collect(Collectors.toList());
   }
 
   public List<Node> getTableNodes() {
-    return null;
+    return table.getTableNodes();
   }
 
   public List<Node> getAllNodes() {
-    return null;
+    List<Node> nodeList = new ArrayList<>();
+    for (NodeHandler nodeHandler : nodeHandlerMap.values()) {
+      nodeList.add(nodeHandler.getNode());
+    }
+    return nodeList;
   }
 
   @Override
@@ -88,7 +99,9 @@ public class KadService implements DiscoverService {
 
   @Override
   public void channelActivated() {
+    log.debug("channel activated");
     if (!inited) {
+      log.debug("start process boot nodes, size:{}", bootNodes.size());
       inited = true;
 
       for (Node node : bootNodes) {
@@ -180,8 +193,7 @@ public class KadService implements DiscoverService {
     }
     if (nodeHandlerMap.size() > NODES_TRIM_THRESHOLD) {
       List<NodeHandler> sorted = new ArrayList<>(nodeHandlerMap.values());
-      // todo
-      //sorted.sort(Comparator.comparingInt(o -> o.getNodeStatistics().getReputation()));
+      sorted.sort(Comparator.comparingLong(o -> o.getNode().getUpdateTime()));
       for (NodeHandler handler : sorted) {
         nodeHandlerMap.values().remove(handler);
         if (nodeHandlerMap.size() <= MAX_NODES) {

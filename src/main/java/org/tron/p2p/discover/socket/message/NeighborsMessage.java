@@ -1,15 +1,14 @@
 package org.tron.p2p.discover.socket.message;
 
 import com.google.protobuf.ByteString;
+import java.util.ArrayList;
+import java.util.List;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.protos.Discover;
 import org.tron.p2p.protos.Discover.Endpoint;
 import org.tron.p2p.protos.Discover.Neighbours;
 import org.tron.p2p.protos.Discover.Neighbours.Builder;
 import org.tron.p2p.utils.ByteArray;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.tron.p2p.discover.socket.message.UdpMessageTypeEnum.DISCOVER_NEIGHBORS;
 

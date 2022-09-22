@@ -1,10 +1,9 @@
 package org.tron.p2p.discover.socket.message;
 
+import java.util.regex.Pattern;
 import org.springframework.util.StringUtils;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.protocol.kad.table.KademliaOptions;
-
-import java.util.regex.Pattern;
 
 public class DiscoverMessageInspector {
 

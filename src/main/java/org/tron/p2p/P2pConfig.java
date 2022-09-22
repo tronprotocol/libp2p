@@ -3,36 +3,26 @@ package org.tron.p2p;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+
+import lombok.Data;
 import lombok.Getter;
 import org.tron.p2p.discover.Node;
+import org.tron.p2p.utils.NetUtil;
 
+@Data
 public class P2pConfig {
-
-  @Getter
   private List<InetSocketAddress> seedNodes = new ArrayList<>();
-  @Getter
   private List<InetSocketAddress> activeNodes = new ArrayList<>();
-  @Getter
   private List<InetSocketAddress> trustNodes = new ArrayList<>();
-  @Getter
-  private final byte[] nodeID;
-  @Getter
-  private final String ip;
-  @Getter
-  private int port = 18888; //udp port and tcp port
-  @Getter
-  private final int version;
-  @Getter
-  private int minConnections = 10;
-  @Getter
+  private byte[] nodeID = Node.getNodeId();
+  private String ip = NetUtil.getExternalIp();
+  private int port = 18888;
+  private int version = 1;
+  private int minConnections = 8;
   private int maxConnections = 50;
-  @Getter
-  private int minActiveConnections = 6;
-  @Getter
+  private int minActiveConnections = 2;
   private int maxConnectionsWithSameIp = 2;
-  @Getter
-  private boolean discoverEnable = false;
-  @Getter
+  private boolean discoverEnable = true;
   private boolean disconnectionPolicyEnable = false;
   @Getter
   private int discoveryPingTimeOut = 15000;

@@ -1,5 +1,6 @@
 package org.tron.p2p.discover.socket;
 
+import java.util.List;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
@@ -7,9 +8,7 @@ import io.netty.handler.codec.MessageToMessageDecoder;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.discover.socket.message.Message;
 
-import java.util.List;
-
-@Slf4j(topic = "net")
+@Slf4j(topic = "discover")
 public class PacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
 
   private static final int MAXSIZE = 2048;
