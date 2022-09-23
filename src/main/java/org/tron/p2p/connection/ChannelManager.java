@@ -29,6 +29,7 @@ public class ChannelManager {
 
   private PeerClient peerClient;
 
+  @Getter
   private SyncPool syncPool;
 
   private KeepAliveTask keepAliveTask;

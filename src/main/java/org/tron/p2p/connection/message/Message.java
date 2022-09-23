@@ -9,8 +9,6 @@ public abstract class Message {
   public static final byte PONG = (byte) 0xfe;
   public static final byte HELLO = (byte) 0xfd;
 
-  public static final byte[] FIXED_PAYLOAD = Hex.decode("C0");
-
   protected byte[] data;
   protected byte type;
 

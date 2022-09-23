@@ -7,6 +7,7 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.P2pEventHandler;
+import org.tron.p2p.config.Constant;
 import org.tron.p2p.config.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
@@ -38,9 +39,9 @@ public class MessageHandler extends ByteToMessageDecoder {
   @Override
   public void channelActive(ChannelHandlerContext ctx) {
     log.info("Channel active, {}", ctx.channel().remoteAddress());
-    channel.setCtx(ctx);
+    channel.setChannelHandlerContext(ctx);
 
-    if (remoteId.length == 64) {
+    if (remoteId.length == Constant.NODE_ID_LEN) {
       channel.initNode(remoteId, ((InetSocketAddress) ctx.channel().remoteAddress()).getPort());
       handshakeService.sendHelloMsg(channel, DisconnectCode.NORMAL);
     }

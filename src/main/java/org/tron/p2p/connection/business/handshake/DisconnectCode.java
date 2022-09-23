@@ -8,6 +8,7 @@ public enum DisconnectCode {
   DUPLICATE_PEER(4),
   MAX_CONNECTION_WITH_SAME_IP(5),
   PONG_TIME_OUT(6),
+  RANDOM_DISCONNECT(7),
   UNKNOWN(255);
 
   private Integer value;

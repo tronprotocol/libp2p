@@ -17,12 +17,12 @@ public class HandshakeService {
     log.info("Handshake send to {}, {} ", channel.getInetAddress(), helloMessage);
   }
 
-  public void handleHelloMsg(Channel channel, HelloMessage msg) {
+  public boolean handleHelloMsg(Channel channel, HelloMessage msg) {
 
     if (channel.isFinishHandshake()) {
       channel.close();
       log.warn("Close channel {}, handshake is finished", channel.getInetAddress());
-      return;
+      return false;
     }
 
     channel.setFinishHandshake(true);
@@ -32,26 +32,26 @@ public class HandshakeService {
           || msg.getVersion() != version) {
         channel.close();
       }
-      return;
+      return false;
     }
 
     if (msg.getVersion() != version) {
       log.info("Peer {} different p2p version, peer->{}, me->{}",
-              channel.getInetAddress(), msg.getVersion(), version);
+          channel.getInetAddress(), msg.getVersion(), version);
       sendHelloMsg(channel, DisconnectCode.DIFFERENT_VERSION);
       channel.close();
-      return;
+      return false;
     }
 
     DisconnectCode code = ChannelManager.processPeer(channel);
     if (code != DisconnectCode.NORMAL) {
       sendHelloMsg(channel, code);
       channel.close();
-      return;
+      return false;
     }
 
     sendHelloMsg(channel, DisconnectCode.NORMAL);
-
+    return true;
   }
 
 }
