@@ -1,7 +1,6 @@
 package org.tron.p2p.discover.socket.message;
 
 import java.util.regex.Pattern;
-import org.springframework.util.StringUtils;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.protocol.kad.table.KademliaOptions;
 
@@ -48,7 +47,7 @@ public class DiscoverMessageInspector {
     if (!validNode(message.getFrom())) {
       return false;
     }
-    if (!StringUtils.isEmpty(message.getNodes())) {
+    if (message.getNodes() != null && message.getNodes().size() > 0) {
       if (message.getNodes().size() > KademliaOptions.BUCKET_SIZE) {
         return false;
       }

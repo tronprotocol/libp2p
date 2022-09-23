@@ -1,7 +1,6 @@
 package org.tron.p2p.connection.message;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.bouncycastle.util.encoders.Hex;
 
 public abstract class Message {
 

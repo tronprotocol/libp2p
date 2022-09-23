@@ -15,8 +15,10 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.connection.Channel;
@@ -32,19 +34,19 @@ public class SyncPool {
   private final List<PeerConnection> activePeers = Collections.synchronizedList(new ArrayList<>());
   private Cache<InetAddress, Long> nodeHandlerCache = CacheBuilder.newBuilder()
       .maximumSize(1000).expireAfterWrite(180, TimeUnit.SECONDS).recordStats().build();
-//  private final AtomicInteger passivePeersCount = new AtomicInteger(0);
-//  private final AtomicInteger activePeersCount = new AtomicInteger(0);
+  @Getter
+  private final AtomicInteger passivePeersCount = new AtomicInteger(0);
+  @Getter
+  private final AtomicInteger activePeersCount = new AtomicInteger(0);
 
   private NodeManager nodeManager;
-
-  public static volatile P2pConfig p2pConfig;
-
   private ChannelManager channelManager;
 
   private ScheduledExecutorService poolLoopExecutor = Executors.newSingleThreadScheduledExecutor();
   private ScheduledExecutorService disconnectExecutor = Executors.newSingleThreadScheduledExecutor();
   private ScheduledExecutorService logExecutor = Executors.newSingleThreadScheduledExecutor();
 
+  public static volatile P2pConfig p2pConfig;
   private PeerClient peerClient;
 
   private int disconnectTimeout = 60_000;
@@ -104,10 +106,8 @@ public class SyncPool {
     });
 
     //calculate lackSize
-//    int size = Math.max(p2pConfig.getMinConnections() - activePeers.size(),
-//        p2pConfig.getMinActiveConnections() - activePeersCount.get());
     int size = Math.max(p2pConfig.getMinConnections() - activePeers.size(),
-        p2pConfig.getMinActiveConnections());
+        p2pConfig.getMinActiveConnections() - activePeersCount.get());
     int lackSize = size - connectNodes.size();
 
     //choose lackSize nodes from nodeManager that meet special requirement
@@ -158,7 +158,8 @@ public class SyncPool {
   }
 
   synchronized void logActivePeers() {
-    String str = String.format("Peer stats: all %d", channelManager.getActiveChannels().size());
+    String str = String.format("Peer stats: all %d, active %d, passive %d",
+        channelManager.getActiveChannels().size(), activePeersCount.get(), passivePeersCount.get());
     log.info(str);
   }
 
@@ -175,11 +176,11 @@ public class SyncPool {
   public synchronized void onConnect(Channel peer) {
     PeerConnection peerConnection = (PeerConnection) peer;
     if (!activePeers.contains(peerConnection)) {
-//      if (!peerConnection.isActive()) {
-//        passivePeersCount.incrementAndGet();
-//      } else {
-//        activePeersCount.incrementAndGet();
-//      }
+      if (!peerConnection.isActive()) {
+        passivePeersCount.incrementAndGet();
+      } else {
+        activePeersCount.incrementAndGet();
+      }
       activePeers.add(peerConnection);
 //      activePeers
 //          .sort(Comparator.comparingDouble(
@@ -191,20 +192,21 @@ public class SyncPool {
   public synchronized void onDisconnect(Channel peer) {
     PeerConnection peerConnection = (PeerConnection) peer;
     if (activePeers.contains(peerConnection)) {
-//      if (!peerConnection.isActive()) {
-//        passivePeersCount.decrementAndGet();
-//      } else {
-//        activePeersCount.decrementAndGet();
-//      }
+      if (!peerConnection.isActive()) {
+        passivePeersCount.decrementAndGet();
+      } else {
+        activePeersCount.decrementAndGet();
+      }
       activePeers.remove(peerConnection);
       peerConnection.onDisconnect();
     }
   }
 
-//  public boolean isCanConnect() {
-//    return passivePeersCount.get()
-//        < p2pConfig.getMinConnections() - p2pConfig.getMinActiveConnections();
-//  }
+  //business hello message?
+  public boolean isCanConnect() {
+    return passivePeersCount.get()
+        < p2pConfig.getMinConnections() - p2pConfig.getMinActiveConnections();
+  }
 
   public void close() {
     try {
@@ -219,14 +221,6 @@ public class SyncPool {
       log.warn("Problems shutting down executor", e);
     }
   }
-
-//  public AtomicInteger getPassivePeersCount() {
-//    return passivePeersCount;
-//  }
-//
-//  public AtomicInteger getActivePeersCount() {
-//    return activePeersCount;
-//  }
 
   class NodeSelector implements Predicate<Node> {
 

@@ -92,8 +92,7 @@ public class ChannelManager {
 
   public void notifyDisconnect(Channel channel) {
     syncPool.onDisconnect(channel);
-    //channels.remove(channel.getNode().getHexId());
-    channels.values().remove(channel); //todo why remove from values, not remove key?
+    channels.remove(channel.getNode().getHexId());
 
     if (channel != null) {
       InetAddress inetAddress = channel.getInetAddress();
