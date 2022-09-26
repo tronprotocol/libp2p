@@ -48,23 +48,30 @@ public class KadService implements DiscoverService {
   public void init() {
     log.debug("KadService init");
     for (InetSocketAddress boot : Parameter.p2pConfig.getSeedNodes()) {
-      bootNodes.add(Node.instanceOf(boot.toString()));
+      bootNodes.add(Node.instanceOf(boot.getHostString(), boot.getPort()));
     }
     this.pongTimer = Executors.newSingleThreadScheduledExecutor();
     this.homeNode = new Node(Node.getNodeId(), Parameter.p2pConfig.getIp(),
         Parameter.p2pConfig.getPort());
     this.table = new NodeTable(homeNode);
-    discoverTask = new DiscoverTask(this);
-    discoverTask.init();
+
+    if (Parameter.p2pConfig.isDiscoverEnable()) {
+      discoverTask = new DiscoverTask(this);
+      discoverTask.init();
+    }
   }
 
   public void close() {
     try {
-      //nodeManagerTasksTimer.cancel();
-      pongTimer.shutdownNow();
-      discoverTask.close();
+      if (pongTimer != null) {
+        pongTimer.shutdownNow();
+      }
+
+      if (discoverTask != null) {
+        discoverTask.close();
+      }
     } catch (Exception e) {
-      //logger.error("Close nodeManagerTasksTimer or pongTimer failed", e);
+      log.error("Close nodeManagerTasksTimer or pongTimer failed", e);
       throw e;
     }
   }

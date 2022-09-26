@@ -24,8 +24,7 @@ public class DiscoverServer {
   private volatile boolean shutdown = false;
 
   public void init(EventHandler eventHandler) throws Exception {
-    // todo threads num config
-    NioEventLoopGroup group = new NioEventLoopGroup(1);
+    NioEventLoopGroup group = new NioEventLoopGroup(Parameter.udpNettyWorkThreadNum);
     try {
       while (!shutdown) {
         Bootstrap b = new Bootstrap();
