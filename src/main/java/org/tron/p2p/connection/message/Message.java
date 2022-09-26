@@ -29,25 +29,31 @@ public abstract class Message {
 
   public abstract boolean valid();
 
-  public static Message parse(byte[] encode) throws Exception {
+  public static Message parse(byte[] encode) throws P2pException {
     byte type = encode[0];
-    byte[] data = ArrayUtils.subarray(encode, 1, encode.length);
-    Message message = null;
-    switch (MessageType.fromByte(type)) {
-      case KEEP_ALIVE_PING:
-        break;
-      case KEEP_ALIVE_PONG:
-        break;
-      case HANDSHAKE_HELLO:
-        message = new HelloMessage(data);
-        break;
-      default:
-        throw new P2pException(P2pException.TypeEnum.NO_SUCH_MESSAGE, "type=" + type);
+    try {
+      byte[] data = ArrayUtils.subarray(encode, 1, encode.length);
+      Message message = null;
+      switch (MessageType.fromByte(type)) {
+        case KEEP_ALIVE_PING:
+          break;
+        case KEEP_ALIVE_PONG:
+          break;
+        case HANDSHAKE_HELLO:
+          message = new HelloMessage(data);
+          break;
+        default:
+          throw new P2pException(P2pException.TypeEnum.NO_SUCH_MESSAGE, "type=" + type);
+      }
+      if (!message.valid()) {
+        throw new P2pException(P2pException.TypeEnum.BAD_MESSAGE, "type=" + type);
+      }
+      return message;
+    } catch (P2pException p2pException) {
+      throw p2pException;
+    } catch (Exception e) {
+      throw new P2pException(P2pException.TypeEnum.BAD_MESSAGE, "type:" + type);
     }
-    if (!message.valid()) {
-      throw new P2pException(P2pException.TypeEnum.BAD_MESSAGE, "type=" + type);
-    }
-    return message;
   }
 
 }

@@ -14,18 +14,13 @@ import org.tron.p2p.discover.NodeManager;
 public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> {
 
   private Channel channel;
-  private NodeManager nodeManager;
-  private ChannelManager channelManager;
 
   private String remoteId;
 
   private boolean peerDiscoveryMode = false;
 
-  public P2pChannelInitializer(String remoteId, ChannelManager channelManager,
-      NodeManager nodeManager) {
+  public P2pChannelInitializer(String remoteId) {
     this.remoteId = remoteId;
-    this.channelManager = channelManager;
-    this.nodeManager = nodeManager;
   }
 
   @Override
@@ -34,7 +29,7 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
       //final Channel channel = ctx.getBean(Channel.class);
 
       channel = new Channel();
-      channel.init(ch.pipeline(), remoteId, peerDiscoveryMode, channelManager, nodeManager);
+      channel.init(ch.pipeline(), remoteId, peerDiscoveryMode);
 
       // limit the size of receiving buffer to 1024
       ch.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(256 * 1024));
@@ -45,7 +40,7 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
       ch.closeFuture().addListener((ChannelFutureListener) future -> {
         log.info("Close channel:" + channel);
         if (!peerDiscoveryMode) {
-          channelManager.notifyDisconnect(channel);
+          ChannelManager.notifyDisconnect(channel);
         }
       });
 

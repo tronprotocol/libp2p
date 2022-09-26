@@ -20,7 +20,9 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.util.encoders.Hex;
 import org.tron.p2p.P2pConfig;
+import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
@@ -30,7 +32,6 @@ import org.tron.p2p.utils.CollectionUtils;
 
 @Slf4j(topic = "net")
 public class SyncPool {
-
   private final List<PeerConnection> activePeers = Collections.synchronizedList(new ArrayList<>());
   private Cache<InetAddress, Long> nodeHandlerCache = CacheBuilder.newBuilder()
       .maximumSize(1000).expireAfterWrite(180, TimeUnit.SECONDS).recordStats().build();
@@ -38,27 +39,17 @@ public class SyncPool {
   private final AtomicInteger passivePeersCount = new AtomicInteger(0);
   @Getter
   private final AtomicInteger activePeersCount = new AtomicInteger(0);
-
-  private NodeManager nodeManager;
-  private ChannelManager channelManager;
-
   private ScheduledExecutorService poolLoopExecutor = Executors.newSingleThreadScheduledExecutor();
   private ScheduledExecutorService disconnectExecutor = Executors.newSingleThreadScheduledExecutor();
   private ScheduledExecutorService logExecutor = Executors.newSingleThreadScheduledExecutor();
 
-  public static volatile P2pConfig p2pConfig;
+  public P2pConfig p2pConfig = Parameter.p2pConfig;
   private PeerClient peerClient;
 
   private int disconnectTimeout = 60_000;
 
-  public SyncPool(ChannelManager channelManager) {
-    this.channelManager = channelManager;
-  }
-
-  public void init(PeerClient peerClient, NodeManager nodeManager) {
-    this.nodeManager = nodeManager;
+  public void init(PeerClient peerClient) {
     this.peerClient = peerClient;
-
     poolLoopExecutor.scheduleWithFixedDelay(() -> {
       try {
         connect();
@@ -92,16 +83,15 @@ public class SyncPool {
     //collect already used nodes in channelManager
     Set<InetAddress> addressInUse = new HashSet<>();
     Set<String> nodesInUse = new HashSet<>();
-    channelManager.getActiveChannels().forEach(channel -> {
+    ChannelManager.getChannels().values().forEach(channel -> {
       nodesInUse.add(channel.getPeerId());
       addressInUse.add(channel.getInetAddress());
     });
 
     //first choose from active nodes that not used
-    channelManager.getActiveNodes().forEach((address, node) -> {
-      nodesInUse.add(node.getHexId());
+    p2pConfig.getActiveNodes().forEach(address -> {
       if (!addressInUse.contains(address)) {
-        connectNodes.add(nodeManager.updateNode(node));
+        connectNodes.add(new Node(address));
       }
     });
 
@@ -112,7 +102,7 @@ public class SyncPool {
 
     //choose lackSize nodes from nodeManager that meet special requirement
     if (lackSize > 0) {
-      nodesInUse.add(nodeManager.getPublicHomeNode().getHexId());
+      nodesInUse.add(Hex.toHexString(p2pConfig.getNodeID()));
       List<Node> newNodes = getNodes(new NodeSelector(nodesInUse), lackSize);
       connectNodes.addAll(newNodes);
     }
@@ -138,7 +128,7 @@ public class SyncPool {
 
   private void check() {
     // check if active channels < maxConnections
-    if (channelManager.getActiveChannels().size() < p2pConfig.getMaxConnections()) {
+    if (ChannelManager.getChannels().size() < p2pConfig.getMaxConnections()) {
       return;
     }
 
@@ -153,13 +143,13 @@ public class SyncPool {
       List<PeerConnection> list = new ArrayList();
       peers.forEach(p -> list.add(p));
       PeerConnection peer = list.get(new Random().nextInt(peers.size()));
-      peer.disconnect(DisconnectCode.RANDOM_DISCONNECT);
+      peer.close();
     }
   }
 
   synchronized void logActivePeers() {
     String str = String.format("Peer stats: all %d, active %d, passive %d",
-        channelManager.getActiveChannels().size(), activePeersCount.get(), passivePeersCount.get());
+        ChannelManager.getChannels().size(), activePeersCount.get(), passivePeersCount.get());
     log.info(str);
   }
 

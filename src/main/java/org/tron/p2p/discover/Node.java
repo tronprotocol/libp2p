@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.util.encoders.Hex;
 import org.tron.p2p.base.Constant;
+import org.tron.p2p.utils.NetUtil;
 
 @Slf4j(topic = "discover")
 public class Node implements Serializable {
@@ -25,6 +26,14 @@ public class Node implements Serializable {
   private int p2pVersion;
 
   private long updateTime;
+
+  public Node(InetSocketAddress address) {
+    this.id = getNodeId();
+    this.host = address.getHostName();
+    this.port = address.getPort();
+    this.bindPort = port;
+    this.updateTime = System.currentTimeMillis();
+  }
 
   public Node(byte[] id, String host, int port) {
     this.id = id;

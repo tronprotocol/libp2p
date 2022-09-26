@@ -4,7 +4,6 @@ import com.google.protobuf.ByteString;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.util.StringUtils;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.message.MessageType;
 import org.tron.p2p.discover.protocol.kad.table.KademliaOptions;
@@ -54,10 +53,7 @@ public class NeighborsMessage extends KadMessage {
 
   public List<Node> getNodes() {
     List<Node> nodes = new ArrayList<>();
-    neighbours.getNeighboursList().forEach(neighbour -> nodes.add(
-        new Node(neighbour.getNodeId().toByteArray(),
-            ByteArray.toStr(neighbour.getAddress().toByteArray()),
-            neighbour.getPort())));
+    neighbours.getNeighboursList().forEach(n -> nodes.add(NetUtil.getNode(n)));
     return nodes;
   }
 
@@ -81,7 +77,7 @@ public class NeighborsMessage extends KadMessage {
     if (!NetUtil.validNode(getFrom())) {
       return false;
     }
-    if (!StringUtils.isEmpty(getNodes())) {
+    if (!getNodes().isEmpty()) {
       if (getNodes().size() > KademliaOptions.BUCKET_SIZE) {
         return false;
       }

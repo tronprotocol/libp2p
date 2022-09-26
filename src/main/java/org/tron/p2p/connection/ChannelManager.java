@@ -7,77 +7,61 @@ import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.P2pConfig;
+import org.tron.p2p.P2pEventHandler;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.business.keepalive.KeepAliveService;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.business.handshake.HandshakeService;
+import org.tron.p2p.connection.message.Message;
+import org.tron.p2p.connection.message.MessageType;
+import org.tron.p2p.connection.message.handshake.HelloMessage;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
 import org.tron.p2p.connection.socket.SyncPool;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
+import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.utils.ByteArray;
 
 @Slf4j(topic = "net")
 public class ChannelManager {
 
-  private PeerServer peerServer;
+  public static long DEFAULT_BAN_TIME = 60_000;
 
-  private PeerClient peerClient;
+  private static PeerServer peerServer;
+
+  private static PeerClient peerClient;
 
   @Getter
-  private SyncPool syncPool;
+  private static SyncPool syncPool;
 
-  private KeepAliveService keepAliveTask;
+  private static KeepAliveService keepAliveService;
 
-  private HandshakeService handshakeService;
+  @Getter
+  private static HandshakeService handshakeService;
+
+  private static P2pConfig p2pConfig = Parameter.p2pConfig;
 
   @Getter
   private static final Map<String, Channel> channels = new ConcurrentHashMap<>();
 
   @Getter
-  private static final Cache<InetAddress, Node> bannedNodes = CacheBuilder
+  private static final Cache<InetAddress, Long> bannedNodes = CacheBuilder
       .newBuilder().maximumSize(2000).build();
 
-  @Getter
-  private Cache<InetAddress, DisconnectCode> recentlyDisconnected = CacheBuilder.newBuilder()
-      .maximumSize(1000).expireAfterWrite(30, TimeUnit.SECONDS).recordStats().build();
-
-  @Getter
-  private Map<InetAddress, Node> activeNodes = new ConcurrentHashMap();
-
-  private P2pConfig p2pConfig;
-
-  public ChannelManager() {
-    peerServer = new PeerServer(this);
-    peerClient = new PeerClient(this);
-    keepAliveTask = new KeepAliveService(this);
-    syncPool = new SyncPool(this);
-    handshakeService = new HandshakeService();
-  }
-
   public void init(NodeManager nodeManager) {
-    this.p2pConfig = Parameter.p2pConfig;
-    if (this.p2pConfig.getPort() > 0) {
-      peerServer.setNodeManager(nodeManager);
-      new Thread(() -> peerServer.start(p2pConfig.getPort()), "PeerServerThread").start();
-    }
-
-    peerClient.setNodeManager(nodeManager);
-
-    for (InetSocketAddress inetSocketAddress : p2pConfig.getActiveNodes()) {
-      InetAddress inetAddress = inetSocketAddress.getAddress();
-      Node node = Node.instanceOf(inetAddress.getHostAddress(), inetSocketAddress.getPort());
-      activeNodes.put(inetAddress, node);
-    }
-
-    syncPool.init(peerClient, nodeManager);
-
-    keepAliveTask.init();
+    peerServer = new PeerServer();
+    peerClient = new PeerClient();
+    keepAliveService = new KeepAliveService();
+    syncPool = new SyncPool();
+    handshakeService = new HandshakeService();
+    peerServer.init();
+    peerClient.init();
+    keepAliveService.init();
+    syncPool.init(peerClient);
   }
 
   //used by fast forward node
@@ -90,15 +74,13 @@ public class ChannelManager {
     return channels.values();
   }
 
-  public void notifyDisconnect(Channel channel) {
+  public static void notifyDisconnect(Channel channel) {
     syncPool.onDisconnect(channel);
     channels.remove(channel.getNode().getHexId());
-
-    if (channel != null) {
-      InetAddress inetAddress = channel.getInetAddress();
-      if (inetAddress != null && recentlyDisconnected.getIfPresent(inetAddress) == null) {
-        recentlyDisconnected.put(channel.getInetAddress(), DisconnectCode.UNKNOWN);
-      }
+    Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
+    InetAddress inetAddress = channel.getInetAddress();
+    if (inetAddress != null && bannedNodes.getIfPresent(inetAddress) == null) {
+      bannedNodes.put(channel.getInetAddress(), System.currentTimeMillis() + DEFAULT_BAN_TIME);
     }
   }
 
@@ -146,25 +128,49 @@ public class ChannelManager {
     return DisconnectCode.NORMAL;
   }
 
-  public void processDisconnect(Channel channel, DisconnectCode code) {
-    InetAddress inetAddress = channel.getInetAddress();
-    if (inetAddress == null) {
-      return;
-    }
-    switch (code) {
-      case DIFFERENT_VERSION:
-        bannedNodes.put(channel.getInetAddress(), channel.getNode());
+  public static void banNode(InetAddress inetAddress) {
+    bannedNodes.put(inetAddress, DEFAULT_BAN_TIME);
+  }
+
+  public static void banNode(InetAddress inetAddress, Long banTime) {
+    bannedNodes.put(inetAddress, banTime);
+  }
+
+  public static void close() {
+    syncPool.close();
+    keepAliveService.close();
+    peerClient.close();
+    peerServer.close();
+  }
+
+  public static void processMessage(Channel channel, byte[] data) throws P2pException {
+    channel.setLastSendTime(System.currentTimeMillis());
+    Message message = Message.parse(data);
+    switch (message.getType()) {
+      case KEEP_ALIVE_PING:
+      case KEEP_ALIVE_PONG:
+        keepAliveService.processMessage(channel, message);
+        break;
+      case HANDSHAKE_HELLO:
+        handshakeService.processMessage(channel, message);
         break;
       default:
-        recentlyDisconnected.put(channel.getInetAddress(), code);
+        handMessage(channel, data);
         break;
     }
   }
 
-  public void close() {
-    syncPool.close();
-    peerServer.close();
-    peerClient.close();
+  private static void handMessage(Channel channel, byte[] data) throws P2pException {
+    P2pEventHandler handler = Parameter.handlerMap.get(data[0]);
+    if (handler == null) {
+      throw new P2pException(P2pException.TypeEnum.NO_SUCH_MESSAGE, "type:" + data[0]);
+    }
+
+    if (!channel.isFinishHandshake()) {
+      channel.setFinishHandshake(true);
+      Parameter.handlerList.forEach(h -> h.onConnect(channel));
+    }
+    handler.onMessage(channel, data);
   }
 
 }

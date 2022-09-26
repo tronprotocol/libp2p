@@ -18,25 +18,31 @@ import org.tron.p2p.discover.NodeManager;
 
 @Slf4j(topic = "net")
 public class PeerServer {
-
-  private boolean listening;
-  private ChannelManager channelManager;
-  @Setter
-  @Getter
-  private NodeManager nodeManager;
   private ChannelFuture channelFuture;
+  private boolean listening;
 
-  public PeerServer(ChannelManager channelManager) {
-    this.channelManager = channelManager;
+  public void init() {
+    int port = Parameter.p2pConfig.getPort();
+    if (port > 0) {
+      new Thread(() -> start(port), "PeerServer").start();
+    }
+  }
+
+  public void close() {
+    if (listening && channelFuture != null && channelFuture.channel().isOpen()) {
+      try {
+        log.info("Closing TCP server...");
+        channelFuture.channel().close().sync();
+      } catch (Exception e) {
+        log.warn("Closing TCP server failed.", e);
+      }
+    }
   }
 
   public void start(int port) {
-
     EventLoopGroup bossGroup = new NioEventLoopGroup(1);
     EventLoopGroup workerGroup = new NioEventLoopGroup(Parameter.tcpNettyWorkThreadNum);
-    P2pChannelInitializer tronChannelInitializer = new P2pChannelInitializer("", channelManager,
-        nodeManager);
-
+    P2pChannelInitializer tronChannelInitializer = new P2pChannelInitializer("");
     try {
       ServerBootstrap b = new ServerBootstrap();
 
@@ -67,17 +73,6 @@ public class PeerServer {
       workerGroup.shutdownGracefully();
       bossGroup.shutdownGracefully();
       listening = false;
-    }
-  }
-
-  public void close() {
-    if (listening && channelFuture != null && channelFuture.channel().isOpen()) {
-      try {
-        log.info("Closing TCP server...");
-        channelFuture.channel().close().sync();
-      } catch (Exception e) {
-        log.warn("Closing TCP server failed.", e);
-      }
     }
   }
 

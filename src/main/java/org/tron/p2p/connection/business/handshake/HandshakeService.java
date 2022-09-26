@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
+import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.message.handshake.HelloMessage;
 
 @Slf4j(topic = "net")
@@ -11,13 +12,12 @@ public class HandshakeService {
 
   private int version = Parameter.p2pConfig.getVersion();
 
-  public void sendHelloMsg(Channel channel, DisconnectCode code) {
-    HelloMessage helloMessage = new HelloMessage(code);
-    channel.send(helloMessage.getSendData());
-    log.info("Handshake send to {}, {} ", channel.getInetAddress(), helloMessage);
+  public void startHandshake(Channel channel) {
+    sendHelloMsg(channel, DisconnectCode.NORMAL);
   }
 
-  public boolean handleHelloMsg(Channel channel, HelloMessage msg) {
+  public boolean processMessage(Channel channel, Message message) {
+    HelloMessage msg = (HelloMessage)message;
 
     if (channel.isFinishHandshake()) {
       channel.close();
@@ -52,6 +52,12 @@ public class HandshakeService {
 
     sendHelloMsg(channel, DisconnectCode.NORMAL);
     return true;
+  }
+
+  private void sendHelloMsg(Channel channel, DisconnectCode code) {
+    HelloMessage helloMessage = new HelloMessage(code);
+    channel.send(helloMessage.getSendData());
+    log.info("Handshake send to {}, {} ", channel.getInetAddress(), helloMessage);
   }
 
 }
