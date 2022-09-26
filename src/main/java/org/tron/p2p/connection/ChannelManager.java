@@ -14,7 +14,6 @@ import org.tron.p2p.P2pConfig;
 import org.tron.p2p.config.Parameter;
 import org.tron.p2p.connection.business.KeepAliveTask;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
-import org.tron.p2p.connection.business.handshake.HandshakeService;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
 import org.tron.p2p.connection.socket.SyncPool;
@@ -33,8 +32,6 @@ public class ChannelManager {
   private SyncPool syncPool;
 
   private KeepAliveTask keepAliveTask;
-
-  private HandshakeService handshakeService;
 
   @Getter
   private static final Map<String, Channel> channels = new ConcurrentHashMap<>();
@@ -57,7 +54,6 @@ public class ChannelManager {
     peerClient = new PeerClient(this);
     keepAliveTask = new KeepAliveTask(this);
     syncPool = new SyncPool(this);
-    handshakeService = new HandshakeService();
   }
 
   public void init(NodeManager nodeManager) {
@@ -133,10 +129,10 @@ public class ChannelManager {
     }
 
     String nodeId = channel.getNode().getHexId();
-    Channel c2 = channels.get(nodeId);
-    if (c2 != null) {
-      if (c2.getStartTime() > channel.getStartTime()) {
-        c2.close();
+    Channel existChannel = channels.get(nodeId);
+    if (existChannel != null) {
+      if (existChannel.getStartTime() > channel.getStartTime()) {
+        existChannel.close();
       } else {
         return DisconnectCode.DUPLICATE_PEER;
       }

@@ -33,7 +33,7 @@ public class Channel {
   private NodeManager nodeManager;
   private ChannelManager channelManager;
   private ChannelHandlerContext ctx;
-  private HandshakeService handshakeService = new HandshakeService();
+  private HandshakeService handshakeService;
   private P2pStats p2pStats;
   private MessageHandler messageHandler;
 
@@ -58,6 +58,7 @@ public class Channel {
   private volatile boolean finishHandshake;
 
   public Channel() {
+    handshakeService = new HandshakeService();
   }
 
   public void init(ChannelPipeline pipeline, String remoteId, boolean discoveryMode,
@@ -69,12 +70,24 @@ public class Channel {
 
     isActive = remoteId != null && !remoteId.isEmpty();
 
-    //TODO: use config here
     pipeline.addLast("readTimeoutHandler", new ReadTimeoutHandler(60, TimeUnit.SECONDS));
-    //pipeline.addLast(stats.tcp); // todo
     pipeline.addLast("protoPender", new ProtobufVarint32LengthFieldPrepender());
     pipeline.addLast("lengthDecode", new TrxProtobufVarint32FrameDecoder(this));
     pipeline.addLast("messageDecode", messageHandler);
+  }
+
+  //if channel active, wo have ctx
+  public void setChannelHandlerContext(ChannelHandlerContext ctx) {
+    this.ctx = ctx;
+    this.inetSocketAddress = ctx == null ? null : (InetSocketAddress) ctx.channel().remoteAddress();
+    isTrustPeer = Parameter.p2pConfig.getTrustNodes()
+        .contains((InetSocketAddress) ctx.channel().remoteAddress());
+  }
+
+  public void initNode(byte[] nodeId, int remotePort) {
+    Node n = new Node(nodeId, inetSocketAddress.getHostString(), remotePort);
+    //if not in nodeManager, insert new node with updateTime = now
+    node = nodeManager.updateNode(n);
   }
 
   //invoke by handshake
@@ -110,11 +123,6 @@ public class Channel {
     setLastSendTime(System.currentTimeMillis());
   }
 
-  public void initNode(byte[] nodeId, int remotePort) {
-    Node n = new Node(nodeId, inetSocketAddress.getHostString(), remotePort);
-    node = nodeManager.updateNode(n);
-  }
-
   public void handleHelloMessage(HelloMessage helloMessage) {
     boolean ok = handshakeService.handleHelloMsg(this, helloMessage);
     if (ok) {
@@ -145,14 +153,6 @@ public class Channel {
 
   public boolean isDisconnect() {
     return isDisconnect;
-  }
-
-  //if channel active, wo have ctx
-  public void setChannelHandlerContext(ChannelHandlerContext ctx) {
-    this.ctx = ctx;
-    this.inetSocketAddress = ctx == null ? null : (InetSocketAddress) ctx.channel().remoteAddress();
-    isTrustPeer = Parameter.p2pConfig.getTrustNodes()
-        .contains((InetSocketAddress) ctx.channel().remoteAddress());
   }
 
   public InetAddress getInetAddress() {

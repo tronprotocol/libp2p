@@ -87,6 +87,4 @@ public class PeerClient {
     workerGroup.shutdownGracefully();
     workerGroup.terminationFuture().syncUninterruptibly();
   }
-//  public void init() {
-//  }
 }

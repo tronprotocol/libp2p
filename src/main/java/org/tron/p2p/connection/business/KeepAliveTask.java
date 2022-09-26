@@ -26,7 +26,6 @@ public class KeepAliveTask {
         long now = System.currentTimeMillis();
         channelManager.getChannels().values().forEach(p -> {
           if (now - p.getLastSendTime() > 20_000) {
-            // 1. send ping to p
             p.send(new TcpPingMessage().getData());
           }
           if (now - p.getLastSendTime() > 60_000) {

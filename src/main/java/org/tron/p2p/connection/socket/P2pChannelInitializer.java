@@ -31,8 +31,6 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
   @Override
   public void initChannel(NioSocketChannel ch) {
     try {
-      //final Channel channel = ctx.getBean(Channel.class);
-
       channel = new Channel();
       channel.init(ch.pipeline(), remoteId, peerDiscoveryMode, channelManager, nodeManager);
 
