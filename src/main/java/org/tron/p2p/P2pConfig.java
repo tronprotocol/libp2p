@@ -4,7 +4,6 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
-import lombok.Getter;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.utils.NetUtil;
 
@@ -24,6 +23,4 @@ public class P2pConfig {
   private int maxConnectionsWithSameIp = 2;
   private boolean discoverEnable = true;
   private boolean disconnectionPolicyEnable = false;
-  @Getter
-  private int discoveryPingTimeOut = 15000;
 }

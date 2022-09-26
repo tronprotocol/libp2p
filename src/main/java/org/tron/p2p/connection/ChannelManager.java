@@ -11,8 +11,8 @@ import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.P2pConfig;
-import org.tron.p2p.config.Parameter;
-import org.tron.p2p.connection.business.KeepAliveTask;
+import org.tron.p2p.base.Parameter;
+import org.tron.p2p.connection.business.keepalive.KeepAliveService;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
@@ -31,7 +31,7 @@ public class ChannelManager {
   @Getter
   private SyncPool syncPool;
 
-  private KeepAliveTask keepAliveTask;
+  private KeepAliveService keepAliveTask;
 
   @Getter
   private static final Map<String, Channel> channels = new ConcurrentHashMap<>();
@@ -52,7 +52,7 @@ public class ChannelManager {
   public ChannelManager() {
     peerServer = new PeerServer(this);
     peerClient = new PeerClient(this);
-    keepAliveTask = new KeepAliveTask(this);
+    keepAliveTask = new KeepAliveService(this);
     syncPool = new SyncPool(this);
   }
 

@@ -1,7 +1,7 @@
 package org.tron.p2p.discover.socket;
 
 import java.net.InetSocketAddress;
-import org.tron.p2p.discover.socket.message.Message;
+import org.tron.p2p.discover.message.Message;
 
 public class UdpEvent {
   private Message message;

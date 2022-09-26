@@ -1,26 +1,26 @@
-package org.tron.p2p.connection.message;
+package org.tron.p2p.connection.message.handshake;
 
 import com.google.protobuf.ByteString;
-import org.apache.commons.lang3.ArrayUtils;
-import org.bouncycastle.pqc.math.linearalgebra.ByteUtils;
-import org.tron.p2p.config.Parameter;
+import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
+import org.tron.p2p.connection.message.Message;
+import org.tron.p2p.connection.message.MessageType;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.protos.Connect;
 import org.tron.p2p.protos.Discover;
+import org.tron.p2p.utils.NetUtil;
 
 public class HelloMessage extends Message {
 
   private Connect.HelloMessage helloMessage;
 
   public HelloMessage(byte[] data) throws Exception {
-    super(data);
-    byte[] rawData = ArrayUtils.subarray(data, 1, data.length);
-    this.helloMessage = Connect.HelloMessage.parseFrom(rawData);
+    super(MessageType.HANDSHAKE_HELLO, data);
+    this.helloMessage = Connect.HelloMessage.parseFrom(data);
   }
 
   public HelloMessage(DisconnectCode code) {
-    super(null);
+    super(MessageType.HANDSHAKE_HELLO, null);
     Discover.Endpoint endpoint = Discover.Endpoint.newBuilder()
             .setNodeId(ByteString.copyFrom(Parameter.p2pConfig.getNodeID()))
             .setPort(Parameter.p2pConfig.getPort())
@@ -31,10 +31,8 @@ public class HelloMessage extends Message {
             .setVersion(Parameter.p2pConfig.getVersion())
             .setCode(code.getValue())
             .setTimestamp(System.currentTimeMillis()).build();
-    this.type = Message.HELLO;
-    byte[] bytes = new byte[1];
-    bytes[0] = Message.HELLO;;
-    this.data = ByteUtils.concatenate(bytes, helloMessage.toByteArray());
+    this.type = MessageType.HANDSHAKE_HELLO;
+    this.data = helloMessage.toByteArray();
   }
 
   public int getVersion() {
@@ -54,4 +52,15 @@ public class HelloMessage extends Message {
     return new Node(from.getNodeId().toByteArray(),
             new String(from.getAddress().toByteArray()), from.getPort());
   }
+
+  @Override
+  public String toString() {
+    return "[HelloMessage: " + helloMessage;
+  }
+
+  @Override
+  public boolean valid() {
+    return NetUtil.validNode(getFrom());
+  }
+
 }

@@ -1,24 +1,24 @@
-package org.tron.p2p.discover.socket.message;
+package org.tron.p2p.discover.message.kad;
 
 import com.google.protobuf.ByteString;
-import org.tron.p2p.config.Parameter;
+import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.Node;
+import org.tron.p2p.discover.message.MessageType;
 import org.tron.p2p.protos.Discover;
 import org.tron.p2p.protos.Discover.Endpoint;
 import org.tron.p2p.utils.ByteArray;
+import org.tron.p2p.utils.NetUtil;
 
-import static org.tron.p2p.discover.socket.message.UdpMessageTypeEnum.DISCOVER_PONG;
-
-public class PongMessage extends Message {
+public class PongMessage extends KadMessage {
   private Discover.PongMessage pongMessage;
 
   public PongMessage(byte[] data) throws Exception {
-    super(DISCOVER_PONG, data);
+    super(MessageType.KAD_PONG, data);
     this.pongMessage = Discover.PongMessage.parseFrom(data);
   }
 
   public PongMessage(Node from) {
-    super(DISCOVER_PONG, null);
+    super(MessageType.KAD_PONG, null);
     Endpoint toEndpoint = Endpoint.newBuilder()
         .setAddress(ByteString.copyFrom(ByteArray.fromString(from.getHost())))
         .setPort(from.getPort())
@@ -43,11 +43,16 @@ public class PongMessage extends Message {
 
   @Override
   public Node getFrom() {
-    return Message.getNode(pongMessage.getFrom());
+    return NetUtil.getNode(pongMessage.getFrom());
   }
 
   @Override
   public String toString() {
     return "[pongMessage: " + pongMessage;
+  }
+
+  @Override
+  public boolean valid() {
+    return NetUtil.validNode(getFrom());
   }
 }
