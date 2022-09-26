@@ -51,7 +51,7 @@ public class ChannelManager {
       .newBuilder().maximumSize(2000).build();
 
 
-  public void init(NodeManager nodeManager) {
+  public static void init() {
     peerServer = new PeerServer();
     peerClient = new PeerClient();
     keepAliveService = new KeepAliveService();
@@ -63,14 +63,9 @@ public class ChannelManager {
     syncPool.init(peerClient);
   }
 
-  //used by fast forward node
-  public void connect(InetSocketAddress address) {
+  public static void connect(InetSocketAddress address) {
     peerClient.connect(address.getAddress().getHostAddress(), address.getPort(),
         ByteArray.toHexString(Node.getNodeId()));
-  }
-
-  public Collection<Channel> getActiveChannels() {
-    return channels.values();
   }
 
   public static void notifyDisconnect(Channel channel) {
@@ -170,6 +165,10 @@ public class ChannelManager {
       Parameter.handlerList.forEach(h -> h.onConnect(channel));
     }
     handler.onMessage(channel, data);
+  }
+
+  public static void updatePeerId(Channel channel, byte[] peerId) {
+
   }
 
 }

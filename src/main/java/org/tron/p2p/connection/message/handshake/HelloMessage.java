@@ -31,7 +31,6 @@ public class HelloMessage extends Message {
             .setVersion(Parameter.p2pConfig.getVersion())
             .setCode(code.getValue())
             .setTimestamp(System.currentTimeMillis()).build();
-    this.type = MessageType.HANDSHAKE_HELLO;
     this.data = helloMessage.toByteArray();
   }
 
