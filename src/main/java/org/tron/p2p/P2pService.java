@@ -49,7 +49,7 @@ public class P2pService {
     return NodeManager.getAllNodes();
   }
 
-  public void updatePeerId(Channel channel, byte[] peerId) {
-    ChannelManager.updatePeerId(channel, peerId);
+  public void initNode(Channel channel, Node node) {
+    ChannelManager.initNode(channel, node);
   }
 }

@@ -169,8 +169,8 @@ public class ChannelManager {
     handler.onMessage(channel, data);
   }
 
-  public static void updatePeerId(Channel channel, byte[] peerId) {
-
+  public static void initNode(Channel channel, Node node) {
+    NodeManager.initNode(node);
   }
 
 }

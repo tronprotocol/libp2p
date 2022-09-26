@@ -76,7 +76,7 @@ public class KadService implements DiscoverService {
     }
   }
 
-  public Node updateNode(Node node) {
+  public Node initNode(Node node) {
    return getNodeHandler(node).getNode();
   }
 
