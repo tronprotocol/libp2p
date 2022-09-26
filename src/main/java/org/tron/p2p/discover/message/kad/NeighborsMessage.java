@@ -3,7 +3,6 @@ package org.tron.p2p.discover.message.kad;
 import com.google.protobuf.ByteString;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.message.MessageType;
 import org.tron.p2p.discover.protocol.kad.table.KademliaOptions;
@@ -77,7 +76,7 @@ public class NeighborsMessage extends KadMessage {
     if (!NetUtil.validNode(getFrom())) {
       return false;
     }
-    if (!getNodes().isEmpty()) {
+    if (getNodes().size() > 0) {
       if (getNodes().size() > KademliaOptions.BUCKET_SIZE) {
         return false;
       }

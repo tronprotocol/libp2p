@@ -56,9 +56,10 @@ public class Channel {
     this.discoveryMode = discoveryMode;
     this.isActive = remoteId != null && !remoteId.isEmpty();
     this.messageHandler = new MessageHandler(this);
-    //TODO: use config here
+
+    isActive = remoteId != null && !remoteId.isEmpty();
+
     pipeline.addLast("readTimeoutHandler", new ReadTimeoutHandler(60, TimeUnit.SECONDS));
-    //pipeline.addLast(stats.tcp); // todo
     pipeline.addLast("protoPender", new ProtobufVarint32LengthFieldPrepender());
     pipeline.addLast("lengthDecode", new TrxProtobufVarint32FrameDecoder(this));
     pipeline.addLast("messageDecode", messageHandler);
@@ -106,7 +107,7 @@ public class Channel {
     isTrustPeer = Parameter.p2pConfig.getTrustNodes().contains(this.inetSocketAddress);
   }
 
-  public InetAddress getInetAddress() {
+ public InetAddress getInetAddress() {
     return inetSocketAddress.getAddress();
   }
 

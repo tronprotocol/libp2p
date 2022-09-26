@@ -41,7 +41,7 @@ public class MessageHandler extends ByteToMessageDecoder {
   }
 
   @Override
-  public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+  public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
     channel.processException(cause);
   }
 

@@ -76,5 +76,4 @@ public class PeerClient {
     b.handler(tronChannelInitializer);
     return b.connect();
   }
-
 }

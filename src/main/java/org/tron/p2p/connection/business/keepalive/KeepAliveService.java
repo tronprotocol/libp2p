@@ -6,8 +6,8 @@ import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
-import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.message.Message;
+import org.tron.p2p.connection.message.keepalive.PingMessage;
 
 @Slf4j(topic = "net")
 public class KeepAliveService {
@@ -21,7 +21,6 @@ public class KeepAliveService {
         long now = System.currentTimeMillis();
         ChannelManager.getChannels().values().forEach(p -> {
           if (now - p.getLastSendTime() > 20_000) {
-            // 1. send ping to p
             p.send(new PingMessage().getData());
           }
           if (now - p.getLastSendTime() > 60_000) {

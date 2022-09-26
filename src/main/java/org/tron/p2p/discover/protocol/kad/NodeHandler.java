@@ -19,12 +19,12 @@ import org.tron.p2p.discover.message.*;
 @Slf4j(topic = "discover")
 public class NodeHandler {
 
-  private static long pingTimeout = Parameter.p2pConfig.getDiscoveryPingTimeOut();
+  private static long pingTimeout = 15_000;
   private Node sourceNode;
   private Node node;
   private State state;
   private KadService kadService;
-//  private NodeStatistics nodeStatistics;
+  //  private NodeStatistics nodeStatistics;
   private NodeHandler replaceCandidate;
   private InetSocketAddress inetSocketAddress;
   private AtomicInteger pingTrials = new AtomicInteger(3);

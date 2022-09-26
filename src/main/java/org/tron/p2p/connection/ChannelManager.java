@@ -16,8 +16,6 @@ import org.tron.p2p.connection.business.keepalive.KeepAliveService;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.business.handshake.HandshakeService;
 import org.tron.p2p.connection.message.Message;
-import org.tron.p2p.connection.message.MessageType;
-import org.tron.p2p.connection.message.handshake.HelloMessage;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
 import org.tron.p2p.connection.socket.SyncPool;
@@ -51,6 +49,7 @@ public class ChannelManager {
   @Getter
   private static final Cache<InetAddress, Long> bannedNodes = CacheBuilder
       .newBuilder().maximumSize(2000).build();
+
 
   public void init(NodeManager nodeManager) {
     peerServer = new PeerServer();
@@ -115,10 +114,10 @@ public class ChannelManager {
     }
 
     String nodeId = channel.getNode().getHexId();
-    Channel c2 = channels.get(nodeId);
-    if (c2 != null) {
-      if (c2.getStartTime() > channel.getStartTime()) {
-        c2.close();
+    Channel existChannel = channels.get(nodeId);
+    if (existChannel != null) {
+      if (existChannel.getStartTime() > channel.getStartTime()) {
+        existChannel.close();
       } else {
         return DisconnectCode.DUPLICATE_PEER;
       }

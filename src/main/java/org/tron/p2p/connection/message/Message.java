@@ -2,6 +2,8 @@ package org.tron.p2p.connection.message;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.tron.p2p.connection.message.handshake.HelloMessage;
+import org.tron.p2p.connection.message.keepalive.PingMessage;
+import org.tron.p2p.connection.message.keepalive.PongMessage;
 import org.tron.p2p.exception.P2pException;
 
 public abstract class Message {
@@ -9,22 +11,21 @@ public abstract class Message {
   protected MessageType type;
   protected byte[] data;
 
-
   public Message(MessageType type, byte[] data) {
     this.type = type;
     this.data = data;
   }
 
-  public byte[] getSendData() {
-    return ArrayUtils.add(this.data, 0, type.getType());
+  public MessageType getType() {
+    return this.type;
   }
 
   public byte[] getData() {
     return this.data;
   }
 
-  public MessageType getType() {
-    return this.type;
+  public byte[] getSendData() {
+    return ArrayUtils.add(this.data, 0, type.getType());
   }
 
   public abstract boolean valid();
@@ -36,8 +37,10 @@ public abstract class Message {
       Message message = null;
       switch (MessageType.fromByte(type)) {
         case KEEP_ALIVE_PING:
+          message = new PingMessage(data);
           break;
         case KEEP_ALIVE_PONG:
+          message = new PongMessage(data);
           break;
         case HANDSHAKE_HELLO:
           message = new HelloMessage(data);
