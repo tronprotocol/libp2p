@@ -61,7 +61,7 @@ public class Node implements Serializable {
       int port = Integer.parseInt(sz[1]);
       return new Node(Node.getNodeId(), sz[0], port);
     } catch (Exception e) {
-      //logger.error("Parse node failed, {}", hostPort);
+      log.error("Parse node failed, {}", hostPort);
       throw e;
     }
   }

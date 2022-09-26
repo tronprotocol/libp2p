@@ -1,11 +1,9 @@
 package org.tron.p2p.discover;
 
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.discover.protocol.kad.KadService;
 import org.tron.p2p.discover.socket.DiscoverServer;
 
-@Slf4j(topic = "net")
 public class NodeManager {
 
   private static DiscoverService discoverService;
@@ -19,8 +17,12 @@ public class NodeManager {
   }
 
   public static void close() {
-    discoverService.close();
-    discoverServer.close();
+    if (discoverService != null) {
+      discoverService.close();
+    }
+    if (discoverServer != null) {
+      discoverServer.close();
+    }
   }
 
   public static Node initNode(Node node) {

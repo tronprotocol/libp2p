@@ -8,6 +8,7 @@ import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.message.keepalive.PingMessage;
+import org.tron.p2p.connection.message.keepalive.PongMessage;
 
 @Slf4j(topic = "net")
 public class KeepAliveService {
@@ -24,7 +25,7 @@ public class KeepAliveService {
             p.send(new PingMessage().getData());
           }
           if (now - p.getLastSendTime() > 60_000) {
-            //disconnect if we has not receive pong from channel too long
+            //disconnect if we has not receive ping or pong from channel too long
             p.close();
           }
         });
@@ -35,10 +36,21 @@ public class KeepAliveService {
   }
 
   public void close() {
-
+    executor.shutdown();
   }
 
-  public void  processMessage(Channel channel, Message message) {
+  public void processPingMessage(Channel channel, Message message) {
+    PingMessage pingMessage = (PingMessage) message;
+    long latency = System.currentTimeMillis() - pingMessage.getTimeStamp();
+    //todo statistic latency
+    channel.send(new PongMessage().getData());
+    channel.setLastSendTime(System.currentTimeMillis());
+  }
 
+  public void processPongMessage(Channel channel, Message message) {
+    PongMessage pongMessage = (PongMessage) message;
+    long latency = System.currentTimeMillis() - pongMessage.getTimeStamp();
+    //todo statistic latency
+    channel.setLastSendTime(System.currentTimeMillis());
   }
 }

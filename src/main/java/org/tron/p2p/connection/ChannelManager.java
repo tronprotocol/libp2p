@@ -74,7 +74,7 @@ public class ChannelManager {
     Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
     InetAddress inetAddress = channel.getInetAddress();
     if (inetAddress != null && bannedNodes.getIfPresent(inetAddress) == null) {
-      bannedNodes.put(channel.getInetAddress(), System.currentTimeMillis() + DEFAULT_BAN_TIME);
+      banNode(channel.getInetAddress());
     }
   }
 
@@ -142,8 +142,10 @@ public class ChannelManager {
     Message message = Message.parse(data);
     switch (message.getType()) {
       case KEEP_ALIVE_PING:
+        keepAliveService.processPingMessage(channel, message);
+        break;
       case KEEP_ALIVE_PONG:
-        keepAliveService.processMessage(channel, message);
+        keepAliveService.processPongMessage(channel, message);
         break;
       case HANDSHAKE_HELLO:
         handshakeService.processMessage(channel, message);
