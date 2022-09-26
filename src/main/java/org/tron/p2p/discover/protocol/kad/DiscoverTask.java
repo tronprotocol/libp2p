@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.protocol.kad.table.KademliaOptions;
 
-@Slf4j
+@Slf4j(topic = "net")
 public class DiscoverTask {
 
   private ScheduledExecutorService discoverer = Executors.newSingleThreadScheduledExecutor();

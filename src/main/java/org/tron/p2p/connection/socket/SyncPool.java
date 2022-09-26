@@ -40,11 +40,11 @@ public class SyncPool {
   private final AtomicInteger activePeersCount = new AtomicInteger(0);
 
   private NodeManager nodeManager;
-  private ChannelManager channelManager;
+  private final ChannelManager channelManager;
 
-  private ScheduledExecutorService poolLoopExecutor = Executors.newSingleThreadScheduledExecutor();
-  private ScheduledExecutorService disconnectExecutor = Executors.newSingleThreadScheduledExecutor();
-  private ScheduledExecutorService logExecutor = Executors.newSingleThreadScheduledExecutor();
+  private final ScheduledExecutorService poolLoopExecutor = Executors.newSingleThreadScheduledExecutor();
+  private final ScheduledExecutorService disconnectExecutor = Executors.newSingleThreadScheduledExecutor();
+  private final ScheduledExecutorService logExecutor = Executors.newSingleThreadScheduledExecutor();
 
   public static volatile P2pConfig p2pConfig;
   private PeerClient peerClient;
@@ -62,7 +62,7 @@ public class SyncPool {
     poolLoopExecutor.scheduleWithFixedDelay(() -> {
       try {
         connect();
-      } catch (Throwable t) {
+      } catch (Exception t) {
         log.error("Exception in poolLoopExecutor worker", t);
       }
     }, 100, 3600, TimeUnit.MILLISECONDS);
@@ -71,7 +71,7 @@ public class SyncPool {
       disconnectExecutor.scheduleWithFixedDelay(() -> {
         try {
           check();
-        } catch (Throwable t) {
+        } catch (Exception t) {
           log.error("Exception in disconnectExecutor worker", t);
         }
       }, 30, 30, TimeUnit.SECONDS);
@@ -80,7 +80,7 @@ public class SyncPool {
     logExecutor.scheduleWithFixedDelay(() -> {
       try {
         logActivePeers();
-      } catch (Throwable t) {
+      } catch (Exception t) {
         log.error("Exception in logExecutor worker", t);
       }
     }, 30, 10, TimeUnit.SECONDS);
@@ -149,9 +149,8 @@ public class SyncPool {
         .collect(Collectors.toList());
 
     // if len(peers) >= 0, disconnect randomly
-    if (peers.size() > 0) {
-      List<PeerConnection> list = new ArrayList();
-      peers.forEach(p -> list.add(p));
+    if (!peers.isEmpty()) {
+      List<PeerConnection> list = new ArrayList(peers);
       PeerConnection peer = list.get(new Random().nextInt(peers.size()));
       peer.disconnect(DisconnectCode.RANDOM_DISCONNECT);
     }
@@ -224,7 +223,7 @@ public class SyncPool {
 
   class NodeSelector implements Predicate<Node> {
 
-    private Set<String> nodesInUse;
+    private final Set<String> nodesInUse;
 
     public NodeSelector(Set<String> nodesInUse) {
       this.nodesInUse = nodesInUse;

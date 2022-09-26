@@ -9,7 +9,7 @@ import org.tron.p2p.connection.message.handshake.HelloMessage;
 @Slf4j(topic = "net")
 public class HandshakeService {
 
-  private int version = Parameter.p2pConfig.getVersion();
+  private final int version = Parameter.p2pConfig.getVersion();
 
   public void sendHelloMsg(Channel channel, DisconnectCode code) {
     HelloMessage helloMessage = new HelloMessage(code);

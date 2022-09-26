@@ -8,7 +8,7 @@ import io.netty.handler.codec.MessageToMessageDecoder;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.discover.message.Message;
 
-@Slf4j(topic = "discover")
+@Slf4j(topic = "net")
 public class PacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
 
   private static final int MAXSIZE = 2048;

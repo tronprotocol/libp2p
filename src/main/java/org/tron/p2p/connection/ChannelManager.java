@@ -24,14 +24,14 @@ import org.tron.p2p.utils.ByteArray;
 @Slf4j(topic = "net")
 public class ChannelManager {
 
-  private PeerServer peerServer;
+  private final PeerServer peerServer;
 
-  private PeerClient peerClient;
+  private final PeerClient peerClient;
 
   @Getter
-  private SyncPool syncPool;
+  private final SyncPool syncPool;
 
-  private KeepAliveService keepAliveTask;
+  private final KeepAliveService keepAliveTask;
 
   @Getter
   private static final Map<String, Channel> channels = new ConcurrentHashMap<>();

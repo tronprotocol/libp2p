@@ -31,7 +31,7 @@ import org.bouncycastle.util.encoders.Hex;
  * You should have received a copy of the GNU Lesser General Public License
  * along with the ethereumJ library. If not, see <http://www.gnu.org/licenses/>.
  */
-@Slf4j(topic = "utils")
+@Slf4j(topic = "net")
 public class ByteArray {
 
   public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];

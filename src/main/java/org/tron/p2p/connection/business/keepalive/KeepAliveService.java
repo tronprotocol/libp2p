@@ -11,9 +11,9 @@ import org.tron.p2p.connection.message.keepalive.PingMessage;
 @Slf4j(topic = "net")
 public class KeepAliveService {
 
-  private ChannelManager channelManager;
+  private final ChannelManager channelManager;
 
-  private ScheduledExecutorService executor =
+  private final ScheduledExecutorService executor =
       Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "KeepAliveTask"));
 
   public KeepAliveService(ChannelManager channelManager) {

@@ -11,7 +11,7 @@ public enum DisconnectCode {
   RANDOM_DISCONNECT(7),
   UNKNOWN(255);
 
-  private Integer value;
+  private final Integer value;
 
   DisconnectCode(Integer value) {
     this.value = value;

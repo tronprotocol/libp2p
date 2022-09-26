@@ -33,9 +33,8 @@ public class Channel {
   private NodeManager nodeManager;
   private ChannelManager channelManager;
   private ChannelHandlerContext ctx;
-  private HandshakeService handshakeService;
+  private final HandshakeService handshakeService;
   private P2pStats p2pStats;
-  private MessageHandler messageHandler;
 
   @Getter
   private volatile long disconnectTime;
@@ -66,7 +65,7 @@ public class Channel {
 
     this.channelManager = channelManager;
     this.nodeManager = nodeManager;
-    this.messageHandler = new MessageHandler(this, Hex.decode(remoteId));
+    MessageHandler messageHandler = new MessageHandler(this, Hex.decode(remoteId));
 
     isActive = remoteId != null && !remoteId.isEmpty();
 
