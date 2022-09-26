@@ -10,7 +10,7 @@ import org.bouncycastle.util.encoders.Hex;
 import org.tron.p2p.base.Constant;
 import org.tron.p2p.utils.NetUtil;
 
-@Slf4j(topic = "discover")
+@Slf4j(topic = "net")
 public class Node implements Serializable {
   private static final long serialVersionUID = -4267600517925770636L;
 

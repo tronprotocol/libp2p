@@ -30,9 +30,6 @@ public class PongMessage extends Message {
 
   @Override
   public boolean valid() {
-    if (getTimeStamp() <= 0 || getTimeStamp() > System.currentTimeMillis() + 1000) {
-      return false;
-    }
-    return true;
+    return getTimeStamp() > 0 && getTimeStamp() <= System.currentTimeMillis() + 1000;
   }
 }

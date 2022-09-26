@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.discover.protocol.kad.KadService;
 import org.tron.p2p.discover.socket.DiscoverServer;
 
-@Slf4j
+@Slf4j(topic = "net")
 public class NodeManager {
 
   private DiscoverService discoverService;

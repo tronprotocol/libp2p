@@ -29,6 +29,7 @@ public class Channel {
   private ChannelHandlerContext ctx;
   private P2pStats p2pStats;
   private MessageHandler messageHandler;
+
   @Getter
   private volatile long disconnectTime;
   private volatile boolean isDisconnect;
@@ -49,16 +50,11 @@ public class Channel {
   private volatile boolean finishHandshake;
   private boolean discoveryMode;
 
-  public Channel() {
-  }
 
   public void init(ChannelPipeline pipeline, String remoteId, boolean discoveryMode) {
     this.discoveryMode = discoveryMode;
     this.isActive = remoteId != null && !remoteId.isEmpty();
     this.messageHandler = new MessageHandler(this);
-
-    isActive = remoteId != null && !remoteId.isEmpty();
-
     pipeline.addLast("readTimeoutHandler", new ReadTimeoutHandler(60, TimeUnit.SECONDS));
     pipeline.addLast("protoPender", new ProtobufVarint32LengthFieldPrepender());
     pipeline.addLast("lengthDecode", new TrxProtobufVarint32FrameDecoder(this));

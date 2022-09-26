@@ -16,7 +16,7 @@ import org.tron.p2p.discover.message.kad.PongMessage;
 import org.tron.p2p.discover.socket.UdpEvent;
 import org.tron.p2p.discover.message.*;
 
-@Slf4j(topic = "discover")
+@Slf4j(topic = "net")
 public class NodeHandler {
 
   private static long pingTimeout = 15_000;

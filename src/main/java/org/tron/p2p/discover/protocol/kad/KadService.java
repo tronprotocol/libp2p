@@ -25,7 +25,7 @@ import org.tron.p2p.discover.message.kad.NeighborsMessage;
 import org.tron.p2p.discover.message.kad.PingMessage;
 import org.tron.p2p.discover.message.kad.PongMessage;
 
-@Slf4j
+@Slf4j(topic = "net")
 public class KadService implements DiscoverService {
 
   private static final int MAX_NODES = 2000;

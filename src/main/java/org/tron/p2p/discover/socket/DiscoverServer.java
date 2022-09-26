@@ -11,7 +11,7 @@ import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
 
-@Slf4j(topic = "discover")
+@Slf4j(topic = "net")
 public class DiscoverServer {
 
   private static final int SERVER_RESTART_WAIT = 5000;
