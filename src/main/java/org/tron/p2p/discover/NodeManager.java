@@ -8,7 +8,7 @@ import org.tron.p2p.discover.socket.DiscoverServer;
 @Slf4j(topic = "net")
 public class NodeManager {
 
-  private DiscoverService discoverService;
+  private static DiscoverService discoverService;
   private DiscoverServer discoverServer;
 
   public void init() {
@@ -29,23 +29,23 @@ public class NodeManager {
     discoverServer.close();
   }
 
-  public Node updateNode(Node node) {
+  public static Node updateNode(Node node) {
     return discoverService.updateNode(node);
   }
 
-  public List<Node> getConnectableNodes() {
+  public static List<Node> getConnectableNodes() {
     return discoverService.getConnectableNodes();
   }
 
-  public List<Node> getTableNodes() {
+  public static List<Node> getTableNodes() {
     return discoverService.getTableNodes();
   }
 
-  public List<Node> getAllNodes() {
+  public static List<Node> getAllNodes() {
     return discoverService.getAllNodes();
   }
 
-  public Node getPublicHomeNode() {
+  public static Node getPublicHomeNode() {
     return discoverService.getPublicHomeNode();
   }
 
