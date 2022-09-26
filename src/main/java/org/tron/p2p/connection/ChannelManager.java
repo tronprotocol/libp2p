@@ -14,11 +14,13 @@ import org.tron.p2p.P2pConfig;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.business.keepalive.KeepAliveService;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
+import org.tron.p2p.connection.business.handshake.HandshakeService;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
 import org.tron.p2p.connection.socket.SyncPool;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
+import org.tron.p2p.utils.ByteArray;
 
 @Slf4j(topic = "net")
 public class ChannelManager {
@@ -27,9 +29,12 @@ public class ChannelManager {
 
   private PeerClient peerClient;
 
+  @Getter
   private SyncPool syncPool;
 
   private KeepAliveService keepAliveTask;
+
+  private HandshakeService handshakeService;
 
   @Getter
   private static final Map<String, Channel> channels = new ConcurrentHashMap<>();
@@ -52,6 +57,7 @@ public class ChannelManager {
     peerClient = new PeerClient(this);
     keepAliveTask = new KeepAliveService(this);
     syncPool = new SyncPool(this);
+    handshakeService = new HandshakeService();
   }
 
   public void init(NodeManager nodeManager) {
@@ -69,18 +75,15 @@ public class ChannelManager {
       activeNodes.put(inetAddress, node);
     }
 
-    for (InetSocketAddress inetSocketAddress : p2pConfig.getTrustNodes()) {
-      InetAddress inetAddress = inetSocketAddress.getAddress();
-      Node node = Node.instanceOf(inetAddress.getHostAddress(), inetSocketAddress.getPort());
-    }
-
     syncPool.init(peerClient, nodeManager);
 
     keepAliveTask.init();
   }
 
+  //used by fast forward node
   public void connect(InetSocketAddress address) {
-    //todo send hello message
+    peerClient.connect(address.getAddress().getHostAddress(), address.getPort(),
+        ByteArray.toHexString(Node.getNodeId()));
   }
 
   public Collection<Channel> getActiveChannels() {
@@ -89,18 +92,14 @@ public class ChannelManager {
 
   public void notifyDisconnect(Channel channel) {
     syncPool.onDisconnect(channel);
-    //channels.remove(channel.getNode().getHexId());
-    channels.values().remove(channel); //todo why remove from values, not remove key?
+    channels.remove(channel.getNode().getHexId());
 
-//    if (channel != null) {
-//      if (channel.getNodeStatistics() != null) {
-//        channel.getNodeStatistics().notifyDisconnect();
-//      }
-//      InetAddress inetAddress = channel.getInetAddress();
-//      if (inetAddress != null && recentlyDisconnected.getIfPresent(inetAddress) == null) {
-//        recentlyDisconnected.put(channel.getInetAddress(), UNKNOWN);
-//      }
-//    }
+    if (channel != null) {
+      InetAddress inetAddress = channel.getInetAddress();
+      if (inetAddress != null && recentlyDisconnected.getIfPresent(inetAddress) == null) {
+        recentlyDisconnected.put(channel.getInetAddress(), DisconnectCode.UNKNOWN);
+      }
+    }
   }
 
   public static int getConnectionNum(InetAddress inetAddress) {
@@ -160,10 +159,6 @@ public class ChannelManager {
         recentlyDisconnected.put(channel.getInetAddress(), code);
         break;
     }
-//    MetricsUtil.counterInc(MetricsKey.NET_DISCONNECTION_COUNT);
-//    MetricsUtil.counterInc(MetricsKey.NET_DISCONNECTION_DETAIL + reason);
-//    Metrics.counterInc(MetricKeys.Counter.P2P_DISCONNECT, 1,
-//        reason.name().toLowerCase(Locale.ROOT));
   }
 
   public void close() {

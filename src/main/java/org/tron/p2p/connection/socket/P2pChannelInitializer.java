@@ -13,8 +13,6 @@ import org.tron.p2p.discover.NodeManager;
 @Slf4j(topic = "net")
 public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> {
 
-//  private ApplicationContext ctx;
-
   private Channel channel;
   private NodeManager nodeManager;
   private ChannelManager channelManager;

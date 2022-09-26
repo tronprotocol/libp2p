@@ -1,7 +1,6 @@
 package org.tron.p2p.connection;
 
 import com.google.common.base.Throwables;
-import com.google.protobuf.ByteString;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
@@ -17,6 +16,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
+import org.bouncycastle.util.encoders.Hex;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.business.handshake.HandshakeService;
 import org.tron.p2p.connection.message.handshake.HelloMessage;
@@ -32,14 +32,11 @@ public class Channel {
 
   private NodeManager nodeManager;
   private ChannelManager channelManager;
-
-  @Setter
   private ChannelHandlerContext ctx;
   private HandshakeService handshakeService = new HandshakeService();
-
   private P2pStats p2pStats;
   private MessageHandler messageHandler;
-  //private HandshakeHandler handshakeHandler;
+
   @Getter
   private volatile long disconnectTime;
   private volatile boolean isDisconnect;
@@ -51,27 +48,24 @@ public class Channel {
   private final long startTime = System.currentTimeMillis();
   @Getter
   private boolean isActive;
+  @Getter
+  private boolean isTrustPeer;
   private InetSocketAddress inetSocketAddress;
   @Getter
   private Node node;
-
-  @Getter
-  @Setter
-  private ByteString address;
   @Getter
   @Setter
   private volatile boolean finishHandshake;
 
-  private boolean isTrustPeer = false;
+  public Channel() {
+  }
 
   public void init(ChannelPipeline pipeline, String remoteId, boolean discoveryMode,
       ChannelManager channelManager, NodeManager nodeManager) {
 
     this.channelManager = channelManager;
     this.nodeManager = nodeManager;
-
-    this.messageHandler = new MessageHandler();
-    //this.handshakeHandler = new HandshakeHandler();
+    this.messageHandler = new MessageHandler(this, Hex.decode(remoteId));
 
     isActive = remoteId != null && !remoteId.isEmpty();
 
@@ -81,37 +75,25 @@ public class Channel {
     pipeline.addLast("protoPender", new ProtobufVarint32LengthFieldPrepender());
     pipeline.addLast("lengthDecode", new TrxProtobufVarint32FrameDecoder(this));
     pipeline.addLast("messageDecode", messageHandler);
-
-    //handshake first
-    //pipeline.addLast("handshakeHandler", handshakeHandler);
-
-    //handshakeHandler.setChannel(this, remoteId); //todo
-    messageHandler.setChannel(this);
   }
 
   //invoke by handshake
-  public void publicHandshakeFinished(ChannelHandlerContext ctx, HelloMessage msg) {
-    isTrustPeer = Parameter.p2pConfig.getTrustNodes()
-        .contains((InetSocketAddress) ctx.channel().remoteAddress());
-
-    //ctx.pipeline().remove(handshakeHandler);
-    ctx.pipeline().addLast("messageCodec", messageHandler);
-
-//    setTronState(TronState.HANDSHAKE_FINISHED);
-//    getNodeStatistics().p2pHandShake.add();
-    log.info("Finish handshake with {}.", ctx.channel().remoteAddress());
-  }
-
-  public void disconnect(DisconnectCode code) {
-    this.isDisconnect = true;
-    this.disconnectTime = System.currentTimeMillis();
-    channelManager.processDisconnect(this, code);
-  }
-
-  public void channelActive(ChannelHandlerContext ctx) {
-    log.info("Channel active, {}", ctx.channel().remoteAddress());
-    this.ctx = ctx;
-  }
+//  public void publicHandshakeFinished(ChannelHandlerContext ctx, HelloMessage msg) {
+//    isTrustPeer = Parameter.p2pConfig.getTrustNodes()
+//        .contains((InetSocketAddress) ctx.channel().remoteAddress());
+//
+//    //ctx.pipeline().remove(handshakeHandler);
+//    ctx.pipeline().addLast("messageCodec", messageHandler);
+//
+////    setTronState(TronState.HANDSHAKE_FINISHED);
+////    getNodeStatistics().p2pHandShake.add();
+//    log.info("Finish handshake with {}.", ctx.channel().remoteAddress());
+//  }
+//
+//  public void channelActive(ChannelHandlerContext ctx) {
+//    log.info("Channel active, {}", ctx.channel().remoteAddress());
+//    this.ctx = ctx;
+//  }
 
   public void send(byte[] data) {
     if (isDisconnect) {
@@ -134,7 +116,10 @@ public class Channel {
   }
 
   public void handleHelloMessage(HelloMessage helloMessage) {
-    handshakeService.handleHelloMsg(this, helloMessage);
+    boolean ok = handshakeService.handleHelloMsg(this, helloMessage);
+    if (ok) {
+      channelManager.getSyncPool().onConnect(this);
+    }
   }
 
   public void processException(Throwable throwable) {
@@ -162,10 +147,12 @@ public class Channel {
     return isDisconnect;
   }
 
-  //if handshake finished, wo have ctx
+  //if channel active, wo have ctx
   public void setChannelHandlerContext(ChannelHandlerContext ctx) {
     this.ctx = ctx;
     this.inetSocketAddress = ctx == null ? null : (InetSocketAddress) ctx.channel().remoteAddress();
+    isTrustPeer = Parameter.p2pConfig.getTrustNodes()
+        .contains((InetSocketAddress) ctx.channel().remoteAddress());
   }
 
   public InetAddress getInetAddress() {
@@ -174,6 +161,12 @@ public class Channel {
 
   public String getPeerId() {
     return node == null ? "<null>" : node.getHexId();
+  }
+
+  public void disconnect(DisconnectCode code) {
+    this.isDisconnect = true;
+    this.disconnectTime = System.currentTimeMillis();
+    channelManager.processDisconnect(this, code);
   }
 
   public void close() {

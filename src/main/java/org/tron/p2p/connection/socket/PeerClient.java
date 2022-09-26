@@ -21,8 +21,6 @@ import org.tron.p2p.discover.NodeManager;
 @Slf4j(topic = "net")
 public class PeerClient {
 
-//  private ApplicationContext ctx;
-
   @Setter
   @Getter
   private NodeManager nodeManager;
@@ -56,8 +54,6 @@ public class PeerClient {
           if (!future.isSuccess()) {
             log.warn("connect to {}:{} fail,cause:{}", node.getHost(), node.getPort(),
                 future.cause().getMessage());
-//            nodeHandler.getNodeStatistics().nodeDisconnectedLocal(ReasonCode.CONNECT_FAIL);
-//            nodeHandler.getNodeStatistics().notifyDisconnect();
             future.channel().close();
           }
         });
@@ -68,8 +64,6 @@ public class PeerClient {
 
     log.info("connect peer {} {} {}", host, port, remoteId);
 
-//    P2pChannelInitializer tronChannelInitializer = ctx
-//        .getBean(P2pChannelInitializer.class, remoteId);
     P2pChannelInitializer tronChannelInitializer = new P2pChannelInitializer(remoteId,
         channelManager, nodeManager);
     tronChannelInitializer.setPeerDiscoveryMode(discoveryMode);

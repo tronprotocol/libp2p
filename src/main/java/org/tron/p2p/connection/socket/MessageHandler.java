@@ -3,30 +3,47 @@ package org.tron.p2p.connection.socket;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
+import java.net.InetSocketAddress;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.P2pEventHandler;
+import org.tron.p2p.base.Constant;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.message.MessageType;
 import org.tron.p2p.connection.message.handshake.HelloMessage;
-import org.tron.p2p.connection.message.Message;
-import org.tron.p2p.connection.message.keepalive.PongMessage;
+import org.tron.p2p.connection.business.handshake.DisconnectCode;
+import org.tron.p2p.connection.business.handshake.HandshakeService;
 
 @Slf4j(topic = "net")
 public class MessageHandler extends ByteToMessageDecoder {
 
   private Channel channel;
-  
+
+  private byte[] remoteId;
+
+  private HandshakeService handshakeService;
+
+  public MessageHandler(Channel channel, byte[] remoteId) {
+    this.channel = channel;
+    this.remoteId = remoteId;
+    this.handshakeService = new HandshakeService();
+  }
+
   @Override
   public void handlerAdded(ChannelHandlerContext ctx) {
-    //send Ping period, but replace by KeepAliveTask
+    //send Ping periodically, but replace by KeepAliveTask
   }
 
   @Override
   public void channelActive(ChannelHandlerContext ctx) {
     log.info("Channel active, {}", ctx.channel().remoteAddress());
-    channel.setCtx(ctx);
+    channel.setChannelHandlerContext(ctx);
+
+    if (remoteId.length == Constant.NODE_ID_LEN) {
+      channel.initNode(remoteId, ((InetSocketAddress) ctx.channel().remoteAddress()).getPort());
+      handshakeService.sendHelloMsg(channel, DisconnectCode.NORMAL);
+    }
   }
 
   @Override
@@ -48,6 +65,7 @@ public class MessageHandler extends ByteToMessageDecoder {
           handMessage(channel, data);
           break;
       }
+      channel.setLastSendTime(System.currentTimeMillis());
     } catch (Exception e) {
       channel.processException(e);
     }

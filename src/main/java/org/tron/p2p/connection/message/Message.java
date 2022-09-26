@@ -2,7 +2,6 @@ package org.tron.p2p.connection.message;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.tron.p2p.connection.message.handshake.HelloMessage;
-import org.tron.p2p.connection.message.keepalive.PongMessage;
 import org.tron.p2p.exception.P2pException;
 
 public abstract class Message {
