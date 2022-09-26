@@ -11,16 +11,16 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.P2pEventHandler;
+import org.tron.p2p.P2pService;
 import org.tron.p2p.base.Parameter;
-import org.tron.p2p.connection.business.keepalive.KeepAliveService;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.business.handshake.HandshakeService;
+import org.tron.p2p.connection.business.keepalive.KeepAliveService;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
-import org.tron.p2p.connection.socket.SyncPool;
+import org.tron.p2p.connection.business.ConnPoolService;
 import org.tron.p2p.discover.Node;
-import org.tron.p2p.discover.NodeManager;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.utils.ByteArray;
 
@@ -34,7 +34,7 @@ public class ChannelManager {
   private static PeerClient peerClient;
 
   @Getter
-  private static SyncPool syncPool;
+  private static ConnPoolService connPoolService;
 
   private static KeepAliveService keepAliveService;
 
@@ -51,16 +51,16 @@ public class ChannelManager {
       .newBuilder().maximumSize(2000).build();
 
 
-  public void init(NodeManager nodeManager) {
+  public void init(P2pService p2pService) {
     peerServer = new PeerServer();
     peerClient = new PeerClient();
     keepAliveService = new KeepAliveService();
-    syncPool = new SyncPool();
+    connPoolService = new ConnPoolService(p2pService);
     handshakeService = new HandshakeService();
     peerServer.init();
     peerClient.init();
     keepAliveService.init();
-    syncPool.init(peerClient);
+    connPoolService.init(peerClient);
   }
 
   //used by fast forward node
@@ -74,7 +74,6 @@ public class ChannelManager {
   }
 
   public static void notifyDisconnect(Channel channel) {
-    syncPool.onDisconnect(channel);
     channels.remove(channel.getNode().getHexId());
     Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
     InetAddress inetAddress = channel.getInetAddress();
@@ -136,7 +135,7 @@ public class ChannelManager {
   }
 
   public static void close() {
-    syncPool.close();
+    connPoolService.close();
     keepAliveService.close();
     peerClient.close();
     peerServer.close();

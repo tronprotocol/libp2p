@@ -24,6 +24,7 @@ import org.tron.p2p.stats.P2pStats;
 
 @Slf4j(topic = "net")
 public class Channel {
+
   private ChannelHandlerContext ctx;
   private P2pStats p2pStats;
   private MessageHandler messageHandler;
@@ -47,6 +48,8 @@ public class Channel {
   @Getter
   @Setter
   private volatile boolean finishHandshake;
+
+  public volatile boolean waitForPong = false;
   private boolean discoveryMode;
 
 
@@ -54,6 +57,8 @@ public class Channel {
     this.discoveryMode = discoveryMode;
     this.isActive = remoteId != null && !remoteId.isEmpty();
     this.messageHandler = new MessageHandler(this);
+
+    //channel will close automatically if read time is over 60 seconds
     pipeline.addLast("readTimeoutHandler", new ReadTimeoutHandler(60, TimeUnit.SECONDS));
     pipeline.addLast("protoPender", new ProtobufVarint32LengthFieldPrepender());
     pipeline.addLast("lengthDecode", new P2pProtobufVarint32FrameDecoder(this));
@@ -72,6 +77,7 @@ public class Channel {
             ctx.channel().remoteAddress(), data[0]);
       }
     });
+    setLastSendTime(System.currentTimeMillis());
   }
 
   public void processException(Throwable throwable) {
@@ -101,7 +107,7 @@ public class Channel {
     isTrustPeer = Parameter.p2pConfig.getTrustNodes().contains(this.inetSocketAddress);
   }
 
- public InetAddress getInetAddress() {
+  public InetAddress getInetAddress() {
     return inetSocketAddress.getAddress();
   }
 

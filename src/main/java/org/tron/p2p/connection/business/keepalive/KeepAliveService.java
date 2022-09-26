@@ -1,5 +1,7 @@
 package org.tron.p2p.connection.business.keepalive;
 
+import static org.tron.p2p.base.Parameter.keepAlivePeriod;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -21,18 +23,15 @@ public class KeepAliveService {
       try {
         long now = System.currentTimeMillis();
         ChannelManager.getChannels().values().forEach(p -> {
-          if (now - p.getLastSendTime() > 20_000) {
+          if (!p.waitForPong && now - p.getLastSendTime() > keepAlivePeriod) {
             p.send(new PingMessage().getData());
-          }
-          if (now - p.getLastSendTime() > 60_000) {
-            //disconnect if we has not receive ping or pong from channel too long
-            p.close();
+            p.waitForPong = true;
           }
         });
       } catch (Throwable t) {
         log.error("Exception in keep alive task.", t);
       }
-    }, 20, 20, TimeUnit.SECONDS);
+    }, 2, 2, TimeUnit.SECONDS);
   }
 
   public void close() {
@@ -40,17 +39,10 @@ public class KeepAliveService {
   }
 
   public void processPingMessage(Channel channel, Message message) {
-    PingMessage pingMessage = (PingMessage) message;
-    long latency = System.currentTimeMillis() - pingMessage.getTimeStamp();
-    //todo statistic latency
     channel.send(new PongMessage().getData());
-    channel.setLastSendTime(System.currentTimeMillis());
   }
 
   public void processPongMessage(Channel channel, Message message) {
-    PongMessage pongMessage = (PongMessage) message;
-    long latency = System.currentTimeMillis() - pongMessage.getTimeStamp();
-    //todo statistic latency
-    channel.setLastSendTime(System.currentTimeMillis());
+    channel.waitForPong = false;
   }
 }

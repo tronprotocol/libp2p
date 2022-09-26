@@ -1,4 +1,4 @@
-package org.tron.p2p.connection.socket;
+package org.tron.p2p.connection.business;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -16,24 +16,26 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.util.encoders.Hex;
 import org.tron.p2p.P2pConfig;
+import org.tron.p2p.P2pEventHandler;
+import org.tron.p2p.P2pService;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
+import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
 import org.tron.p2p.utils.CollectionUtils;
 
 @Slf4j(topic = "net")
-public class SyncPool {
+public class ConnPoolService extends P2pEventHandler {
 
   private final List<Channel> activePeers = Collections.synchronizedList(new ArrayList<>());
-  private Cache<InetAddress, Long> nodeHandlerCache = CacheBuilder.newBuilder()
+  private Cache<InetAddress, Long> peerClientCache = CacheBuilder.newBuilder()
       .maximumSize(1000).expireAfterWrite(180, TimeUnit.SECONDS).recordStats().build();
   @Getter
   private final AtomicInteger passivePeersCount = new AtomicInteger(0);
@@ -46,7 +48,9 @@ public class SyncPool {
   public P2pConfig p2pConfig = Parameter.p2pConfig;
   private PeerClient peerClient;
 
-  private int disconnectTimeout = 60_000;
+  public ConnPoolService(P2pService p2pService) {
+    p2pService.register(this);
+  }
 
   public void init(PeerClient peerClient) {
     this.peerClient = peerClient;
@@ -103,23 +107,30 @@ public class SyncPool {
     //choose lackSize nodes from nodeManager that meet special requirement
     if (lackSize > 0) {
       nodesInUse.add(Hex.toHexString(p2pConfig.getNodeID()));
-      List<Node> newNodes = getNodes(new NodeSelector(nodesInUse), lackSize);
+      List<Node> newNodes = getNodes(nodesInUse, lackSize);
       connectNodes.addAll(newNodes);
     }
 
     //establish tcp connection with chose nodes by peerClient
     connectNodes.forEach(n -> {
       peerClient.connectAsync(n, false);
-      nodeHandlerCache.put(n.getInetSocketAddress().getAddress(), System.currentTimeMillis());
+      peerClientCache.put(n.getInetSocketAddress().getAddress(), System.currentTimeMillis());
     });
   }
 
-  private List<Node> getNodes(Predicate<Node> predicate, int limit) {
+  private List<Node> getNodes(Set<String> nodesInUse, int limit) {
     List<Node> filtered = new ArrayList<>();
     for (Node node : NodeManager.getConnectableNodes()) {
-      if (predicate.test(node)) {
-        filtered.add(node);
+      InetAddress inetAddress = node.getInetSocketAddress().getAddress();
+      if ((node.getHost().equals(p2pConfig.getIp()) && node.getPort() == p2pConfig.getPort())
+          || (ChannelManager.getBannedNodes().getIfPresent(inetAddress) != null)
+          || (ChannelManager.getConnectionNum(inetAddress)
+          >= p2pConfig.getMaxConnectionsWithSameIp())
+          || (nodesInUse.contains(node.getHexId()))
+          || (peerClientCache.getIfPresent(inetAddress) != null)) {
+        continue;
       }
+      filtered.add(node);
     }
     //order by updateTime desc
     filtered.sort(Comparator.comparingLong(node -> -node.getUpdateTime()));
@@ -162,6 +173,7 @@ public class SyncPool {
     return peers;
   }
 
+  @Override
   public synchronized void onConnect(Channel peer) {
     if (!activePeers.contains(peer)) {
       if (!peer.isActive()) {
@@ -170,13 +182,10 @@ public class SyncPool {
         activePeersCount.incrementAndGet();
       }
       activePeers.add(peer);
-//      activePeers
-//          .sort(Comparator.comparingDouble(
-//              c -> c.getNodeStatistics().pingMessageLatency.getAvg()));
-//      peerConnection.onConnect();
     }
   }
 
+  @Override
   public synchronized void onDisconnect(Channel peer) {
     if (activePeers.contains(peer)) {
       if (!peer.isActive()) {
@@ -185,14 +194,7 @@ public class SyncPool {
         activePeersCount.decrementAndGet();
       }
       activePeers.remove(peer);
-//      peerConnection.onDisconnect();
     }
-  }
-
-  //business hello message?
-  public boolean isCanConnect() {
-    return passivePeersCount.get()
-        < p2pConfig.getMinConnections() - p2pConfig.getMinActiveConnections();
   }
 
   public void close() {
@@ -206,29 +208,6 @@ public class SyncPool {
       logExecutor.shutdownNow();
     } catch (Exception e) {
       log.warn("Problems shutting down executor", e);
-    }
-  }
-
-  class NodeSelector implements Predicate<Node> {
-
-    private final Set<String> nodesInUse;
-
-    public NodeSelector(Set<String> nodesInUse) {
-      this.nodesInUse = nodesInUse;
-    }
-
-    @Override
-    public boolean test(Node node) {
-
-      InetAddress inetAddress = node.getInetSocketAddress().getAddress();
-      return !((node.getHost().equals(NodeManager.getPublicHomeNode().getHost())
-          && node.getPort() == NodeManager.getPublicHomeNode().getPort())
-//          || (channelManager.getRecentlyDisconnected().getIfPresent(inetAddress) != null)
-          || (ChannelManager.getBannedNodes().getIfPresent(inetAddress) != null)
-          || (ChannelManager.getConnectionNum(inetAddress)
-          >= p2pConfig.getMaxConnectionsWithSameIp())
-          || (nodesInUse.contains(node.getHexId()))
-          || (nodeHandlerCache.getIfPresent(inetAddress) != null));
     }
   }
 }

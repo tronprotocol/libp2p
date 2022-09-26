@@ -15,6 +15,10 @@ public class Parameter {
 
   public static int nodeConnectionTimeout = 2000;
 
+  public static int keepAlivePeriod = 20_000;
+
+  public static int networkTimeDiff = 1000;
+
   public static volatile P2pConfig p2pConfig;
 
   public static volatile List<P2pEventHandler> handlerList;
