@@ -42,7 +42,7 @@ public class PeerServer {
   public void start(int port) {
     EventLoopGroup bossGroup = new NioEventLoopGroup(1);
     EventLoopGroup workerGroup = new NioEventLoopGroup(Parameter.tcpNettyWorkThreadNum);
-    P2pChannelInitializer tronChannelInitializer = new P2pChannelInitializer("");
+    P2pChannelInitializer p2pChannelInitializer = new P2pChannelInitializer("");
     try {
       ServerBootstrap b = new ServerBootstrap();
 
@@ -53,7 +53,7 @@ public class PeerServer {
       b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, Parameter.nodeConnectionTimeout);
 
       b.handler(new LoggingHandler());
-      b.childHandler(tronChannelInitializer);
+      b.childHandler(p2pChannelInitializer);
 
       // Start the client.
       log.info("TCP listener started, bind port {}", port);

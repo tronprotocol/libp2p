@@ -25,14 +25,14 @@ import org.tron.p2p.P2pConfig;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
-import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
 import org.tron.p2p.utils.CollectionUtils;
 
 @Slf4j(topic = "net")
 public class SyncPool {
-  private final List<PeerConnection> activePeers = Collections.synchronizedList(new ArrayList<>());
+
+  private final List<Channel> activePeers = Collections.synchronizedList(new ArrayList<>());
   private Cache<InetAddress, Long> nodeHandlerCache = CacheBuilder.newBuilder()
       .maximumSize(1000).expireAfterWrite(180, TimeUnit.SECONDS).recordStats().build();
   @Getter
@@ -116,7 +116,7 @@ public class SyncPool {
 
   private List<Node> getNodes(Predicate<Node> predicate, int limit) {
     List<Node> filtered = new ArrayList<>();
-    for (Node node : nodeManager.getConnectableNodes()) {
+    for (Node node : NodeManager.getConnectableNodes()) {
       if (predicate.test(node)) {
         filtered.add(node);
       }
@@ -133,15 +133,15 @@ public class SyncPool {
     }
 
     // filter trust peer and active peer
-    Collection<PeerConnection> peers = getActivePeers().stream()
+    Collection<Channel> peers = getActivePeers().stream()
         .filter(peer -> !peer.isTrustPeer())
         .filter(peer -> !peer.isActive())
         .collect(Collectors.toList());
 
     // if len(peers) >= 0, disconnect randomly
     if (!peers.isEmpty()) {
-      List<PeerConnection> list = new ArrayList(peers);
-      PeerConnection peer = list.get(new Random().nextInt(peers.size()));
+      List<Channel> list = new ArrayList(peers);
+      Channel peer = list.get(new Random().nextInt(peers.size()));
       peer.close();
     }
   }
@@ -152,9 +152,9 @@ public class SyncPool {
     log.info(str);
   }
 
-  public List<PeerConnection> getActivePeers() {
-    List<PeerConnection> peers = Lists.newArrayList();
-    for (PeerConnection peer : activePeers) {
+  public List<Channel> getActivePeers() {
+    List<Channel> peers = Lists.newArrayList();
+    for (Channel peer : activePeers) {
       if (!peer.isDisconnect()) {
         peers.add(peer);
       }
@@ -163,31 +163,29 @@ public class SyncPool {
   }
 
   public synchronized void onConnect(Channel peer) {
-    PeerConnection peerConnection = (PeerConnection) peer;
-    if (!activePeers.contains(peerConnection)) {
-      if (!peerConnection.isActive()) {
+    if (!activePeers.contains(peer)) {
+      if (!peer.isActive()) {
         passivePeersCount.incrementAndGet();
       } else {
         activePeersCount.incrementAndGet();
       }
-      activePeers.add(peerConnection);
+      activePeers.add(peer);
 //      activePeers
 //          .sort(Comparator.comparingDouble(
 //              c -> c.getNodeStatistics().pingMessageLatency.getAvg()));
-      peerConnection.onConnect();
+//      peerConnection.onConnect();
     }
   }
 
   public synchronized void onDisconnect(Channel peer) {
-    PeerConnection peerConnection = (PeerConnection) peer;
-    if (activePeers.contains(peerConnection)) {
-      if (!peerConnection.isActive()) {
+    if (activePeers.contains(peer)) {
+      if (!peer.isActive()) {
         passivePeersCount.decrementAndGet();
       } else {
         activePeersCount.decrementAndGet();
       }
-      activePeers.remove(peerConnection);
-      peerConnection.onDisconnect();
+      activePeers.remove(peer);
+//      peerConnection.onDisconnect();
     }
   }
 
@@ -223,11 +221,11 @@ public class SyncPool {
     public boolean test(Node node) {
 
       InetAddress inetAddress = node.getInetSocketAddress().getAddress();
-      return !((node.getHost().equals(nodeManager.getPublicHomeNode().getHost())
-          && node.getPort() == nodeManager.getPublicHomeNode().getPort())
-          || (channelManager.getRecentlyDisconnected().getIfPresent(inetAddress) != null)
-          || (channelManager.getBannedNodes().getIfPresent(inetAddress) != null)
-          || (channelManager.getConnectionNum(inetAddress)
+      return !((node.getHost().equals(NodeManager.getPublicHomeNode().getHost())
+          && node.getPort() == NodeManager.getPublicHomeNode().getPort())
+//          || (channelManager.getRecentlyDisconnected().getIfPresent(inetAddress) != null)
+          || (ChannelManager.getBannedNodes().getIfPresent(inetAddress) != null)
+          || (ChannelManager.getConnectionNum(inetAddress)
           >= p2pConfig.getMaxConnectionsWithSameIp())
           || (nodesInUse.contains(node.getHexId()))
           || (nodeHandlerCache.getIfPresent(inetAddress) != null));

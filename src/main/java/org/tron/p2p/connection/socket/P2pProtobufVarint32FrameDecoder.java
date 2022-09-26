@@ -9,13 +9,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.connection.Channel;
 
 @Slf4j(topic = "net")
-public class TrxProtobufVarint32FrameDecoder extends ByteToMessageDecoder {
+public class P2pProtobufVarint32FrameDecoder extends ByteToMessageDecoder {
 
   private static final int maxMsgLength = 5 * 1024 * 1024;//5M
 
   private Channel channel;
 
-  public TrxProtobufVarint32FrameDecoder(Channel channel) {
+  public P2pProtobufVarint32FrameDecoder(Channel channel) {
     this.channel = channel;
   }
 
