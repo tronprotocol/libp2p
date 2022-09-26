@@ -1,24 +1,25 @@
-package org.tron.p2p.discover.socket.message;
+package org.tron.p2p.discover.message.kad;
 
 import com.google.protobuf.ByteString;
+import org.tron.p2p.base.Constant;
 import org.tron.p2p.discover.Node;
+import org.tron.p2p.discover.message.MessageType;
 import org.tron.p2p.protos.Discover;
 import org.tron.p2p.protos.Discover.Endpoint;
 import org.tron.p2p.utils.ByteArray;
+import org.tron.p2p.utils.NetUtil;
 
-import static org.tron.p2p.discover.socket.message.UdpMessageTypeEnum.DISCOVER_FIND_NODE;
-
-public class FindNodeMessage extends Message {
+public class FindNodeMessage extends KadMessage {
 
   private Discover.FindNeighbours findNeighbours;
 
   public FindNodeMessage(byte[] data) throws Exception {
-    super(DISCOVER_FIND_NODE, data);
+    super(MessageType.KAD_FIND_NODE, data);
     this.findNeighbours = Discover.FindNeighbours.parseFrom(data);
   }
 
   public FindNodeMessage(Node from, byte[] targetId) {
-    super(DISCOVER_FIND_NODE, null);
+    super(MessageType.KAD_FIND_NODE, null);
     Endpoint fromEndpoint = Endpoint.newBuilder()
         .setAddress(ByteString.copyFrom(ByteArray.fromString(from.getHost())))
         .setPort(from.getPort())
@@ -43,11 +44,17 @@ public class FindNodeMessage extends Message {
 
   @Override
   public Node getFrom() {
-    return Message.getNode(findNeighbours.getFrom());
+    return NetUtil.getNode(findNeighbours.getFrom());
   }
 
   @Override
   public String toString() {
     return "[findNeighbours: " + findNeighbours;
+  }
+
+  @Override
+  public boolean valid() {
+    return NetUtil.validNode(getFrom())
+            && getTargetId().length == Constant.NODE_ID_LEN;
   }
 }

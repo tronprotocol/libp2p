@@ -7,7 +7,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.util.encoders.Hex;
-import org.tron.p2p.config.Constant;
+import org.tron.p2p.base.Constant;
 
 @Slf4j(topic = "discover")
 public class Node implements Serializable {

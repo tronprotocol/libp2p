@@ -1,4 +1,4 @@
-package org.tron.p2p.config;
+package org.tron.p2p.base;
 
 import java.util.List;
 import java.util.Map;

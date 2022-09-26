@@ -6,11 +6,12 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.P2pEventHandler;
-import org.tron.p2p.config.Parameter;
+import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
-import org.tron.p2p.connection.message.HelloMessage;
+import org.tron.p2p.connection.message.MessageType;
+import org.tron.p2p.connection.message.handshake.HelloMessage;
 import org.tron.p2p.connection.message.Message;
-import org.tron.p2p.connection.message.TcpPongMessage;
+import org.tron.p2p.connection.message.keepalive.PongMessage;
 
 @Slf4j(topic = "net")
 public class MessageHandler extends ByteToMessageDecoder {
@@ -32,15 +33,15 @@ public class MessageHandler extends ByteToMessageDecoder {
   protected void decode(ChannelHandlerContext ctx, ByteBuf buffer, List<Object> out) {
     byte[] data = new byte[buffer.readableBytes()];
     buffer.readBytes(data);
-    byte type = data[0];
+    MessageType type = MessageType.fromByte(data[0]);
     try {
       switch (type) {
-        case Message.PING:
-          channel.send(new TcpPongMessage().getData());
+        case KEEP_ALIVE_PING:
+          channel.send(new PongMessage().getSendData());
           break;
-        case Message.PONG:
+        case KEEP_ALIVE_PONG:
           break;
-        case Message.HELLO:
+        case HANDSHAKE_HELLO:
           channel.handleHelloMessage(new HelloMessage(data));
           break;
         default:

@@ -12,7 +12,7 @@ import io.netty.handler.logging.LoggingHandler;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.tron.p2p.config.Parameter;
+import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.discover.NodeManager;
 

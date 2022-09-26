@@ -1,28 +1,31 @@
-package org.tron.p2p.discover.socket.message;
+package org.tron.p2p.discover.message.kad;
 
 import com.google.protobuf.ByteString;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.springframework.util.StringUtils;
 import org.tron.p2p.discover.Node;
+import org.tron.p2p.discover.message.MessageType;
+import org.tron.p2p.discover.protocol.kad.table.KademliaOptions;
 import org.tron.p2p.protos.Discover;
 import org.tron.p2p.protos.Discover.Endpoint;
 import org.tron.p2p.protos.Discover.Neighbours;
 import org.tron.p2p.protos.Discover.Neighbours.Builder;
 import org.tron.p2p.utils.ByteArray;
+import org.tron.p2p.utils.NetUtil;
 
-import static org.tron.p2p.discover.socket.message.UdpMessageTypeEnum.DISCOVER_NEIGHBORS;
-
-public class NeighborsMessage extends Message {
+public class NeighborsMessage extends KadMessage {
 
   private Discover.Neighbours neighbours;
 
   public NeighborsMessage(byte[] data) throws Exception {
-    super(DISCOVER_NEIGHBORS, data);
+    super(MessageType.KAD_NEIGHBORS, data);
     this.neighbours = Discover.Neighbours.parseFrom(data);
   }
 
   public NeighborsMessage(Node from, List<Node> neighbours, long sequence) {
-    super(DISCOVER_NEIGHBORS, null);
+    super(MessageType.KAD_NEIGHBORS, null);
     Builder builder = Neighbours.newBuilder()
         .setTimestamp(sequence);
 
@@ -65,11 +68,29 @@ public class NeighborsMessage extends Message {
 
   @Override
   public Node getFrom() {
-    return Message.getNode(neighbours.getFrom());
+    return NetUtil.getNode(neighbours.getFrom());
   }
 
   @Override
   public String toString() {
     return "[neighbours: " + neighbours;
+  }
+
+  @Override
+  public boolean valid() {
+    if (!NetUtil.validNode(getFrom())) {
+      return false;
+    }
+    if (!StringUtils.isEmpty(getNodes())) {
+      if (getNodes().size() > KademliaOptions.BUCKET_SIZE) {
+        return false;
+      }
+      for (Node node : getNodes()) {
+        if (!NetUtil.validNode(node)) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 }

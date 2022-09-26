@@ -3,7 +3,7 @@ package org.tron.p2p;
 import java.net.InetSocketAddress;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
-import org.tron.p2p.config.Parameter;
+import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;

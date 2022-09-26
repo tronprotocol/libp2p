@@ -1,35 +1,54 @@
 package org.tron.p2p.connection.message;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.bouncycastle.util.encoders.Hex;
+import org.tron.p2p.connection.message.handshake.HelloMessage;
+import org.tron.p2p.connection.message.keepalive.PongMessage;
+import org.tron.p2p.exception.P2pException;
 
 public abstract class Message {
 
-  public static final byte PING = (byte) 0xff;
-  public static final byte PONG = (byte) 0xfe;
-  public static final byte HELLO = (byte) 0xfd;
-
-  public static final byte[] FIXED_PAYLOAD = Hex.decode("C0");
-
+  protected MessageType type;
   protected byte[] data;
-  protected byte type;
 
-  public Message(byte[] data) {
+
+  public Message(MessageType type, byte[] data) {
+    this.type = type;
     this.data = data;
-    this.type = data[0];
   }
 
-  public Message(byte type, byte[] data) {
-    this.type = type;
-    this.data = ArrayUtils.add(data, 0, type);
+  public byte[] getSendData() {
+    return ArrayUtils.add(this.data, 0, type.getType());
   }
 
   public byte[] getData() {
     return this.data;
   }
 
-  public byte getType() {
+  public MessageType getType() {
     return this.type;
+  }
+
+  public abstract boolean valid();
+
+  public static Message parse(byte[] encode) throws Exception {
+    byte type = encode[0];
+    byte[] data = ArrayUtils.subarray(encode, 1, encode.length);
+    Message message = null;
+    switch (MessageType.fromByte(type)) {
+      case KEEP_ALIVE_PING:
+        break;
+      case KEEP_ALIVE_PONG:
+        break;
+      case HANDSHAKE_HELLO:
+        message = new HelloMessage(data);
+        break;
+      default:
+        throw new P2pException(P2pException.TypeEnum.NO_SUCH_MESSAGE, "type=" + type);
+    }
+    if (!message.valid()) {
+      throw new P2pException(P2pException.TypeEnum.BAD_MESSAGE, "type=" + type);
+    }
+    return message;
   }
 
 }

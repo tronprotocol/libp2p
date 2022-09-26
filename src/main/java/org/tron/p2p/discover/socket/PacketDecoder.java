@@ -6,7 +6,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import lombok.extern.slf4j.Slf4j;
-import org.tron.p2p.discover.socket.message.Message;
+import org.tron.p2p.discover.message.Message;
 
 @Slf4j(topic = "discover")
 public class PacketDecoder extends MessageToMessageDecoder<DatagramPacket> {

@@ -13,17 +13,17 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
-import org.tron.p2p.config.Parameter;
+import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.DiscoverService;
 import org.tron.p2p.discover.Node;
+import org.tron.p2p.discover.message.Message;
+import org.tron.p2p.discover.message.kad.KadMessage;
 import org.tron.p2p.discover.protocol.kad.table.NodeTable;
 import org.tron.p2p.discover.socket.UdpEvent;
-import org.tron.p2p.discover.socket.message.DiscoverMessageInspector;
-import org.tron.p2p.discover.socket.message.FindNodeMessage;
-import org.tron.p2p.discover.socket.message.Message;
-import org.tron.p2p.discover.socket.message.NeighborsMessage;
-import org.tron.p2p.discover.socket.message.PingMessage;
-import org.tron.p2p.discover.socket.message.PongMessage;
+import org.tron.p2p.discover.message.kad.FindNodeMessage;
+import org.tron.p2p.discover.message.kad.NeighborsMessage;
+import org.tron.p2p.discover.message.kad.PingMessage;
+import org.tron.p2p.discover.message.kad.PongMessage;
 
 @Slf4j
 public class KadService implements DiscoverService {
@@ -112,10 +112,7 @@ public class KadService implements DiscoverService {
 
   @Override
   public void handleEvent(UdpEvent udpEvent) {
-    Message m = udpEvent.getMessage();
-    if (!DiscoverMessageInspector.valid(m)) {
-      return;
-    }
+    KadMessage m = (KadMessage)udpEvent.getMessage();
 
     InetSocketAddress sender = udpEvent.getAddress();
 
@@ -132,16 +129,16 @@ public class KadService implements DiscoverService {
     //    MetricLabels.Histogram.TRAFFIC_IN);
 
     switch (m.getType()) {
-      case DISCOVER_PING:
+      case KAD_PING:
         nodeHandler.handlePing((PingMessage) m);
         break;
-      case DISCOVER_PONG:
+      case KAD_PONG:
         nodeHandler.handlePong((PongMessage) m);
         break;
-      case DISCOVER_FIND_NODE:
+      case KAD_FIND_NODE:
         nodeHandler.handleFindNode((FindNodeMessage) m);
         break;
-      case DISCOVER_NEIGHBORS:
+      case KAD_NEIGHBORS:
         nodeHandler.handleNeighbours((NeighborsMessage) m);
         break;
       default:

@@ -7,10 +7,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.tron.p2p.config.Parameter;
+import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.Node;
+import org.tron.p2p.discover.message.kad.FindNodeMessage;
+import org.tron.p2p.discover.message.kad.NeighborsMessage;
+import org.tron.p2p.discover.message.kad.PingMessage;
+import org.tron.p2p.discover.message.kad.PongMessage;
 import org.tron.p2p.discover.socket.UdpEvent;
-import org.tron.p2p.discover.socket.message.*;
+import org.tron.p2p.discover.message.*;
 
 @Slf4j(topic = "discover")
 public class NodeHandler {

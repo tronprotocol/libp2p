@@ -1,11 +1,16 @@
-package org.tron.p2p.discover.socket.message;
+package org.tron.p2p.discover.message;
 
 import java.util.regex.Pattern;
 import org.springframework.util.StringUtils;
+import org.tron.p2p.base.Constant;
 import org.tron.p2p.discover.Node;
+import org.tron.p2p.discover.message.kad.FindNodeMessage;
+import org.tron.p2p.discover.message.kad.NeighborsMessage;
+import org.tron.p2p.discover.message.kad.PingMessage;
+import org.tron.p2p.discover.message.kad.PongMessage;
 import org.tron.p2p.discover.protocol.kad.table.KademliaOptions;
 
-public class DiscoverMessageInspector {
+public class MessageInspector {
 
   public static final Pattern PATTERN_IP =
       Pattern.compile("^(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|[1-9])\\"
@@ -25,7 +30,7 @@ public class DiscoverMessageInspector {
       return false;
     }
     if (!isFound(node.getHost(), PATTERN_IP)
-        || node.getId().length != KademliaOptions.NODE_ID_LEN) {
+        || node.getId().length != Constant.NODE_ID_LEN) {
       return false;
     }
     return true;
@@ -41,7 +46,7 @@ public class DiscoverMessageInspector {
 
   private static boolean valid(FindNodeMessage message) {
     return validNode(message.getFrom())
-        && message.getTargetId().length == KademliaOptions.NODE_ID_LEN;
+        && message.getTargetId().length == Constant.NODE_ID_LEN;
   }
 
   private static boolean valid(NeighborsMessage message) {
@@ -61,24 +66,4 @@ public class DiscoverMessageInspector {
     return true;
   }
 
-  public static boolean valid(Message message) {
-    boolean flag = false;
-    switch (message.getType()) {
-      case DISCOVER_PING:
-        flag = valid((PingMessage) message);
-        break;
-      case DISCOVER_PONG:
-        flag = valid((PongMessage) message);
-        break;
-      case DISCOVER_FIND_NODE:
-        flag = valid((FindNodeMessage) message);
-        break;
-      case DISCOVER_NEIGHBORS:
-        flag = valid((NeighborsMessage) message);
-        break;
-      default:
-        break;
-    }
-    return flag;
-  }
 }

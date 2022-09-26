@@ -1,10 +1,10 @@
 package org.tron.p2p.connection.business.handshake;
 
 import lombok.extern.slf4j.Slf4j;
-import org.tron.p2p.config.Parameter;
+import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
-import org.tron.p2p.connection.message.HelloMessage;
+import org.tron.p2p.connection.message.handshake.HelloMessage;
 
 @Slf4j(topic = "net")
 public class HandshakeService {
@@ -13,7 +13,7 @@ public class HandshakeService {
 
   public void sendHelloMsg(Channel channel, DisconnectCode code) {
     HelloMessage helloMessage = new HelloMessage(code);
-    channel.send(helloMessage.getData());
+    channel.send(helloMessage.getSendData());
     log.info("Handshake send to {}, {} ", channel.getInetAddress(), helloMessage);
   }
 
