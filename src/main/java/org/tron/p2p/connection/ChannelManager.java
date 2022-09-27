@@ -4,7 +4,6 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
@@ -19,7 +18,7 @@ import org.tron.p2p.connection.business.keepalive.KeepAliveService;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
-import org.tron.p2p.connection.business.ConnPoolService;
+import org.tron.p2p.connection.business.pool.ConnPoolService;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
 import org.tron.p2p.exception.P2pException;
@@ -141,10 +140,8 @@ public class ChannelManager {
     Message message = Message.parse(data);
     switch (message.getType()) {
       case KEEP_ALIVE_PING:
-        keepAliveService.processPingMessage(channel, message);
-        break;
       case KEEP_ALIVE_PONG:
-        keepAliveService.processPongMessage(channel, message);
+        keepAliveService.processMessage(channel, message);
         break;
       case HANDSHAKE_HELLO:
         handshakeService.processMessage(channel, message);

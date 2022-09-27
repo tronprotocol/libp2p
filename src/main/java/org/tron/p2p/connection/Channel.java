@@ -21,6 +21,7 @@ import org.tron.p2p.connection.socket.P2pProtobufVarint32FrameDecoder;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.stats.P2pStats;
+import org.tron.p2p.stats.TrafficStats;
 
 @Slf4j(topic = "net")
 public class Channel {
@@ -59,11 +60,11 @@ public class Channel {
     this.isActive = remoteId != null && !remoteId.isEmpty();
     this.messageHandler = new MessageHandler(this);
 
-    //channel will close automatically if read time is over 60 seconds
     pipeline.addLast("readTimeoutHandler", new ReadTimeoutHandler(60, TimeUnit.SECONDS));
-    pipeline.addLast("protoPender", new ProtobufVarint32LengthFieldPrepender());
-    pipeline.addLast("lengthDecode", new P2pProtobufVarint32FrameDecoder(this));
-    pipeline.addLast("messageDecode", messageHandler);
+    pipeline.addLast(TrafficStats.tcp);
+    pipeline.addLast("protoPrepend", new ProtobufVarint32LengthFieldPrepender());
+    pipeline.addLast("protoDecode", new P2pProtobufVarint32FrameDecoder(this));
+    pipeline.addLast("messageHandler", messageHandler);
   }
 
   public void send(byte[] data) {

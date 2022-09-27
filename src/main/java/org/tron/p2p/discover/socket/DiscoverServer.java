@@ -10,6 +10,7 @@ import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
+import org.tron.p2p.stats.TrafficStats;
 
 @Slf4j(topic = "net")
 public class DiscoverServer {
@@ -55,7 +56,7 @@ public class DiscoverServer {
               @Override
               public void initChannel(NioDatagramChannel ch)
                   throws Exception {
-                //ch.pipeline().addLast(stats.udp);
+                ch.pipeline().addLast(TrafficStats.udp);
                 ch.pipeline().addLast(new ProtobufVarint32LengthFieldPrepender());
                 ch.pipeline().addLast(new ProtobufVarint32FrameDecoder());
                 ch.pipeline().addLast(new PacketDecoder());

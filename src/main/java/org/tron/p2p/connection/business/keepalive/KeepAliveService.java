@@ -8,12 +8,13 @@ import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
+import org.tron.p2p.connection.business.MessageProcess;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.message.keepalive.PingMessage;
 import org.tron.p2p.connection.message.keepalive.PongMessage;
 
 @Slf4j(topic = "net")
-public class KeepAliveService {
+public class KeepAliveService implements MessageProcess {
 
   private ScheduledExecutorService executor =
       Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "KeepAlive"));
@@ -46,5 +47,10 @@ public class KeepAliveService {
 
   public void processPongMessage(Channel channel, Message message) {
     channel.waitForPong = false;
+  }
+
+  @Override
+  public void processMessage(Channel channel, Message message) {
+
   }
 }

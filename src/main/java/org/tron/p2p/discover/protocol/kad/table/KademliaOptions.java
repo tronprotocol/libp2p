@@ -2,9 +2,8 @@ package org.tron.p2p.discover.protocol.kad.table;
 
 public class KademliaOptions {
   public static final int BUCKET_SIZE = 16;
-  public static final int TABLE_BUCKET_COUNT = 17;
   public static final int ALPHA = 3;
-  public static final int BINS = 256;
+  public static final int BINS = 17;
   public static final int MAX_STEPS = 8;
   public static final int MAX_LOOP_NUM = 5;
 
