@@ -4,11 +4,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
+import org.tron.p2p.connection.business.MessageProcess;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.message.handshake.HelloMessage;
 
 @Slf4j(topic = "net")
-public class HandshakeService {
+public class HandshakeService implements MessageProcess {
 
   private final int version = Parameter.p2pConfig.getVersion();
 
@@ -16,13 +17,14 @@ public class HandshakeService {
     sendHelloMsg(channel, DisconnectCode.NORMAL);
   }
 
-  public boolean processMessage(Channel channel, Message message) {
+  @Override
+  public void processMessage(Channel channel, Message message) {
     HelloMessage msg = (HelloMessage)message;
 
     if (channel.isFinishHandshake()) {
       channel.close();
       log.warn("Close channel {}, handshake is finished", channel.getInetAddress());
-      return false;
+      return;
     }
 
     channel.setFinishHandshake(true);
@@ -32,7 +34,7 @@ public class HandshakeService {
           || msg.getVersion() != version) {
         channel.close();
       }
-      return false;
+      return;
     }
 
     if (msg.getVersion() != version) {
@@ -40,18 +42,18 @@ public class HandshakeService {
           channel.getInetAddress(), msg.getVersion(), version);
       sendHelloMsg(channel, DisconnectCode.DIFFERENT_VERSION);
       channel.close();
-      return false;
+      return;
     }
 
     DisconnectCode code = ChannelManager.processPeer(channel);
     if (code != DisconnectCode.NORMAL) {
       sendHelloMsg(channel, code);
       channel.close();
-      return false;
+      return;
     }
 
     sendHelloMsg(channel, DisconnectCode.NORMAL);
-    return true;
+    return;
   }
 
   private void sendHelloMsg(Channel channel, DisconnectCode code) {
