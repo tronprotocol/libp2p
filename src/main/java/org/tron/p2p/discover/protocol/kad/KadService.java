@@ -16,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.DiscoverService;
 import org.tron.p2p.discover.Node;
-import org.tron.p2p.discover.message.Message;
 import org.tron.p2p.discover.message.kad.KadMessage;
 import org.tron.p2p.discover.protocol.kad.table.NodeTable;
 import org.tron.p2p.discover.socket.UdpEvent;
