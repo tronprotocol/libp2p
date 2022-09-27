@@ -13,19 +13,39 @@ import org.tron.p2p.base.Parameter;
 
 @Slf4j(topic = "net")
 public class DiscoverServer {
-
-  private static final int SERVER_RESTART_WAIT = 5000;
-  private static final int SERVER_CLOSE_WAIT = 10;
-
   private Channel channel;
+  private EventHandler eventHandler;
 
-  private int port = Parameter.p2pConfig.getPort();
-
+  private final int SERVER_RESTART_WAIT = 5000;
+  private final int SERVER_CLOSE_WAIT = 10;
+  private final int port = Parameter.p2pConfig.getPort();
   private volatile boolean shutdown = false;
 
-  public void init(EventHandler eventHandler) throws Exception {
-    // todo threads num config
-    NioEventLoopGroup group = new NioEventLoopGroup(1);
+  public void init(EventHandler eventHandler) {
+    this.eventHandler = eventHandler;
+    new Thread(() -> {
+      try {
+        start();
+      } catch (Exception e) {
+        log.error("Discovery server start failed", e);
+      }
+    }, "DiscoverServer").start();
+  }
+
+  public void close() {
+    log.info("Closing discovery server...");
+    shutdown = true;
+    if (channel != null) {
+      try {
+        channel.close().await(SERVER_CLOSE_WAIT, TimeUnit.SECONDS);
+      } catch (Exception e) {
+        log.error("Closing discovery server failed", e);
+      }
+    }
+  }
+
+  private void start() throws Exception {
+    NioEventLoopGroup group = new NioEventLoopGroup(Parameter.udpNettyWorkThreadNum);
     try {
       while (!shutdown) {
         Bootstrap b = new Bootstrap();
@@ -64,18 +84,6 @@ public class DiscoverServer {
       log.error("Start discovery server with port {} failed", port, e);
     } finally {
       group.shutdownGracefully().sync();
-    }
-  }
-
-  public void close() {
-    log.info("Closing discovery server...");
-    shutdown = true;
-    if (channel != null) {
-      try {
-        channel.close().await(SERVER_CLOSE_WAIT, TimeUnit.SECONDS);
-      } catch (Exception e) {
-        log.error("Closing discovery server failed", e);
-      }
     }
   }
 }

@@ -23,8 +23,8 @@ public class NodeTable {
 
   public final void initialize() {
     nodes = new HashMap<>();
-    buckets = new NodeBucket[KademliaOptions.BINS];
-    for (int i = 0; i < KademliaOptions.BINS; i++) {
+    buckets = new NodeBucket[KademliaOptions.TABLE_BUCKET_COUNT];
+    for (int i = 0; i < KademliaOptions.TABLE_BUCKET_COUNT; i++) {
       buckets[i] = new NodeBucket(i);
     }
   }
@@ -79,7 +79,7 @@ public class NodeTable {
   }
 
   public int getBucketId(NodeEntry e) {
-    int id = e.getDistance() - 1;
+    int id = e.getDistance() + KademliaOptions.TABLE_BUCKET_COUNT - KademliaOptions.BINS - 1;
     return id < 0 ? 0 : id;
   }
 

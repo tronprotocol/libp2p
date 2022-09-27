@@ -21,6 +21,7 @@ import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
 import org.tron.p2p.connection.business.ConnPoolService;
 import org.tron.p2p.discover.Node;
+import org.tron.p2p.discover.NodeManager;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.utils.ByteArray;
 
@@ -50,8 +51,7 @@ public class ChannelManager {
   private static final Cache<InetAddress, Long> bannedNodes = CacheBuilder
       .newBuilder().maximumSize(2000).build();
 
-
-  public void init(P2pService p2pService) {
+  public static void init(P2pService p2pService) {
     peerServer = new PeerServer();
     peerClient = new PeerClient();
     keepAliveService = new KeepAliveService();
@@ -63,14 +63,9 @@ public class ChannelManager {
     connPoolService.init(peerClient);
   }
 
-  //used by fast forward node
-  public void connect(InetSocketAddress address) {
+  public static void connect(InetSocketAddress address) {
     peerClient.connect(address.getAddress().getHostAddress(), address.getPort(),
         ByteArray.toHexString(Node.getNodeId()));
-  }
-
-  public Collection<Channel> getActiveChannels() {
-    return channels.values();
   }
 
   public static void notifyDisconnect(Channel channel) {
@@ -171,6 +166,10 @@ public class ChannelManager {
       Parameter.handlerList.forEach(h -> h.onConnect(channel));
     }
     handler.onMessage(channel, data);
+  }
+
+  public static void initNode(Channel channel, Node node) {
+    NodeManager.initNode(node);
   }
 
 }

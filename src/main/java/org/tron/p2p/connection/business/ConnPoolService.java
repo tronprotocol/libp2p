@@ -144,7 +144,8 @@ public class ConnPoolService extends P2pEventHandler {
     }
 
     // filter trust peer and active peer
-    Collection<Channel> peers = getActivePeers().stream()
+    Collection<Channel> peers = activePeers.stream()
+        .filter(peer -> !peer.isDisconnect())
         .filter(peer -> !peer.isTrustPeer())
         .filter(peer -> !peer.isActive())
         .collect(Collectors.toList());
@@ -161,16 +162,6 @@ public class ConnPoolService extends P2pEventHandler {
     String str = String.format("Peer stats: all %d, active %d, passive %d",
         ChannelManager.getChannels().size(), activePeersCount.get(), passivePeersCount.get());
     log.info(str);
-  }
-
-  public List<Channel> getActivePeers() {
-    List<Channel> peers = Lists.newArrayList();
-    for (Channel peer : activePeers) {
-      if (!peer.isDisconnect()) {
-        peers.add(peer);
-      }
-    }
-    return peers;
   }
 
   @Override
