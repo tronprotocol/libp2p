@@ -118,10 +118,10 @@ public class Channel {
   }
 
   public void close() {
-    close(ChannelManager.DEFAULT_BAN_TIME);
+    close(System.currentTimeMillis() + ChannelManager.DEFAULT_BAN_TIME);
   }
 
-  public void close(Long banTime) {
+  private void close(Long banTime) {
     this.isDisconnect = true;
     this.disconnectTime = System.currentTimeMillis();
     ChannelManager.banNode(getInetAddress(), banTime);

@@ -50,11 +50,11 @@ public class ChannelManager {
   private static final Cache<InetAddress, Long> bannedNodes = CacheBuilder
       .newBuilder().maximumSize(2000).build();
 
-  public static void init(P2pService p2pService) {
+  public static void init() {
     peerServer = new PeerServer();
     peerClient = new PeerClient();
     keepAliveService = new KeepAliveService();
-    connPoolService = new ConnPoolService(p2pService);
+    connPoolService = new ConnPoolService();
     handshakeService = new HandshakeService();
     peerServer.init();
     peerClient.init();
@@ -121,7 +121,7 @@ public class ChannelManager {
   }
 
   public static void banNode(InetAddress inetAddress) {
-    bannedNodes.put(inetAddress, DEFAULT_BAN_TIME);
+    bannedNodes.put(inetAddress, System.currentTimeMillis() + DEFAULT_BAN_TIME);
   }
 
   public static void banNode(InetAddress inetAddress, Long banTime) {

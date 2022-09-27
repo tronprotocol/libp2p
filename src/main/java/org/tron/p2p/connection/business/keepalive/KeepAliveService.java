@@ -28,7 +28,7 @@ public class KeepAliveService implements MessageProcess {
               || (now - p.pingSent > keepAlivePeriod)) {
             p.send(new PingMessage().getData());
             p.waitForPong = true;
-            p.pingSent = System.currentTimeMillis();
+            p.pingSent = now;
           }
         });
       } catch (Throwable t) {
@@ -41,16 +41,17 @@ public class KeepAliveService implements MessageProcess {
     executor.shutdown();
   }
 
-  public void processPingMessage(Channel channel, Message message) {
-    channel.send(new PongMessage().getData());
-  }
-
-  public void processPongMessage(Channel channel, Message message) {
-    channel.waitForPong = false;
-  }
-
   @Override
   public void processMessage(Channel channel, Message message) {
-
+    switch (message.getType()) {
+      case KEEP_ALIVE_PING:
+        channel.send(new PongMessage().getData());
+        break;
+      case KEEP_ALIVE_PONG:
+        channel.waitForPong = false;
+        break;
+      default:
+        break;
+    }
   }
 }

@@ -2,7 +2,6 @@ package org.tron.p2p.connection.business.pool;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.Lists;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,7 +21,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.util.encoders.Hex;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.P2pEventHandler;
-import org.tron.p2p.P2pService;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
@@ -43,13 +41,12 @@ public class ConnPoolService extends P2pEventHandler {
   private final AtomicInteger activePeersCount = new AtomicInteger(0);
   private ScheduledExecutorService poolLoopExecutor = Executors.newSingleThreadScheduledExecutor();
   private ScheduledExecutorService disconnectExecutor = Executors.newSingleThreadScheduledExecutor();
-  private ScheduledExecutorService logExecutor = Executors.newSingleThreadScheduledExecutor();
 
   public P2pConfig p2pConfig = Parameter.p2pConfig;
   private PeerClient peerClient;
 
-  public ConnPoolService(P2pService p2pService) {
-    p2pService.register(this);
+  public ConnPoolService() {
+    Parameter.addP2pEventHandle(this);
   }
 
   public void init(PeerClient peerClient) {
@@ -71,14 +68,6 @@ public class ConnPoolService extends P2pEventHandler {
         }
       }, 30, 30, TimeUnit.SECONDS);
     }
-
-    logExecutor.scheduleWithFixedDelay(() -> {
-      try {
-        logActivePeers();
-      } catch (Exception t) {
-        log.error("Exception in logExecutor worker", t);
-      }
-    }, 30, 10, TimeUnit.SECONDS);
   }
 
   private void connect() {
@@ -120,10 +109,12 @@ public class ConnPoolService extends P2pEventHandler {
 
   private List<Node> getNodes(Set<String> nodesInUse, int limit) {
     List<Node> filtered = new ArrayList<>();
+    long now = System.currentTimeMillis();
     for (Node node : NodeManager.getConnectableNodes()) {
       InetAddress inetAddress = node.getInetSocketAddress().getAddress();
+      Long forbiddenTime = ChannelManager.getBannedNodes().getIfPresent(inetAddress);
       if ((node.getHost().equals(p2pConfig.getIp()) && node.getPort() == p2pConfig.getPort())
-          || (ChannelManager.getBannedNodes().getIfPresent(inetAddress) != null)
+          || (forbiddenTime != null && now <= forbiddenTime.longValue())
           || (ChannelManager.getConnectionNum(inetAddress)
           >= p2pConfig.getMaxConnectionsWithSameIp())
           || (nodesInUse.contains(node.getHexId()))
@@ -158,7 +149,7 @@ public class ConnPoolService extends P2pEventHandler {
     }
   }
 
-  synchronized void logActivePeers() {
+  private synchronized void logActivePeers() {
     String str = String.format("Peer stats: all %d, active %d, passive %d",
         ChannelManager.getChannels().size(), activePeersCount.get(), passivePeersCount.get());
     log.info(str);
@@ -174,6 +165,7 @@ public class ConnPoolService extends P2pEventHandler {
       }
       activePeers.add(peer);
     }
+    logActivePeers();
   }
 
   @Override
@@ -186,6 +178,7 @@ public class ConnPoolService extends P2pEventHandler {
       }
       activePeers.remove(peer);
     }
+    logActivePeers();
   }
 
   public void close() {
@@ -196,7 +189,6 @@ public class ConnPoolService extends P2pEventHandler {
         }
       });
       poolLoopExecutor.shutdownNow();
-      logExecutor.shutdownNow();
     } catch (Exception e) {
       log.warn("Problems shutting down executor", e);
     }
