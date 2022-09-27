@@ -23,9 +23,11 @@ public class KeepAliveService {
       try {
         long now = System.currentTimeMillis();
         ChannelManager.getChannels().values().forEach(p -> {
-          if (!p.waitForPong && now - p.getLastSendTime() > keepAlivePeriod) {
+          if ((!p.waitForPong && now - p.getLastSendTime() > keepAlivePeriod)
+              || (now - p.pingSent > keepAlivePeriod)) {
             p.send(new PingMessage().getData());
             p.waitForPong = true;
+            p.pingSent = System.currentTimeMillis();
           }
         });
       } catch (Throwable t) {

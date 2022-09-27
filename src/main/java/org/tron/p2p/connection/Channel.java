@@ -50,6 +50,7 @@ public class Channel {
   private volatile boolean finishHandshake;
 
   public volatile boolean waitForPong = false;
+  public volatile long pingSent;
   private boolean discoveryMode;
 
 
