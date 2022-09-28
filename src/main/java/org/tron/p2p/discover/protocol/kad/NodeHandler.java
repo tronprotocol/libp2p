@@ -19,10 +19,9 @@ import org.tron.p2p.discover.message.*;
 @Slf4j(topic = "net")
 public class NodeHandler {
 
-  private static long pingTimeout = 15_000;
   private Node sourceNode;
   private Node node;
-  private State state;
+  private volatile State state;
   private KadService kadService;
   //  private NodeStatistics nodeStatistics;
   private NodeHandler replaceCandidate;
@@ -209,7 +208,7 @@ public class NodeHandler {
       } catch (Exception e) {
         log.error("Unhandled exception in pong timer schedule", e);
       }
-    }, pingTimeout, TimeUnit.MILLISECONDS);
+    }, KadService.getPingTimeout(), TimeUnit.MILLISECONDS);
   }
 
   public void sendPong() {
