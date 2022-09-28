@@ -9,15 +9,17 @@ import org.tron.p2p.P2pEventHandler;
 @Data
 public class Parameter {
 
-  public static int tcpNettyWorkThreadNum = 100;
+  public static final int TCP_NETTY_WORK_THREAD_NUM = 100;
 
-  public static int udpNettyWorkThreadNum = 1;
+  public static final int UDP_NETTY_WORK_THREAD_NUM = 1;
 
-  public static int nodeConnectionTimeout = 2000;
+  public static final int NODE_CONNECTION_TIMEOUT = 2000;
 
-  public static int keepAlivePeriod = 20_000;
+  public static final int KEEP_ALIVE_PERIOD = 20_000;
 
-  public static int networkTimeDiff = 1000;
+  public static final int NETWORK_TIME_DIFF = 1000;
+
+  public static final long DEFAULT_BAN_TIME = 60_000;
 
   public static volatile P2pConfig p2pConfig;
 

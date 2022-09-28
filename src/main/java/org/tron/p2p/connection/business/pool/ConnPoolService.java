@@ -39,8 +39,8 @@ public class ConnPoolService extends P2pEventHandler {
   private final AtomicInteger passivePeersCount = new AtomicInteger(0);
   @Getter
   private final AtomicInteger activePeersCount = new AtomicInteger(0);
-  private ScheduledExecutorService poolLoopExecutor = Executors.newSingleThreadScheduledExecutor();
-  private ScheduledExecutorService disconnectExecutor = Executors.newSingleThreadScheduledExecutor();
+  private final ScheduledExecutorService poolLoopExecutor = Executors.newSingleThreadScheduledExecutor();
+  private final ScheduledExecutorService disconnectExecutor = Executors.newSingleThreadScheduledExecutor();
 
   public P2pConfig p2pConfig = Parameter.p2pConfig;
   private PeerClient peerClient;
@@ -83,7 +83,7 @@ public class ConnPoolService extends P2pEventHandler {
 
     //first choose from active nodes that not used
     p2pConfig.getActiveNodes().forEach(address -> {
-      if (!addressInUse.contains(address)) {
+      if (!addressInUse.contains(address.getAddress())) {
         connectNodes.add(new Node(address));
       }
     });
@@ -114,7 +114,7 @@ public class ConnPoolService extends P2pEventHandler {
       InetAddress inetAddress = node.getInetSocketAddress().getAddress();
       Long forbiddenTime = ChannelManager.getBannedNodes().getIfPresent(inetAddress);
       if ((node.getHost().equals(p2pConfig.getIp()) && node.getPort() == p2pConfig.getPort())
-          || (forbiddenTime != null && now <= forbiddenTime.longValue())
+          || (forbiddenTime != null && now <= forbiddenTime)
           || (ChannelManager.getConnectionNum(inetAddress)
           >= p2pConfig.getMaxConnectionsWithSameIp())
           || (nodesInUse.contains(node.getHexId()))
@@ -143,7 +143,7 @@ public class ConnPoolService extends P2pEventHandler {
 
     // if len(peers) >= 0, disconnect randomly
     if (!peers.isEmpty()) {
-      List<Channel> list = new ArrayList(peers);
+      List<Channel> list = new ArrayList<>(peers);
       Channel peer = list.get(new Random().nextInt(peers.size()));
       peer.close();
     }

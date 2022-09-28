@@ -43,6 +43,7 @@ public class Channel {
   private boolean isActive;
   @Getter
   private boolean isTrustPeer;
+  @Getter
   private InetSocketAddress inetSocketAddress;
   @Getter
   private Node node;
@@ -118,10 +119,10 @@ public class Channel {
   }
 
   public void close() {
-    close(System.currentTimeMillis() + ChannelManager.DEFAULT_BAN_TIME);
+    close(System.currentTimeMillis() + Parameter.DEFAULT_BAN_TIME);
   }
 
-  private void close(Long banTime) {
+  private void close(long banTime) {
     this.isDisconnect = true;
     this.disconnectTime = System.currentTimeMillis();
     ChannelManager.banNode(getInetAddress(), banTime);

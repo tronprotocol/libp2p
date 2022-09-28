@@ -53,7 +53,6 @@ public class HandshakeService implements MessageProcess {
     }
 
     sendHelloMsg(channel, DisconnectCode.NORMAL);
-    return;
   }
 
   private void sendHelloMsg(Channel channel, DisconnectCode code) {

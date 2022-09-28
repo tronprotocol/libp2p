@@ -28,6 +28,6 @@ public class PongMessage extends Message {
   @Override
   public boolean valid() {
     return getTimeStamp() > 0
-        && getTimeStamp() <= System.currentTimeMillis() + Parameter.networkTimeDiff;
+        && getTimeStamp() <= System.currentTimeMillis() + Parameter.NETWORK_TIME_DIFF;
   }
 }
