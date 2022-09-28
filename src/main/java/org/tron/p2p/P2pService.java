@@ -49,7 +49,4 @@ public class P2pService {
     return NodeManager.getAllNodes();
   }
 
-  public void initNode(Channel channel, Node node) {
-    ChannelManager.initNode(channel, node);
-  }
 }

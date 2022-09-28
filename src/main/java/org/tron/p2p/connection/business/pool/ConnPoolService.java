@@ -77,7 +77,9 @@ public class ConnPoolService extends P2pEventHandler {
     Set<InetAddress> addressInUse = new HashSet<>();
     Set<String> nodesInUse = new HashSet<>();
     ChannelManager.getChannels().values().forEach(channel -> {
-      nodesInUse.add(channel.getPeerId());
+      if (channel.getNodeId() != null) {
+        nodesInUse.add(channel.getNodeId());
+      }
       addressInUse.add(channel.getInetAddress());
     });
 

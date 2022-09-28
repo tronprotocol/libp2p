@@ -25,6 +25,7 @@ import org.tron.p2p.stats.TrafficStats;
 public class Channel {
 
   public volatile boolean waitForPong = false;
+  public volatile long pingSent;
 
   private ChannelHandlerContext ctx;
   @Getter
@@ -53,7 +54,6 @@ public class Channel {
   private String nodeId;
   @Getter
   private boolean discoveryMode;
-
 
   public void init(ChannelPipeline pipeline, String nodeId, boolean discoveryMode) {
     this.discoveryMode = discoveryMode;
