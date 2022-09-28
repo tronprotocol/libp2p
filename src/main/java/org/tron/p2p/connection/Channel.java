@@ -18,48 +18,50 @@ import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.socket.MessageHandler;
 import org.tron.p2p.connection.socket.P2pProtobufVarint32FrameDecoder;
-import org.tron.p2p.discover.Node;
 import org.tron.p2p.exception.P2pException;
-import org.tron.p2p.stats.P2pStats;
 import org.tron.p2p.stats.TrafficStats;
 
 @Slf4j(topic = "net")
 public class Channel {
 
-  private ChannelHandlerContext ctx;
-  private P2pStats p2pStats;
-  private MessageHandler messageHandler;
 
+
+  public volatile boolean waitForPong = false;
+
+  private ChannelHandlerContext ctx;
+  @Getter
+  private InetSocketAddress inetSocketAddress;
+  @Getter
+  private InetAddress inetAddress;
+  private MessageHandler messageHandler;
   @Getter
   private volatile long disconnectTime;
   @Getter
   private volatile boolean isDisconnect;
   @Getter
   @Setter
-  private long lastSendTime = 0;
+  private long lastSendTime = System.currentTimeMillis();
   @Getter
   private final long startTime = System.currentTimeMillis();
   @Getter
   private boolean isActive;
   @Getter
   private boolean isTrustPeer;
-  private InetSocketAddress inetSocketAddress;
-  @Getter
-  private Node node;
   @Getter
   @Setter
   private volatile boolean finishHandshake;
-
-  public volatile boolean waitForPong = false;
-  public volatile long pingSent;
+  @Getter
+  @Setter
+  private String nodeId;
+  @Getter
   private boolean discoveryMode;
 
 
-  public void init(ChannelPipeline pipeline, String remoteId, boolean discoveryMode) {
+  public void init(ChannelPipeline pipeline, String nodeId, boolean discoveryMode) {
     this.discoveryMode = discoveryMode;
-    this.isActive = remoteId != null && !remoteId.isEmpty();
+    this.nodeId = nodeId;
+    this.isActive = nodeId != null;
     this.messageHandler = new MessageHandler(this);
-
     pipeline.addLast("readTimeoutHandler", new ReadTimeoutHandler(60, TimeUnit.SECONDS));
     pipeline.addLast(TrafficStats.tcp);
     pipeline.addLast("protoPrepend", new ProtobufVarint32LengthFieldPrepender());
@@ -106,25 +108,18 @@ public class Channel {
   public void setChannelHandlerContext(ChannelHandlerContext ctx) {
     this.ctx = ctx;
     this.inetSocketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
-    isTrustPeer = Parameter.p2pConfig.getTrustNodes().contains(this.inetSocketAddress);
-  }
-
-  public InetAddress getInetAddress() {
-    return inetSocketAddress.getAddress();
-  }
-
-  public String getPeerId() {
-    return node == null ? "null" : node.getHexId();
+    this.inetAddress = inetSocketAddress.getAddress();
+    this.isTrustPeer = Parameter.p2pConfig.getTrustNodes().contains(inetSocketAddress);
   }
 
   public void close() {
-    close(System.currentTimeMillis() + ChannelManager.DEFAULT_BAN_TIME);
+    close(ChannelManager.DEFAULT_BAN_TIME);
   }
 
   private void close(Long banTime) {
     this.isDisconnect = true;
     this.disconnectTime = System.currentTimeMillis();
-    ChannelManager.banNode(getInetAddress(), banTime);
+    ChannelManager.banNode(this.inetAddress, banTime);
     ctx.close();
   }
 }

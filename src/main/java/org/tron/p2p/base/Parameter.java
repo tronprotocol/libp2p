@@ -1,5 +1,7 @@
 package org.tron.p2p.base;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
@@ -21,9 +23,9 @@ public class Parameter {
 
   public static volatile P2pConfig p2pConfig;
 
-  public static volatile List<P2pEventHandler> handlerList;
+  public static volatile List<P2pEventHandler> handlerList = new ArrayList<>();
 
-  public static volatile Map<Byte, P2pEventHandler> handlerMap;
+  public static volatile Map<Byte, P2pEventHandler> handlerMap = new HashMap<>();
 
   public static void addP2pEventHandle(P2pEventHandler p2PEventHandler) {
     handlerList.add(p2PEventHandler);

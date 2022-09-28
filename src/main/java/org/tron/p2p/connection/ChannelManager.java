@@ -4,13 +4,14 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.P2pEventHandler;
-import org.tron.p2p.P2pService;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.business.handshake.HandshakeService;
@@ -45,7 +46,7 @@ public class ChannelManager {
   private static P2pConfig p2pConfig = Parameter.p2pConfig;
 
   @Getter
-  private static final Map<String, Channel> channels = new ConcurrentHashMap<>();
+  private static final Map<InetSocketAddress, Channel> channels = new ConcurrentHashMap<>();
 
   @Getter
   private static final Cache<InetAddress, Long> bannedNodes = CacheBuilder
@@ -69,11 +70,11 @@ public class ChannelManager {
   }
 
   public static void notifyDisconnect(Channel channel) {
-    channels.remove(channel.getNode().getHexId());
+    channels.remove(channel.getInetSocketAddress());
     Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
     InetAddress inetAddress = channel.getInetAddress();
-    if (inetAddress != null && bannedNodes.getIfPresent(inetAddress) == null) {
-      banNode(channel.getInetAddress());
+    if (bannedNodes.getIfPresent(inetAddress) == null) {
+      banNode(channel.getInetAddress(), DEFAULT_BAN_TIME);
     }
   }
 
@@ -87,7 +88,6 @@ public class ChannelManager {
     return cnt;
   }
 
-  //invoke by handshake service
   public static synchronized DisconnectCode processPeer(Channel channel) {
 
     if (!Parameter.p2pConfig.getTrustNodes().contains(channel.getInetAddress())) {
@@ -107,26 +107,25 @@ public class ChannelManager {
       }
     }
 
-    String nodeId = channel.getNode().getHexId();
-    Channel existChannel = channels.get(nodeId);
-    if (existChannel != null) {
-      if (existChannel.getStartTime() > channel.getStartTime()) {
-        existChannel.close();
-      } else {
-        return DisconnectCode.DUPLICATE_PEER;
+    if (channel.getNodeId() != null) {
+      for (Channel c : channels.values()) {
+        if (channel.getNodeId().equals(c.getNodeId())) {
+          if (c.getStartTime() > channel.getStartTime()) {
+            c.close();
+          } else {
+            return DisconnectCode.DUPLICATE_PEER;
+          }
+        }
       }
     }
-    channels.put(nodeId, channel);
+
+    channels.put(channel.getInetSocketAddress(), channel);
     log.info("Add peer {}, total peers: {}", channel.getInetAddress(), channels.size());
     return DisconnectCode.NORMAL;
   }
 
-  public static void banNode(InetAddress inetAddress) {
-    bannedNodes.put(inetAddress, System.currentTimeMillis() + DEFAULT_BAN_TIME);
-  }
-
   public static void banNode(InetAddress inetAddress, Long banTime) {
-    bannedNodes.put(inetAddress, banTime);
+    bannedNodes.put(inetAddress, System.currentTimeMillis() + banTime);
   }
 
   public static void close() {
@@ -166,8 +165,23 @@ public class ChannelManager {
     handler.onMessage(channel, data);
   }
 
-  public static void initNode(Channel channel, Node node) {
-    NodeManager.initNode(node);
+  public synchronized static void updateNodeId(Channel channel, String nodeId) {
+    channel.setNodeId(nodeId);
+    List<Channel> list = new ArrayList<>();
+    channels.values().forEach(c -> {
+      if (nodeId.equals(channel.getNodeId())) {
+        list.add(c);
+      }
+    });
+    if (list.size() <= 1) {
+      return;
+    }
+    Channel c1 = list.get(0);
+    Channel c2 = list.get(1);
+    if (c1.getStartTime() > c2.getStartTime()) {
+      c1.close();
+    } else {
+      c2.close();
+    }
   }
-
 }

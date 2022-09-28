@@ -25,10 +25,6 @@ public class NodeManager {
     }
   }
 
-  public static Node initNode(Node node) {
-    return discoverService.initNode(node);
-  }
-
   public static List<Node> getConnectableNodes() {
     return discoverService.getConnectableNodes();
   }

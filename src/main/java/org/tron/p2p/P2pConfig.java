@@ -1,5 +1,6 @@
 package org.tron.p2p;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +11,7 @@ import org.tron.p2p.utils.NetUtil;
 public class P2pConfig {
   private List<InetSocketAddress> seedNodes = new ArrayList<>();
   private List<InetSocketAddress> activeNodes = new ArrayList<>();
-  private List<InetSocketAddress> trustNodes = new ArrayList<>();
+  private List<InetAddress> trustNodes = new ArrayList<>();
   private byte[] nodeID = NetUtil.getNodeId();
   private String ip = NetUtil.getExternalIp();
   private int port = 18888;

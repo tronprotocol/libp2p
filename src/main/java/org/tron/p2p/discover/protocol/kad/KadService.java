@@ -76,10 +76,6 @@ public class KadService implements DiscoverService {
     }
   }
 
-  public Node initNode(Node node) {
-   return getNodeHandler(node).getNode();
-  }
-
   public List<Node> getConnectableNodes() {
     return getAllNodes().stream()
         .filter(node -> node.isConnectible(Parameter.p2pConfig.getVersion()))
