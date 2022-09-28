@@ -1,10 +1,5 @@
 package org.tron.p2p.utils;
 
-import lombok.extern.slf4j.Slf4j;
-import org.tron.p2p.base.Constant;
-import org.tron.p2p.discover.Node;
-import org.tron.p2p.protos.Discover;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,15 +7,19 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.util.Random;
 import java.util.regex.Pattern;
+import lombok.extern.slf4j.Slf4j;
+import org.tron.p2p.base.Constant;
+import org.tron.p2p.discover.Node;
+import org.tron.p2p.protos.Discover;
 
 @Slf4j(topic = "net")
 public class NetUtil {
 
   public static final Pattern PATTERN_IP =
-          Pattern.compile("^(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|[1-9])\\"
-                  + ".(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)\\"
-                  + ".(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)\\"
-                  + ".(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)$");
+      Pattern.compile("^(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|[1-9])\\"
+          + ".(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)\\"
+          + ".(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)\\"
+          + ".(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)$");
 
   public static boolean validIp(String ip) {
     if (ip == null) {
@@ -33,23 +32,17 @@ public class NetUtil {
     if (node == null || node.getId() == null) {
       return false;
     }
-    if (!validIp(node.getHost())
-            || node.getId().length != Constant.NODE_ID_LEN) {
-      return false;
-    }
-    return true;
+    return validIp(node.getHost()) && node.getId().length == Constant.NODE_ID_LEN;
   }
 
   public static Node getNode(Discover.Endpoint endpoint) {
-    Node node = new Node(endpoint.getNodeId().toByteArray(),
-            ByteArray.toStr(endpoint.getAddress().toByteArray()), endpoint.getPort());
-    return node;
+    return new Node(endpoint.getNodeId().toByteArray(),
+        ByteArray.toStr(endpoint.getAddress().toByteArray()), endpoint.getPort());
   }
 
   public static byte[] getNodeId() {
-    int NODE_ID_LENGTH = Constant.NODE_ID_LEN;
     Random gen = new Random();
-    byte[] id = new byte[NODE_ID_LENGTH];
+    byte[] id = new byte[Constant.NODE_ID_LEN];
     gen.nextBytes(id);
     return id;
   }
@@ -59,7 +52,7 @@ public class NetUtil {
     String ip = null;
     try {
       in = new BufferedReader(new InputStreamReader(
-              new URL(Constant.AMAZONAWS_URL).openStream()));
+          new URL(Constant.AMAZONAWS_URL).openStream()));
       ip = in.readLine();
       if (ip == null || ip.trim().isEmpty()) {
         throw new IOException("Invalid address: " + ip);
@@ -77,7 +70,8 @@ public class NetUtil {
       if (in != null) {
         try {
           in.close();
-        } catch (IOException e) {}
+        } catch (IOException e) {
+        }
       }
     }
   }

@@ -1,6 +1,6 @@
 package org.tron.p2p.connection.business.keepalive;
 
-import static org.tron.p2p.base.Parameter.keepAlivePeriod;
+import static org.tron.p2p.base.Parameter.KEEP_ALIVE_PERIOD;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -16,7 +16,7 @@ import org.tron.p2p.connection.message.keepalive.PongMessage;
 @Slf4j(topic = "net")
 public class KeepAliveService implements MessageProcess {
 
-  private ScheduledExecutorService executor =
+  private final ScheduledExecutorService executor =
       Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "KeepAlive"));
 
   public void init() {
@@ -24,8 +24,8 @@ public class KeepAliveService implements MessageProcess {
       try {
         long now = System.currentTimeMillis();
         ChannelManager.getChannels().values().forEach(p -> {
-          if ((!p.waitForPong && now - p.getLastSendTime() > keepAlivePeriod)
-              || (now - p.pingSent > keepAlivePeriod)) {
+          if ((!p.waitForPong && now - p.getLastSendTime() > KEEP_ALIVE_PERIOD)
+              || (now - p.pingSent > KEEP_ALIVE_PERIOD)) {
             p.send(new PingMessage().getData());
             p.waitForPong = true;
             p.pingSent = now;

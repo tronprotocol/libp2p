@@ -12,6 +12,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.DiscoverService;
@@ -30,6 +32,9 @@ public class KadService implements DiscoverService {
 
   private static final int MAX_NODES = 2000;
   private static final int NODES_TRIM_THRESHOLD = 3000;
+  @Getter
+  @Setter
+  private static long pingTimeout = 15_000;
 
   private List<Node> bootNodes = new ArrayList<>();
 

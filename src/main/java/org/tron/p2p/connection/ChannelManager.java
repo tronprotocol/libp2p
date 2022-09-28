@@ -10,16 +10,15 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.tron.p2p.P2pConfig;
 import org.tron.p2p.P2pEventHandler;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.business.handshake.HandshakeService;
 import org.tron.p2p.connection.business.keepalive.KeepAliveService;
+import org.tron.p2p.connection.business.pool.ConnPoolService;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
-import org.tron.p2p.connection.business.pool.ConnPoolService;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
 import org.tron.p2p.exception.P2pException;
@@ -28,8 +27,6 @@ import org.tron.p2p.utils.NetUtil;
 
 @Slf4j(topic = "net")
 public class ChannelManager {
-
-  public static long DEFAULT_BAN_TIME = 60_000;
 
   private static PeerServer peerServer;
 
@@ -42,8 +39,6 @@ public class ChannelManager {
 
   @Getter
   private static HandshakeService handshakeService;
-
-  private static P2pConfig p2pConfig = Parameter.p2pConfig;
 
   @Getter
   private static final Map<InetSocketAddress, Channel> channels = new ConcurrentHashMap<>();
@@ -74,7 +69,7 @@ public class ChannelManager {
     Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
     InetAddress inetAddress = channel.getInetAddress();
     if (bannedNodes.getIfPresent(inetAddress) == null) {
-      banNode(channel.getInetAddress(), DEFAULT_BAN_TIME);
+      banNode(channel.getInetAddress(), Parameter.DEFAULT_BAN_TIME);
     }
   }
 
@@ -90,7 +85,7 @@ public class ChannelManager {
 
   public static synchronized DisconnectCode processPeer(Channel channel) {
 
-    if (!Parameter.p2pConfig.getTrustNodes().contains(channel.getInetAddress())) {
+    if (!Parameter.p2pConfig.getTrustNodes().contains(channel.getInetSocketAddress())) {
 
       if (bannedNodes.getIfPresent(channel.getInetAddress()) != null) {
         log.info("Peer {} recently disconnected", channel.getInetAddress());

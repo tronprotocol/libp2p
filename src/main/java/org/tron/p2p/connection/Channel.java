@@ -24,8 +24,6 @@ import org.tron.p2p.stats.TrafficStats;
 @Slf4j(topic = "net")
 public class Channel {
 
-
-
   public volatile boolean waitForPong = false;
 
   private ChannelHandlerContext ctx;
@@ -113,10 +111,10 @@ public class Channel {
   }
 
   public void close() {
-    close(ChannelManager.DEFAULT_BAN_TIME);
+    close(System.currentTimeMillis() + Parameter.DEFAULT_BAN_TIME);
   }
 
-  private void close(Long banTime) {
+  private void close(long banTime) {
     this.isDisconnect = true;
     this.disconnectTime = System.currentTimeMillis();
     ChannelManager.banNode(this.inetAddress, banTime);

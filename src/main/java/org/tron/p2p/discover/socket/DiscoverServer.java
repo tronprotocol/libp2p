@@ -46,7 +46,7 @@ public class DiscoverServer {
   }
 
   private void start() throws Exception {
-    NioEventLoopGroup group = new NioEventLoopGroup(Parameter.udpNettyWorkThreadNum);
+    NioEventLoopGroup group = new NioEventLoopGroup(Parameter.UDP_NETTY_WORK_THREAD_NUM);
     try {
       while (!shutdown) {
         Bootstrap b = new Bootstrap();
