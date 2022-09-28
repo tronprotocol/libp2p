@@ -23,6 +23,7 @@ import org.tron.p2p.discover.message.kad.FindNodeMessage;
 import org.tron.p2p.discover.message.kad.NeighborsMessage;
 import org.tron.p2p.discover.message.kad.PingMessage;
 import org.tron.p2p.discover.message.kad.PongMessage;
+import org.tron.p2p.utils.NetUtil;
 
 @Slf4j(topic = "net")
 public class KadService implements DiscoverService {
@@ -46,11 +47,11 @@ public class KadService implements DiscoverService {
 
   public void init() {
     log.debug("KadService init");
-    for (InetSocketAddress boot : Parameter.p2pConfig.getSeedNodes()) {
-      bootNodes.add(Node.instanceOf(boot.getHostString(), boot.getPort()));
+    for (InetSocketAddress address : Parameter.p2pConfig.getSeedNodes()) {
+      bootNodes.add(new Node(address));
     }
     this.pongTimer = Executors.newSingleThreadScheduledExecutor();
-    this.homeNode = new Node(Node.getNodeId(), Parameter.p2pConfig.getIp(),
+    this.homeNode = new Node(NetUtil.getNodeId(), Parameter.p2pConfig.getIp(),
         Parameter.p2pConfig.getPort());
     this.table = new NodeTable(homeNode);
 

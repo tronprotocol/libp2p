@@ -23,6 +23,7 @@ import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.utils.ByteArray;
+import org.tron.p2p.utils.NetUtil;
 
 @Slf4j(topic = "net")
 public class ChannelManager {
@@ -64,7 +65,7 @@ public class ChannelManager {
 
   public static void connect(InetSocketAddress address) {
     peerClient.connect(address.getAddress().getHostAddress(), address.getPort(),
-        ByteArray.toHexString(Node.getNodeId()));
+        ByteArray.toHexString(NetUtil.getNodeId()));
   }
 
   public static void notifyDisconnect(Channel channel) {

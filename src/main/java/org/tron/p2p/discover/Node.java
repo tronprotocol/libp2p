@@ -28,8 +28,8 @@ public class Node implements Serializable {
   private long updateTime;
 
   public Node(InetSocketAddress address) {
-    this.id = getNodeId();
-    this.host = address.getHostName();
+    this.id = NetUtil.getNodeId();
+    this.host = address.getAddress().getHostAddress();
     this.port = address.getPort();
     this.bindPort = port;
     this.updateTime = System.currentTimeMillis();
@@ -49,29 +49,6 @@ public class Node implements Serializable {
     this.port = port;
     this.bindPort = bindPort;
     this.updateTime = System.currentTimeMillis();
-  }
-
-  public static Node instanceOf(String host, int port) {
-    return new Node(Node.getNodeId(), host, port);
-  }
-
-  public static Node instanceOf(String hostPort) {
-    try {
-      String[] sz = hostPort.split(":");
-      int port = Integer.parseInt(sz[1]);
-      return new Node(Node.getNodeId(), sz[0], port);
-    } catch (Exception e) {
-      log.error("Parse node failed, {}", hostPort);
-      throw e;
-    }
-  }
-
-  public static byte[] getNodeId() {
-    int NODE_ID_LENGTH = Constant.NODE_ID_LEN;
-    Random gen = new Random();
-    byte[] id = new byte[NODE_ID_LENGTH];
-    gen.nextBytes(id);
-    return id;
   }
 
   public boolean isConnectible(int argsP2PVersion) {

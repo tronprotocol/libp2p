@@ -4,16 +4,14 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
-import org.tron.p2p.discover.Node;
 import org.tron.p2p.utils.NetUtil;
 
 @Data
 public class P2pConfig {
-
   private List<InetSocketAddress> seedNodes = new ArrayList<>();
   private List<InetSocketAddress> activeNodes = new ArrayList<>();
   private List<InetSocketAddress> trustNodes = new ArrayList<>();
-  private byte[] nodeID = Node.getNodeId();
+  private byte[] nodeID = NetUtil.getNodeId();
   private String ip = NetUtil.getExternalIp();
   private int port = 18888;
   private int version = 1;

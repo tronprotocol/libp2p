@@ -3,7 +3,6 @@ package org.tron.p2p.utils;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Constant;
 import org.tron.p2p.discover.Node;
-import org.tron.p2p.discover.protocol.kad.table.KademliaOptions;
 import org.tron.p2p.protos.Discover;
 
 import java.io.BufferedReader;
@@ -11,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.URL;
+import java.util.Random;
 import java.util.regex.Pattern;
 
 @Slf4j(topic = "net")
@@ -44,6 +44,14 @@ public class NetUtil {
     Node node = new Node(endpoint.getNodeId().toByteArray(),
             ByteArray.toStr(endpoint.getAddress().toByteArray()), endpoint.getPort());
     return node;
+  }
+
+  public static byte[] getNodeId() {
+    int NODE_ID_LENGTH = Constant.NODE_ID_LEN;
+    Random gen = new Random();
+    byte[] id = new byte[NODE_ID_LENGTH];
+    gen.nextBytes(id);
+    return id;
   }
 
   public static String getExternalIp() {

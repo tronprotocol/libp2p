@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.protocol.kad.table.KademliaOptions;
+import org.tron.p2p.utils.NetUtil;
 
 @Slf4j(topic = "net")
 public class DiscoverTask {
@@ -31,7 +32,7 @@ public class DiscoverTask {
           loopNum = 0;
           nodeId = kadService.getPublicHomeNode().getId();
         } else {
-          nodeId = Node.getNodeId();
+          nodeId = NetUtil.getNodeId();
         }
         discover(nodeId, 0, new ArrayList<>());
       } catch (Exception e) {

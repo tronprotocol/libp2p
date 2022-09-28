@@ -34,7 +34,7 @@ public abstract class Message {
     byte type = encode[0];
     try {
       byte[] data = ArrayUtils.subarray(encode, 1, encode.length);
-      Message message = null;
+      Message message;
       switch (MessageType.fromByte(type)) {
         case KEEP_ALIVE_PING:
           message = new PingMessage(data);
