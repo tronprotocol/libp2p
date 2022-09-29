@@ -46,7 +46,6 @@ public class DiscoverTask {
 
     List<Node> closest = kadService.getTable().getClosestNodes(nodeId);
     List<Node> tried = new ArrayList<>();
-
     for (Node n : closest) {
       if (!tried.contains(n) && !prevTriedNodes.contains(n)) {
         try {

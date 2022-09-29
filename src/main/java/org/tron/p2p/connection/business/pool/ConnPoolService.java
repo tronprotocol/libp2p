@@ -3,6 +3,7 @@ package org.tron.p2p.connection.business.pool;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,6 +47,7 @@ public class ConnPoolService extends P2pEventHandler {
   private PeerClient peerClient;
 
   public ConnPoolService() {
+    this.types = new ArrayList<>(); //no message type registers
     Parameter.addP2pEventHandle(this);
   }
 
@@ -53,7 +55,7 @@ public class ConnPoolService extends P2pEventHandler {
     this.peerClient = peerClient;
     poolLoopExecutor.scheduleWithFixedDelay(() -> {
       try {
-        connect();
+        connect(NodeManager.getConnectableNodes());
       } catch (Exception t) {
         log.error("Exception in poolLoopExecutor worker", t);
       }
@@ -70,7 +72,7 @@ public class ConnPoolService extends P2pEventHandler {
     }
   }
 
-  private void connect() {
+  private void connect(List<Node> connectableNodes) {
     List<Node> connectNodes = new ArrayList<>();
 
     //collect already used nodes in channelManager
@@ -98,7 +100,7 @@ public class ConnPoolService extends P2pEventHandler {
     //choose lackSize nodes from nodeManager that meet special requirement
     if (lackSize > 0) {
       nodesInUse.add(Hex.toHexString(p2pConfig.getNodeID()));
-      List<Node> newNodes = getNodes(nodesInUse, lackSize);
+      List<Node> newNodes = getNodes(nodesInUse, connectableNodes, lackSize);
       connectNodes.addAll(newNodes);
     }
 
@@ -109,10 +111,10 @@ public class ConnPoolService extends P2pEventHandler {
     });
   }
 
-  private List<Node> getNodes(Set<String> nodesInUse, int limit) {
+  private List<Node> getNodes(Set<String> nodesInUse, List<Node> connectableNodes, int limit) {
     List<Node> filtered = new ArrayList<>();
     long now = System.currentTimeMillis();
-    for (Node node : NodeManager.getConnectableNodes()) {
+    for (Node node : connectableNodes) {
       InetAddress inetAddress = node.getInetSocketAddress().getAddress();
       Long forbiddenTime = ChannelManager.getBannedNodes().getIfPresent(inetAddress);
       if ((node.getHost().equals(p2pConfig.getIp()) && node.getPort() == p2pConfig.getPort())

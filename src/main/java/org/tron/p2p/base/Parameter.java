@@ -7,7 +7,6 @@ import java.util.Map;
 import lombok.Data;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.P2pEventHandler;
-import org.tron.p2p.exception.P2pException;
 
 @Data
 public class Parameter {

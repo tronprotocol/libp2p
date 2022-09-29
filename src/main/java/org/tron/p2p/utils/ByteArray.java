@@ -186,4 +186,8 @@ public class ByteArray {
     }
     return x;
   }
+
+  public static int byte2int(byte b) {
+    return b & 0xFF;
+  }
 }

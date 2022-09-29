@@ -20,6 +20,7 @@ import org.tron.p2p.connection.socket.MessageHandler;
 import org.tron.p2p.connection.socket.P2pProtobufVarint32FrameDecoder;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.stats.TrafficStats;
+import org.tron.p2p.utils.ByteArray;
 
 @Slf4j(topic = "net")
 public class Channel {
@@ -36,7 +37,7 @@ public class Channel {
   @Getter
   private volatile long disconnectTime;
   @Getter
-  private volatile boolean isDisconnect;
+  private volatile boolean isDisconnect = false;
   @Getter
   @Setter
   private long lastSendTime = System.currentTimeMillis();
@@ -70,13 +71,13 @@ public class Channel {
   public void send(byte[] data) {
     if (isDisconnect) {
       log.warn("Send to {} failed as channel has closed, message-type:{} ",
-          ctx.channel().remoteAddress(), data[0]);
+          ctx.channel().remoteAddress(), ByteArray.byte2int(data[0]));
       return;
     }
     ctx.writeAndFlush(data).addListener((ChannelFutureListener) future -> {
       if (!future.isSuccess() && !isDisconnect) {
         log.warn("Send to {} failed, message-type:{}",
-            ctx.channel().remoteAddress(), data[0]);
+            ctx.channel().remoteAddress(), ByteArray.byte2int(data[0]));
       }
     });
     setLastSendTime(System.currentTimeMillis());
