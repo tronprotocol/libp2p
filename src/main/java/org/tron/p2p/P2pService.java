@@ -29,8 +29,8 @@ public class P2pService {
     log.info("P2p service closed");
   }
 
-  public void register(P2pEventHandler p2PEventHandler) {
-    Parameter.addP2pEventHandle(p2PEventHandler);
+  public boolean register(P2pEventHandler p2PEventHandler) {
+    return Parameter.addP2pEventHandle(p2PEventHandler);
   }
 
   public void connect(InetSocketAddress address) {

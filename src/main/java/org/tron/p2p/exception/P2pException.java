@@ -28,8 +28,7 @@ public class P2pException extends Exception {
     PARSE_MESSAGE_FAILED(2, "parse message failed"),
     MESSAGE_WITH_WRONG_LENGTH(3, "message with wrong length"),
     BAD_MESSAGE(4, "bad message"),
-
-    DEFAULT(100, "default exception");
+    P2P_HANDLE_TYPE_EXIST(5, "p2p handle type exist");
 
     private Integer value;
     private String desc;
