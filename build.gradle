@@ -1,21 +1,46 @@
-plugins {
-    id 'org.springframework.boot' version '2.3.8.RELEASE'
-    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
-    id 'java'
-    id "com.google.protobuf" version "0.8.17"
-}
+group 'org.tron'
+version '1.0'
 
+apply plugin: 'java'
 apply plugin: 'com.google.protobuf'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'application'
 
 def protobufVersion = "3.19.2"
 
 def grpcVersion = "1.14.0"
 
-group 'org.tron'
-version '1.0'
+mainClassName = 'org.tron.p2p.example.StartApp'
 
 repositories {
+    mavenLocal()
     mavenCentral()
+}
+
+sourceSets {
+    main {
+        proto {
+            srcDir 'src/main/protos'
+        }
+        java {
+            srcDir 'src/main/java'
+        }
+    }
+}
+
+buildscript {
+    repositories {
+        mavenLocal()
+        maven {
+            url "https://cdn.lfrs.sl/repository.liferay.com/nexus/content/groups/public"
+        }
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.12'
+    }
 }
 
 dependencies {
@@ -31,25 +56,15 @@ dependencies {
     implementation group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.69'
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
 
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.24'
+    testImplementation group: 'org.projectlombok', name: 'lombok', version: '1.18.24'
+    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.24'
 }
 
 tasks.matching { it instanceof Test }.all {
     testLogging.events = ["failed", "passed", "skipped"]
 }
 
-sourceSets {
-    main {
-        proto {
-            srcDir 'src/main/protos'
-        }
-        java {
-            srcDir 'src/main/java'
-        }
-    }
-
-}
 
 protobuf {
     generatedFilesBaseDir = "$projectDir/src"
@@ -76,12 +91,11 @@ protobuf {
     }
 }
 
-bootJar {
-    enabled = false
-}
-
-jar {
-    enabled = true
+shadowJar {
+    baseName = 'java-p2p'
+    classifier = null
+    version = null
+    zip64 = true
 }
 
 

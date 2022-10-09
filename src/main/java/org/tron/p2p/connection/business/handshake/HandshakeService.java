@@ -19,7 +19,9 @@ public class HandshakeService implements MessageProcess {
 
   @Override
   public void processMessage(Channel channel, Message message) {
-    HelloMessage msg = (HelloMessage)message;
+    log.info("Receive HelloMessage from {}:{}", channel.getInetAddress(),
+        channel.getInetSocketAddress().getPort());
+    HelloMessage msg = (HelloMessage) message;
 
     if (channel.isFinishHandshake()) {
       channel.close();
@@ -34,6 +36,7 @@ public class HandshakeService implements MessageProcess {
           || msg.getVersion() != version) {
         channel.close();
       }
+      //if channel is already active, wo do nothing
       return;
     }
 
@@ -57,8 +60,9 @@ public class HandshakeService implements MessageProcess {
 
   private void sendHelloMsg(Channel channel, DisconnectCode code) {
     HelloMessage helloMessage = new HelloMessage(code);
-    channel.send(helloMessage.getSendData());
-    log.info("Handshake send to {}, {} ", channel.getInetAddress(), helloMessage);
+    channel.send(helloMessage);
+    log.info("Handshake send to {}:{}, {} ", channel.getInetAddress(),
+        channel.getInetSocketAddress().getPort(), helloMessage);
   }
 
 }

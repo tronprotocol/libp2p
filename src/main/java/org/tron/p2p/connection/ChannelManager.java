@@ -28,6 +28,7 @@ public class ChannelManager {
 
   private static PeerServer peerServer;
 
+  @Getter
   private static PeerClient peerClient;
 
   @Getter
@@ -63,11 +64,13 @@ public class ChannelManager {
   }
 
   public static void notifyDisconnect(Channel channel) {
-    channels.remove(channel.getInetSocketAddress());
-    Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
-    InetAddress inetAddress = channel.getInetAddress();
-    if (bannedNodes.getIfPresent(inetAddress) == null) {
-      banNode(channel.getInetAddress(), Parameter.DEFAULT_BAN_TIME);
+    if (channel != null) {
+      channels.remove(channel.getInetSocketAddress());
+      Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
+      InetAddress inetAddress = channel.getInetAddress();
+      if (bannedNodes.getIfPresent(inetAddress) == null) {
+        banNode(channel.getInetAddress(), Parameter.DEFAULT_BAN_TIME);
+      }
     }
   }
 
@@ -85,7 +88,9 @@ public class ChannelManager {
 
     if (!Parameter.p2pConfig.getTrustNodes().contains(channel.getInetSocketAddress())) {
 
-      if (bannedNodes.getIfPresent(channel.getInetAddress()) != null) {
+      InetAddress inetAddress = channel.getInetAddress();
+      if (bannedNodes.getIfPresent(inetAddress) != null
+          && bannedNodes.getIfPresent(inetAddress) > System.currentTimeMillis()) {
         log.info("Peer {} recently disconnected", channel.getInetAddress());
         return DisconnectCode.TIME_BANNED;
       }
@@ -131,6 +136,7 @@ public class ChannelManager {
   public static void processMessage(Channel channel, byte[] data) throws P2pException {
     channel.setLastSendTime(System.currentTimeMillis());
     Message message = Message.parse(data);
+    log.info("MessageType:{}", ByteArray.byte2int(message.getType().getType()));
     switch (message.getType()) {
       case KEEP_ALIVE_PING:
       case KEEP_ALIVE_PONG:
@@ -153,7 +159,7 @@ public class ChannelManager {
 
     if (!channel.isFinishHandshake()) {
       channel.setFinishHandshake(true);
-      Parameter.handlerList.forEach(h -> h.onConnect(channel));
+      Parameter.handlerList.forEach(h -> h.onConnect(channel)); //why all handler onConnect
     }
     handler.onMessage(channel, data);
   }

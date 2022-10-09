@@ -26,7 +26,7 @@ public class KeepAliveService implements MessageProcess {
         ChannelManager.getChannels().values().forEach(p -> {
           if ((!p.waitForPong && now - p.getLastSendTime() > KEEP_ALIVE_PERIOD)
               || (now - p.pingSent > KEEP_ALIVE_PERIOD)) {
-            p.send(new PingMessage().getData());
+            p.send(new PingMessage());
             p.waitForPong = true;
             p.pingSent = now;
           }
@@ -45,7 +45,7 @@ public class KeepAliveService implements MessageProcess {
   public void processMessage(Channel channel, Message message) {
     switch (message.getType()) {
       case KEEP_ALIVE_PING:
-        channel.send(new PongMessage().getData());
+        channel.send(new PongMessage());
         break;
       case KEEP_ALIVE_PONG:
         channel.waitForPong = false;

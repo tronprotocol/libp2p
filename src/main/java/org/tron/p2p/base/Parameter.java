@@ -30,18 +30,17 @@ public class Parameter {
   public static volatile Map<Byte, P2pEventHandler> handlerMap = new HashMap<>();
 
   public static boolean addP2pEventHandle(P2pEventHandler p2PEventHandler) {
-    handlerList.add(p2PEventHandler);
-    if (p2PEventHandler.getTypes() == null) {
-      return true;
-    }
-    for (Byte type: p2PEventHandler.getTypes()) {
-      if (handlerMap.get(type) != null) {
-        return false;
+    if (p2PEventHandler.getTypes() != null) {
+      for (Byte type : p2PEventHandler.getTypes()) {
+        if (handlerMap.get(type) != null) {
+          return false;
+        }
+      }
+      for (Byte type : p2PEventHandler.getTypes()) {
+        handlerMap.put(type, p2PEventHandler);
       }
     }
-    for (Byte type: p2PEventHandler.getTypes()) {
-      handlerMap.put(type, p2PEventHandler);
-    }
+    handlerList.add(p2PEventHandler);
     return true;
   }
 }

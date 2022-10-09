@@ -1,5 +1,7 @@
 package org.tron.p2p.connection.message;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.apache.commons.lang3.ArrayUtils;
 import org.tron.p2p.connection.message.handshake.HelloMessage;
 import org.tron.p2p.connection.message.keepalive.PingMessage;
@@ -24,8 +26,8 @@ public abstract class Message {
     return this.data;
   }
 
-  public byte[] getSendData() {
-    return ArrayUtils.add(this.data, 0, type.getType());
+  public ByteBuf getSendData() {
+    return Unpooled.wrappedBuffer(ArrayUtils.add(this.data, 0, type.getType()));
   }
 
   public abstract boolean valid();

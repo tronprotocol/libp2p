@@ -3,7 +3,6 @@ package org.tron.p2p.connection.business.pool;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -104,14 +103,16 @@ public class ConnPoolService extends P2pEventHandler {
       connectNodes.addAll(newNodes);
     }
 
+    log.info("lackSize:{}, connectNodes:{}", lackSize, connectNodes.size());
     //establish tcp connection with chose nodes by peerClient
     connectNodes.forEach(n -> {
       peerClient.connectAsync(n, false);
+      //send a message and wait for response ? now we have not invoke onConnect/onDisconnect, so activePeers not changed
       peerClientCache.put(n.getInetSocketAddress().getAddress(), System.currentTimeMillis());
     });
   }
 
-  private List<Node> getNodes(Set<String> nodesInUse, List<Node> connectableNodes, int limit) {
+  public List<Node> getNodes(Set<String> nodesInUse, List<Node> connectableNodes, int limit) {
     List<Node> filtered = new ArrayList<>();
     long now = System.currentTimeMillis();
     for (Node node : connectableNodes) {
@@ -161,6 +162,7 @@ public class ConnPoolService extends P2pEventHandler {
 
   @Override
   public synchronized void onConnect(Channel peer) {
+    log.info("ConnPoolService onConnect");
     if (!activePeers.contains(peer)) {
       if (!peer.isActive()) {
         passivePeersCount.incrementAndGet();
@@ -174,6 +176,7 @@ public class ConnPoolService extends P2pEventHandler {
 
   @Override
   public synchronized void onDisconnect(Channel peer) {
+    log.info("ConnPoolService onDisconnect");
     if (activePeers.contains(peer)) {
       if (!peer.isActive()) {
         passivePeersCount.decrementAndGet();
@@ -183,6 +186,10 @@ public class ConnPoolService extends P2pEventHandler {
       activePeers.remove(peer);
     }
     logActivePeers();
+  }
+
+  @Override
+  public void onMessage(Channel channel, byte[] data) {
   }
 
   public void close() {
