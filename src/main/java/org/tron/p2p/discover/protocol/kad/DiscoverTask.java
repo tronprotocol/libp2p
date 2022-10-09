@@ -51,7 +51,10 @@ public class DiscoverTask {
         try {
           kadService.getNodeHandler(n).sendFindNode(nodeId);
           tried.add(n);
-          wait(KademliaOptions.WAIT_TIME);
+          Thread.sleep(KademliaOptions.WAIT_TIME);
+        } catch (InterruptedException e) {
+          log.warn("Discover task interrupted");
+          Thread.currentThread().interrupt();
         } catch (Exception e) {
           log.error("Unexpected Exception occurred while sending FindNodeMessage", e);
         }
