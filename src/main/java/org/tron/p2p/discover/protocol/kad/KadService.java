@@ -55,6 +55,9 @@ public class KadService implements DiscoverService {
     for (InetSocketAddress address : Parameter.p2pConfig.getSeedNodes()) {
       bootNodes.add(new Node(address));
     }
+    for (InetSocketAddress address : Parameter.p2pConfig.getActiveNodes()) {
+      bootNodes.add(new Node(address));
+    }
     this.pongTimer = Executors.newSingleThreadScheduledExecutor();
     this.homeNode = new Node(NetUtil.getNodeId(), Parameter.p2pConfig.getIp(),
         Parameter.p2pConfig.getPort());
