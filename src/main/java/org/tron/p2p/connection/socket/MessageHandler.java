@@ -4,10 +4,14 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import lombok.extern.slf4j.Slf4j;
+import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
+import org.tron.p2p.connection.business.handshake.DisconnectCode;
 
 import java.util.List;
+
+import static org.tron.p2p.connection.ChannelManager.processPeer;
 
 @Slf4j(topic = "net")
 public class MessageHandler extends ByteToMessageDecoder {
@@ -24,8 +28,13 @@ public class MessageHandler extends ByteToMessageDecoder {
   public void channelActive(ChannelHandlerContext ctx) {
     log.info("Channel active, {}", ctx.channel().remoteAddress());
     channel.setChannelHandlerContext(ctx);
+    DisconnectCode code = ChannelManager.processPeer(channel);
+    if (code != DisconnectCode.NORMAL) {
+      channel.close();
+      return;
+    }
     if (channel.isActive()) {
-      ChannelManager.getHandshakeService().startHandshake(channel);
+      Parameter.handlerList.forEach(h -> h.onConnect(channel));
     }
   }
 

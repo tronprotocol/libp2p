@@ -86,8 +86,7 @@ public class ChannelManager {
 
   public static synchronized DisconnectCode processPeer(Channel channel) {
 
-    if (!Parameter.p2pConfig.getTrustNodes().contains(channel.getInetSocketAddress())) {
-
+    if (!channel.isActive() && !channel.isTrustPeer()) {
       InetAddress inetAddress = channel.getInetAddress();
       if (bannedNodes.getIfPresent(inetAddress) != null
           && bannedNodes.getIfPresent(inetAddress) > System.currentTimeMillis()) {

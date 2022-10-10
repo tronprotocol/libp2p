@@ -31,6 +31,11 @@ public class HandshakeService implements MessageProcess {
 
     channel.setFinishHandshake(true);
 
+    ChannelManager.updateNodeId(channel, msg.getFrom().getHexId());
+    if (channel.isDisconnect()) {
+      return;
+    }
+
     if (channel.isActive()) {
       if (msg.getCode() != DisconnectCode.NORMAL.getValue()
           || msg.getVersion() != version) {
@@ -39,27 +44,20 @@ public class HandshakeService implements MessageProcess {
                 DisconnectCode.NORMAL.getValue(),
                 msg.getVersion());
         channel.close();
+        return;
       }
-      //if channel is already active, wo do nothing
-      return;
+    } else {
+      if (msg.getVersion() != version) {
+        log.info("Peer {} different p2p version, peer->{}, me->{}",
+                channel.getInetAddress(), msg.getVersion(), version);
+        sendHelloMsg(channel, DisconnectCode.DIFFERENT_VERSION);
+        channel.close();
+        return;
+      }
+      sendHelloMsg(channel, DisconnectCode.NORMAL);
     }
 
-    if (msg.getVersion() != version) {
-      log.info("Peer {} different p2p version, peer->{}, me->{}",
-          channel.getInetAddress(), msg.getVersion(), version);
-      sendHelloMsg(channel, DisconnectCode.DIFFERENT_VERSION);
-      channel.close();
-      return;
-    }
-
-    DisconnectCode code = ChannelManager.processPeer(channel);
-    if (code != DisconnectCode.NORMAL) {
-      sendHelloMsg(channel, code);
-      channel.close();
-      return;
-    }
-
-    sendHelloMsg(channel, DisconnectCode.NORMAL);
+    Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
   }
 
   private void sendHelloMsg(Channel channel, DisconnectCode code) {

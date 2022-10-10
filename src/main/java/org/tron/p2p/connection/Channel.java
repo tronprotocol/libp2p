@@ -31,10 +31,8 @@ public class Channel {
 
   private ChannelHandlerContext ctx;
   @Getter
-  @Setter
   private InetSocketAddress inetSocketAddress;
   @Getter
-  @Setter
   private InetAddress inetAddress;
   private MessageHandler messageHandler;
   @Getter
