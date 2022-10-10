@@ -125,6 +125,6 @@ public class ChannelManagerTest {
 
   private void clearChannels() {
     ChannelManager.getChannels().clear();
-    ChannelManager.getBannedNodes().cleanUp();
+    ChannelManager.getBannedNodes().invalidateAll();
   }
 }

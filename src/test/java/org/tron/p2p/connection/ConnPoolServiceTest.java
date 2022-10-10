@@ -1,6 +1,7 @@
 package org.tron.p2p.connection;
 
 
+import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -32,7 +33,7 @@ public class ConnPoolServiceTest {
 
   private void clearChannels() {
     ChannelManager.getChannels().clear();
-    ChannelManager.getBannedNodes().cleanUp();
+    ChannelManager.getBannedNodes().invalidateAll();
   }
 
   @Test
@@ -50,23 +51,24 @@ public class ConnPoolServiceTest {
   }
 
   @Test
-  public void getNodes_orderByUpdateTimeDesc() {
+  public void getNodes_orderByUpdateTimeDesc() throws Exception {
     clearChannels();
-    InetSocketAddress localAddress1 = new InetSocketAddress(localIp, port);
-    Node node1 = new Node(localAddress1);
-    try {
-      Thread.sleep(100);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-    InetSocketAddress localAddress2 = new InetSocketAddress(localIp, port + 1);
-    Node node2 = new Node(localAddress2);
+    Node node1 = new Node(new InetSocketAddress(localIp, 90));
+    Field field = node1.getClass().getDeclaredField("updateTime");
+    field.setAccessible(true);
+    field.set(node1, System.currentTimeMillis());
+
+    Node node2 = new Node(new InetSocketAddress(localIp, 100));
+    field = node2.getClass().getDeclaredField("updateTime");
+    field.setAccessible(true);
+    field.set(node2, System.currentTimeMillis() + 10);
 
     Assert.assertTrue(node1.getUpdateTime() < node2.getUpdateTime());
 
     List<Node> connectableNodes = new ArrayList<>();
     connectableNodes.add(node1);
     connectableNodes.add(node2);
+
     ConnPoolService connPoolService = new ConnPoolService();
     List<Node> nodes = connPoolService.getNodes(new HashSet<>(), connectableNodes, 2);
     Assert.assertEquals(2, nodes.size());
@@ -78,7 +80,7 @@ public class ConnPoolServiceTest {
   }
 
   @Test
-  public void getNodes_banNode() {
+  public void getNodes_banNode() throws InterruptedException {
     clearChannels();
     InetSocketAddress inetSocketAddress = new InetSocketAddress(localIp, port);
     long banTime = 1_000L;
@@ -90,12 +92,8 @@ public class ConnPoolServiceTest {
     ConnPoolService connPoolService = new ConnPoolService();
     List<Node> nodes = connPoolService.getNodes(new HashSet<>(), connectableNodes, 1);
     Assert.assertEquals(0, nodes.size());
+    Thread.sleep(banTime);
 
-    try {
-      Thread.sleep(banTime);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
     nodes = connPoolService.getNodes(new HashSet<>(), connectableNodes, 1);
     Assert.assertEquals(1, nodes.size());
   }

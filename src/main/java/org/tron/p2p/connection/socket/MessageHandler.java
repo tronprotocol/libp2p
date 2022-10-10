@@ -3,15 +3,12 @@ package org.tron.p2p.connection.socket;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
-
-import java.util.List;
-
-import static org.tron.p2p.connection.ChannelManager.processPeer;
 
 @Slf4j(topic = "net")
 public class MessageHandler extends ByteToMessageDecoder {

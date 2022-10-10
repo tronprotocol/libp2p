@@ -110,7 +110,7 @@ public class Channel {
     this.ctx = ctx;
     this.inetSocketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
     this.inetAddress = inetSocketAddress.getAddress();
-    this.isTrustPeer = Parameter.p2pConfig.getTrustNodes().contains(inetSocketAddress);
+    this.isTrustPeer = Parameter.p2pConfig.getTrustNodes().contains(inetAddress);
   }
 
   public void close() {
