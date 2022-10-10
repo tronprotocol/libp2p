@@ -120,4 +120,5 @@ public class Channel {
     ChannelManager.banNode(this.inetAddress, banTime);
     ctx.close();
   }
+
 }

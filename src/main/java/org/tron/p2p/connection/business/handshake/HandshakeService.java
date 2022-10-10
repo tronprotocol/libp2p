@@ -32,6 +32,10 @@ public class HandshakeService implements MessageProcess {
     if (channel.isActive()) {
       if (msg.getCode() != DisconnectCode.NORMAL.getValue()
           || msg.getVersion() != version) {
+        log.info("Handshake failed {}, code: {}, version: {}",
+                channel.getInetAddress(),
+                DisconnectCode.NORMAL.getValue(),
+                msg.getVersion());
         channel.close();
       }
       return;
