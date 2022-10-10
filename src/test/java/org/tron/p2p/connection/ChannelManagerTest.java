@@ -1,5 +1,6 @@
 package org.tron.p2p.connection;
 
+import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
 import org.junit.Test;
 import org.tron.p2p.P2pConfig;
@@ -10,10 +11,11 @@ import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
+@Slf4j(topic = "net")
 public class ChannelManagerTest {
 
   @Test
-  public void testGetConnectionNum() throws Exception{
+  public synchronized void testGetConnectionNum() throws Exception{
     Channel c1 = new Channel();
     InetSocketAddress a1 = new InetSocketAddress("100.1.1.1", 100);
     Field field =  c1.getClass().getDeclaredField("inetAddress");
@@ -49,7 +51,7 @@ public class ChannelManagerTest {
   }
 
   @Test
-  public void testNotifyDisconnect() throws Exception {
+  public synchronized void testNotifyDisconnect() throws Exception {
     Channel c1 = new Channel();
     InetSocketAddress a1 = new InetSocketAddress("100.1.1.1", 100);
 
@@ -75,11 +77,12 @@ public class ChannelManagerTest {
   }
 
   @Test
-  public void testProcessPeer() throws Exception {
+  public synchronized void testProcessPeer() throws Exception {
+    clearChannels();
     Parameter.p2pConfig = new P2pConfig();
 
     Channel c1 = new Channel();
-    InetSocketAddress a1 = new InetSocketAddress("100.1.1.1", 100);
+    InetSocketAddress a1 = new InetSocketAddress("100.1.1.2", 100);
 
     Field field =  c1.getClass().getDeclaredField("inetSocketAddress");
     field.setAccessible(true);
@@ -96,7 +99,7 @@ public class ChannelManagerTest {
     Parameter.p2pConfig.setMaxConnections(1);
 
     Channel c2 = new Channel();
-    InetSocketAddress a2 = new InetSocketAddress("100.1.1.1", 99);
+    InetSocketAddress a2 = new InetSocketAddress("100.1.1.2", 99);
 
     field =  c2.getClass().getDeclaredField("inetSocketAddress");
     field.setAccessible(true);
@@ -120,4 +123,8 @@ public class ChannelManagerTest {
     Assert.assertTrue(code.equals(DisconnectCode.DUPLICATE_PEER));
   }
 
+  private void clearChannels() {
+    ChannelManager.getChannels().clear();
+    ChannelManager.getBannedNodes().cleanUp();
+  }
 }

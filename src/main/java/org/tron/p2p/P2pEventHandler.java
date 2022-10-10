@@ -8,7 +8,7 @@ import java.util.List;
 public abstract class P2pEventHandler {
 
   @Getter
-  private List<Byte> types;
+  protected List<Byte> types;
 
   public void onConnect(Channel channel) {
   }

@@ -1,42 +1,20 @@
-plugins {
-    id 'org.springframework.boot' version '2.3.8.RELEASE'
-    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
-    id 'java'
-    id "com.google.protobuf" version "0.8.17"
-}
+group 'org.tron'
+version '1.0'
 
+apply plugin: 'java'
 apply plugin: 'com.google.protobuf'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'application'
 
 def protobufVersion = "3.19.2"
 
 def grpcVersion = "1.14.0"
 
-group 'org.tron'
-version '1.0'
+mainClassName = 'org.tron.p2p.example.StartApp'
 
 repositories {
+    mavenLocal()
     mavenCentral()
-}
-
-dependencies {
-    testImplementation group: 'junit', name: 'junit', version: '4.12'
-
-    implementation group: 'org.apache.logging.log4j', name: 'log4j-to-slf4j', version: '2.15.0'
-    implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.15.0'
-    implementation group: 'com.google.protobuf', name: 'protobuf-java', version: protobufVersion
-    implementation group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
-    implementation group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
-    implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
-    implementation group: 'io.netty', name: 'netty-all', version: '4.1.17.Final'
-    implementation group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.69'
-    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
-
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-}
-
-tasks.matching { it instanceof Test }.all {
-    testLogging.events = ["failed", "passed", "skipped"]
 }
 
 sourceSets {
@@ -48,8 +26,45 @@ sourceSets {
             srcDir 'src/main/java'
         }
     }
-
 }
+
+buildscript {
+    repositories {
+        mavenLocal()
+        maven {
+            url "https://cdn.lfrs.sl/repository.liferay.com/nexus/content/groups/public"
+        }
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.12'
+    }
+}
+
+dependencies {
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
+
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.9'
+    implementation group: 'ch.qos.logback', name: 'logback-core', version: '1.2.3'
+    implementation group: 'com.google.protobuf', name: 'protobuf-java', version: protobufVersion
+    implementation group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
+    implementation group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+    implementation group: 'io.netty', name: 'netty-all', version: '4.1.17.Final'
+    implementation group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.69'
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
+
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.24'
+    testImplementation group: 'org.projectlombok', name: 'lombok', version: '1.18.24'
+    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.24'
+}
+
+tasks.matching { it instanceof Test }.all {
+    testLogging.events = ["failed", "passed", "skipped"]
+}
+
 
 protobuf {
     generatedFilesBaseDir = "$projectDir/src"
@@ -76,12 +91,11 @@ protobuf {
     }
 }
 
-bootJar {
-    enabled = false
-}
-
-jar {
-    enabled = true
+shadowJar {
+    baseName = 'java-p2p'
+    classifier = null
+    version = null
+    zip64 = true
 }
 
 

@@ -46,6 +46,7 @@ public class ConnPoolService extends P2pEventHandler {
   private PeerClient peerClient;
 
   public ConnPoolService() {
+    this.types = new ArrayList<>(); //no message type registers
     Parameter.addP2pEventHandle(this);
   }
 
@@ -53,7 +54,7 @@ public class ConnPoolService extends P2pEventHandler {
     this.peerClient = peerClient;
     poolLoopExecutor.scheduleWithFixedDelay(() -> {
       try {
-        connect();
+        connect(NodeManager.getConnectableNodes());
       } catch (Exception t) {
         log.error("Exception in poolLoopExecutor worker", t);
       }
@@ -70,7 +71,7 @@ public class ConnPoolService extends P2pEventHandler {
     }
   }
 
-  private void connect() {
+  private void connect(List<Node> connectableNodes) {
     List<Node> connectNodes = new ArrayList<>();
 
     //collect already used nodes in channelManager
@@ -98,21 +99,23 @@ public class ConnPoolService extends P2pEventHandler {
     //choose lackSize nodes from nodeManager that meet special requirement
     if (lackSize > 0) {
       nodesInUse.add(Hex.toHexString(p2pConfig.getNodeID()));
-      List<Node> newNodes = getNodes(nodesInUse, lackSize);
+      List<Node> newNodes = getNodes(nodesInUse, connectableNodes, lackSize);
       connectNodes.addAll(newNodes);
     }
 
+    log.info("lackSize:{}, connectNodes:{}", lackSize, connectNodes.size());
     //establish tcp connection with chose nodes by peerClient
     connectNodes.forEach(n -> {
       peerClient.connectAsync(n, false);
+      //send a message and wait for response ? now we have not invoke onConnect/onDisconnect, so activePeers not changed
       peerClientCache.put(n.getInetSocketAddress().getAddress(), System.currentTimeMillis());
     });
   }
 
-  private List<Node> getNodes(Set<String> nodesInUse, int limit) {
+  public List<Node> getNodes(Set<String> nodesInUse, List<Node> connectableNodes, int limit) {
     List<Node> filtered = new ArrayList<>();
     long now = System.currentTimeMillis();
-    for (Node node : NodeManager.getConnectableNodes()) {
+    for (Node node : connectableNodes) {
       InetAddress inetAddress = node.getInetSocketAddress().getAddress();
       Long forbiddenTime = ChannelManager.getBannedNodes().getIfPresent(inetAddress);
       if ((node.getHost().equals(p2pConfig.getIp()) && node.getPort() == p2pConfig.getPort())
@@ -159,6 +162,7 @@ public class ConnPoolService extends P2pEventHandler {
 
   @Override
   public synchronized void onConnect(Channel peer) {
+    log.info("ConnPoolService onConnect");
     if (!activePeers.contains(peer)) {
       if (!peer.isActive()) {
         passivePeersCount.incrementAndGet();
@@ -172,6 +176,7 @@ public class ConnPoolService extends P2pEventHandler {
 
   @Override
   public synchronized void onDisconnect(Channel peer) {
+    log.info("ConnPoolService onDisconnect");
     if (activePeers.contains(peer)) {
       if (!peer.isActive()) {
         passivePeersCount.decrementAndGet();
@@ -181,6 +186,10 @@ public class ConnPoolService extends P2pEventHandler {
       activePeers.remove(peer);
     }
     logActivePeers();
+  }
+
+  @Override
+  public void onMessage(Channel channel, byte[] data) {
   }
 
   public void close() {

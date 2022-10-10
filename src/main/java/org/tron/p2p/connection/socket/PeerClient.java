@@ -47,7 +47,7 @@ public class PeerClient {
     return connectAsync(node.getHost(), node.getPort(), node.getHexId(), discoveryMode)
         .addListener((ChannelFutureListener) future -> {
           if (!future.isSuccess()) {
-            log.warn("Connect to peer {}:{} fail,cause:{}", node.getHost(), node.getPort(),
+            log.warn("Connect to peer {}:{} fail, cause:{}", node.getHost(), node.getPort(),
                 future.cause().getMessage());
             future.channel().close();
           }

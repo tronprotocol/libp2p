@@ -16,10 +16,12 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
+import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.socket.MessageHandler;
 import org.tron.p2p.connection.socket.P2pProtobufVarint32FrameDecoder;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.stats.TrafficStats;
+import org.tron.p2p.utils.ByteArray;
 
 @Slf4j(topic = "net")
 public class Channel {
@@ -29,14 +31,16 @@ public class Channel {
 
   private ChannelHandlerContext ctx;
   @Getter
+  @Setter
   private InetSocketAddress inetSocketAddress;
   @Getter
+  @Setter
   private InetAddress inetAddress;
   private MessageHandler messageHandler;
   @Getter
   private volatile long disconnectTime;
   @Getter
-  private volatile boolean isDisconnect;
+  private volatile boolean isDisconnect = false;
   @Getter
   @Setter
   private long lastSendTime = System.currentTimeMillis();
@@ -58,7 +62,7 @@ public class Channel {
   public void init(ChannelPipeline pipeline, String nodeId, boolean discoveryMode) {
     this.discoveryMode = discoveryMode;
     this.nodeId = nodeId;
-    this.isActive = nodeId != null;
+    this.isActive = nodeId != null && !nodeId.isEmpty();
     this.messageHandler = new MessageHandler(this);
     pipeline.addLast("readTimeoutHandler", new ReadTimeoutHandler(60, TimeUnit.SECONDS));
     pipeline.addLast(TrafficStats.tcp);
@@ -67,16 +71,17 @@ public class Channel {
     pipeline.addLast("messageHandler", messageHandler);
   }
 
-  public void send(byte[] data) {
+  public void send(Message message) {
     if (isDisconnect) {
       log.warn("Send to {} failed as channel has closed, message-type:{} ",
-          ctx.channel().remoteAddress(), data[0]);
+          ctx.channel().remoteAddress(), ByteArray.byte2int(message.getType().getType()));
       return;
     }
-    ctx.writeAndFlush(data).addListener((ChannelFutureListener) future -> {
+    ctx.writeAndFlush(message.getSendData()).addListener((ChannelFutureListener) future -> {
       if (!future.isSuccess() && !isDisconnect) {
-        log.warn("Send to {} failed, message-type:{}",
-            ctx.channel().remoteAddress(), data[0]);
+        log.warn("Send to {} failed, message-type:{}, cause:{}",
+            ctx.channel().remoteAddress(), ByteArray.byte2int(message.getType().getType()),
+            future.cause().getMessage());
       }
     });
     setLastSendTime(System.currentTimeMillis());
