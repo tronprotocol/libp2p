@@ -1,6 +1,8 @@
 package org.tron.p2p.connection;
 
 import com.google.common.base.Throwables;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
@@ -69,22 +71,6 @@ public class Channel {
     pipeline.addLast("messageHandler", messageHandler);
   }
 
-  public void send(Message message) {
-    if (isDisconnect) {
-      log.warn("Send to {} failed as channel has closed, message-type:{} ",
-          ctx.channel().remoteAddress(), ByteArray.byte2int(message.getType().getType()));
-      return;
-    }
-    ctx.writeAndFlush(message.getSendData()).addListener((ChannelFutureListener) future -> {
-      if (!future.isSuccess() && !isDisconnect) {
-        log.warn("Send to {} failed, message-type:{}, cause:{}",
-            ctx.channel().remoteAddress(), ByteArray.byte2int(message.getType().getType()),
-            future.cause().getMessage());
-      }
-    });
-    setLastSendTime(System.currentTimeMillis());
-  }
-
   public void processException(Throwable throwable) {
     Throwable baseThrowable = throwable;
     try {
@@ -115,6 +101,30 @@ public class Channel {
 
   public void close() {
     close(System.currentTimeMillis() + Parameter.DEFAULT_BAN_TIME);
+  }
+
+  public void send(byte[] data) {
+    send(Unpooled.wrappedBuffer(data), data[0]);
+  }
+
+  public void send(Message message) {
+    send(message.getSendData(), message.getType().getType());
+  }
+
+  private void send(ByteBuf byteBuf, byte type) {
+    if (isDisconnect) {
+      log.warn("Send to {} failed as channel has closed, message-type:{} ",
+              ctx.channel().remoteAddress(), type);
+      return;
+    }
+    ctx.writeAndFlush(byteBuf).addListener((ChannelFutureListener) future -> {
+      if (!future.isSuccess() && !isDisconnect) {
+        log.warn("Send to {} failed, message-type:{}, cause:{}",
+                ctx.channel().remoteAddress(), ByteArray.byte2int(type),
+                future.cause().getMessage());
+      }
+    });
+    setLastSendTime(System.currentTimeMillis());
   }
 
   private void close(long banTime) {
