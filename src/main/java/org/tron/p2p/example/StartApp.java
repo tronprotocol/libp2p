@@ -20,21 +20,23 @@ public class StartApp {
     Parameter.p2pConfig = new P2pConfig();
 
     log.info("args size:{}", args.length);
-    //reed from args
-    if (args.length == 1) {
-      log.info("find active node:{}", args[0]);
-      String host = args[0].split(":")[0];
-      int port = Integer.parseInt(args[0].split(":")[1]);
-      InetSocketAddress activeNode = new InetSocketAddress(host, port);
 
-      List<InetSocketAddress> activeNodes = new ArrayList<>();
-      activeNodes.add(activeNode);
-      Parameter.p2pConfig.setActiveNodes(activeNodes);
-
+    if (args.length >= 1) {
+      log.info("find seed node:{}", args[0]);
+      Parameter.p2pConfig.setSeedNodes(parse(args[0]));
+    }
+    if (args.length >= 2) {
+      log.info("find active node:{}", args[1]);
+      Parameter.p2pConfig.setActiveNodes(parse(args[1]));
+    }
+    if (args.length >= 3) {
+      log.info("find trust node:{}", args[2]);
+      InetSocketAddress address = new InetSocketAddress(args[2], Parameter.p2pConfig.getPort());
       List<InetAddress> trustNodes = new ArrayList<>();
-      trustNodes.add(activeNode.getAddress());
+      trustNodes.add(address.getAddress());
       Parameter.p2pConfig.setTrustNodes(trustNodes);
     }
+
     p2pService.start(Parameter.p2pConfig);
 
     while (true) {
@@ -44,5 +46,14 @@ public class StartApp {
         break;
       }
     }
+  }
+
+  private static List<InetSocketAddress> parse(String para) {
+    String host = para.split(":")[0];
+    int port = Integer.parseInt(para.split(":")[1]);
+    InetSocketAddress address = new InetSocketAddress(host, port);
+    List<InetSocketAddress> nodes = new ArrayList<>();
+    nodes.add(address);
+    return nodes;
   }
 }

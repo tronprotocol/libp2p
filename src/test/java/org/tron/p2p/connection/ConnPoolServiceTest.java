@@ -7,9 +7,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.base.Parameter;
@@ -22,10 +22,11 @@ public class ConnPoolServiceTest {
   private static String localIp = "127.0.0.1";
   private static int port = 10000;
 
-  @Before
-  public void init() {
+  @BeforeClass
+  public static void init() {
     Parameter.p2pConfig = new P2pConfig();
     Parameter.p2pConfig.setDiscoverEnable(false);
+    Parameter.p2pConfig.setPort(port);
 
     NodeManager.init();
     ChannelManager.init();
@@ -82,7 +83,7 @@ public class ConnPoolServiceTest {
   @Test
   public void getNodes_banNode() throws InterruptedException {
     clearChannels();
-    InetSocketAddress inetSocketAddress = new InetSocketAddress(localIp, port);
+    InetSocketAddress inetSocketAddress = new InetSocketAddress(localIp, 90);
     long banTime = 1_000L;
     ChannelManager.banNode(inetSocketAddress.getAddress(), banTime);
     Node node = new Node(inetSocketAddress);
@@ -101,7 +102,7 @@ public class ConnPoolServiceTest {
   @Test
   public void getNodes_nodeInUse() {
     clearChannels();
-    InetSocketAddress inetSocketAddress = new InetSocketAddress(localIp, port);
+    InetSocketAddress inetSocketAddress = new InetSocketAddress(localIp, 90);
     Node node = new Node(inetSocketAddress);
     List<Node> connectableNodes = new ArrayList<>();
     connectableNodes.add(node);
@@ -113,8 +114,8 @@ public class ConnPoolServiceTest {
     Assert.assertEquals(0, nodes.size());
   }
 
-  @After
-  public void destroy() {
+  @AfterClass
+  public static void destroy() {
     NodeManager.close();
     ChannelManager.close();
   }

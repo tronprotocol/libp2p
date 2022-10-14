@@ -11,10 +11,12 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.socket.MessageHandler;
@@ -45,7 +47,7 @@ public class Channel {
   @Getter
   private final long startTime = System.currentTimeMillis();
   @Getter
-  private boolean isActive;
+  private boolean isActive = false;
   @Getter
   private boolean isTrustPeer;
   @Getter
@@ -60,7 +62,7 @@ public class Channel {
   public void init(ChannelPipeline pipeline, String nodeId, boolean discoveryMode) {
     this.discoveryMode = discoveryMode;
     this.nodeId = nodeId;
-    this.isActive = nodeId != null && !nodeId.isEmpty();
+    this.isActive = StringUtils.isNotEmpty(nodeId);
     this.messageHandler = new MessageHandler(this);
     pipeline.addLast("readTimeoutHandler", new ReadTimeoutHandler(60, TimeUnit.SECONDS));
     pipeline.addLast(TrafficStats.tcp);
@@ -114,14 +116,32 @@ public class Channel {
   }
 
   public void close() {
-    close(System.currentTimeMillis() + Parameter.DEFAULT_BAN_TIME);
-  }
-
-  private void close(long banTime) {
     this.isDisconnect = true;
     this.disconnectTime = System.currentTimeMillis();
-    ChannelManager.banNode(this.inetAddress, banTime);
+    ChannelManager.banNode(this.inetAddress, Parameter.DEFAULT_BAN_TIME);
     ctx.close();
   }
 
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    Channel channel = (Channel) o;
+    return Objects.equals(inetSocketAddress, channel.inetSocketAddress);
+  }
+
+  @Override
+  public int hashCode() {
+    return inetSocketAddress.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return String.format("%s | %s", inetSocketAddress,
+        StringUtils.isEmpty(nodeId) ? "<null>" : nodeId);
+  }
 }

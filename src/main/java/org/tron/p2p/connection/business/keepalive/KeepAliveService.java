@@ -23,14 +23,16 @@ public class KeepAliveService implements MessageProcess {
     executor.scheduleWithFixedDelay(() -> {
       try {
         long now = System.currentTimeMillis();
-        ChannelManager.getChannels().values().forEach(p -> {
-          if ((!p.waitForPong && now - p.getLastSendTime() > KEEP_ALIVE_PERIOD)
-              || (now - p.pingSent > KEEP_ALIVE_PERIOD)) {
-            p.send(new PingMessage());
-            p.waitForPong = true;
-            p.pingSent = now;
-          }
-        });
+        ChannelManager.getChannels().values().stream()
+            .filter(p -> !p.isDisconnect())
+            .forEach(p -> {
+              if ((!p.waitForPong && now - p.getLastSendTime() > KEEP_ALIVE_PERIOD)
+                  || (now - p.pingSent > KEEP_ALIVE_PERIOD)) {
+                p.send(new PingMessage());
+                p.waitForPong = true;
+                p.pingSent = now;
+              }
+            });
       } catch (Throwable t) {
         log.error("Exception in keep alive task.", t);
       }

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class NodeTableTest {
+
   private Node homeNode;
   private NodeTable nodeTable;
   private String[] ips;
@@ -27,7 +28,7 @@ public class NodeTableTest {
     Assert.assertEquals(0, table.getNodesCount());
     Assert.assertEquals(0, table.getBucketsCount());
 
-    Node node2 = new Node(new InetSocketAddress("127.0.0.2",10003));
+    Node node2 = new Node(new InetSocketAddress("127.0.0.2", 10003));
     Node node3 = new Node(new InetSocketAddress("127.0.0.3", 10004));
     table.addNode(node2);
     table.addNode(node3);
@@ -50,7 +51,7 @@ public class NodeTableTest {
    */
   @Before
   public void init() {
-    ids = new ArrayList();
+    ids = new ArrayList<>();
     for (int i = 0; i < KademliaOptions.BUCKET_SIZE + 1; i++) {
       byte[] id = new byte[64];
       id[0] = 17;

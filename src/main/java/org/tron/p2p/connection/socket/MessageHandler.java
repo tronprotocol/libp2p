@@ -12,6 +12,7 @@ import org.tron.p2p.connection.business.handshake.DisconnectCode;
 
 @Slf4j(topic = "net")
 public class MessageHandler extends ByteToMessageDecoder {
+
   private Channel channel;
 
   public MessageHandler(Channel channel) {
@@ -19,7 +20,8 @@ public class MessageHandler extends ByteToMessageDecoder {
   }
 
   @Override
-  public void handlerAdded(ChannelHandlerContext ctx) {}
+  public void handlerAdded(ChannelHandlerContext ctx) {
+  }
 
   @Override
   public void channelActive(ChannelHandlerContext ctx) {
@@ -30,9 +32,9 @@ public class MessageHandler extends ByteToMessageDecoder {
       channel.close();
       return;
     }
-    if (channel.isActive()) {
-      Parameter.handlerList.forEach(h -> h.onConnect(channel));
-    }
+    // if (channel.isActive()) {
+    Parameter.handlerList.forEach(h -> h.onConnect(channel));
+    //}
   }
 
   @Override

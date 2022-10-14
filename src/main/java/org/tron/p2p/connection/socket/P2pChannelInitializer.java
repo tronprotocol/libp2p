@@ -12,8 +12,6 @@ import org.tron.p2p.connection.ChannelManager;
 @Slf4j(topic = "net")
 public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> {
 
-  private Channel channel;
-
   private String remoteId;
 
   private boolean peerDiscoveryMode = false;
@@ -25,7 +23,7 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
   @Override
   public void initChannel(NioSocketChannel ch) {
     try {
-      channel = new Channel();
+      final Channel channel = new Channel();
       channel.init(ch.pipeline(), remoteId, peerDiscoveryMode);
 
       // limit the size of receiving buffer to 1024
@@ -35,7 +33,7 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
 
       // be aware of channel closing
       ch.closeFuture().addListener((ChannelFutureListener) future -> {
-        log.info("Close channel:" + channel);
+        log.info("Close channel:{}", channel);
         if (!peerDiscoveryMode) {
           ChannelManager.notifyDisconnect(channel);
         }

@@ -65,7 +65,7 @@ public class NodeHandlerTest {
     Assert.assertEquals(NodeHandler.State.ACTIVE, currHandler.getState());
     Assert.assertTrue(kadService.getTable().contains(currNode));
 
-    Class clazz = NodeHandler.class;
+    Class<NodeHandler> clazz = NodeHandler.class;
     Constructor<NodeHandler> cn = clazz.getDeclaredConstructor(Node.class, KadService.class);
     NodeHandler nh = cn.newInstance(oldNode, kadService);
     Field declaredField = clazz.getDeclaredField("replaceCandidate");

@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.util.encoders.Hex;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.P2pEventHandler;
@@ -54,7 +55,7 @@ public class ConnPoolService extends P2pEventHandler {
     this.peerClient = peerClient;
     poolLoopExecutor.scheduleWithFixedDelay(() -> {
       try {
-        connect(NodeManager.getConnectableNodes());
+        connect();
       } catch (Exception t) {
         log.error("Exception in poolLoopExecutor worker", t);
       }
@@ -71,23 +72,25 @@ public class ConnPoolService extends P2pEventHandler {
     }
   }
 
-  private void connect(List<Node> connectableNodes) {
+  private void connect() {
     List<Node> connectNodes = new ArrayList<>();
 
     //collect already used nodes in channelManager
     Set<InetAddress> addressInUse = new HashSet<>();
     Set<String> nodesInUse = new HashSet<>();
     ChannelManager.getChannels().values().forEach(channel -> {
-      if (channel.getNodeId() != null) {
+      if (StringUtils.isNotEmpty(channel.getNodeId())) {
         nodesInUse.add(channel.getNodeId());
       }
       addressInUse.add(channel.getInetAddress());
     });
 
-    //first choose from active nodes that not used
     p2pConfig.getActiveNodes().forEach(address -> {
       if (!addressInUse.contains(address.getAddress())) {
-        connectNodes.add(new Node(address));
+        addressInUse.add(address.getAddress());
+        Node node = new Node(address);
+        node.setId(null); //not used active node, where nodeId = null
+        connectNodes.add(node);
       }
     });
 
@@ -99,6 +102,7 @@ public class ConnPoolService extends P2pEventHandler {
     //choose lackSize nodes from nodeManager that meet special requirement
     if (lackSize > 0) {
       nodesInUse.add(Hex.toHexString(p2pConfig.getNodeID()));
+      List<Node> connectableNodes = NodeManager.getConnectableNodes();
       List<Node> newNodes = getNodes(nodesInUse, connectableNodes, lackSize);
       connectNodes.addAll(newNodes);
     }
@@ -107,7 +111,6 @@ public class ConnPoolService extends P2pEventHandler {
     //establish tcp connection with chose nodes by peerClient
     connectNodes.forEach(n -> {
       peerClient.connectAsync(n, false);
-      //send a message and wait for response ? now we have not invoke onConnect/onDisconnect, so activePeers not changed
       peerClientCache.put(n.getInetSocketAddress().getAddress(), System.currentTimeMillis());
     });
   }
@@ -122,7 +125,7 @@ public class ConnPoolService extends P2pEventHandler {
           || (forbiddenTime != null && now <= forbiddenTime)
           || (ChannelManager.getConnectionNum(inetAddress)
           >= p2pConfig.getMaxConnectionsWithSameIp())
-          || (nodesInUse.contains(node.getHexId()))
+          || (node.getId() != null && nodesInUse.contains(node.getHexId()))
           || (peerClientCache.getIfPresent(inetAddress) != null)) {
         continue;
       }
@@ -155,8 +158,9 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   private synchronized void logActivePeers() {
-    String str = String.format("Peer stats: all %d, active %d, passive %d",
-        ChannelManager.getChannels().size(), activePeersCount.get(), passivePeersCount.get());
+    String str = String.format("Peer stats: channels %d, activePeers %d, active %d, passive %d",
+        ChannelManager.getChannels().size(), activePeers.size(), activePeersCount.get(),
+        passivePeersCount.get());
     log.info(str);
   }
 

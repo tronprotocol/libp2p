@@ -17,7 +17,7 @@ import org.tron.p2p.discover.NodeManager;
 public class SocketTest {
 
   private static String localIp = "127.0.0.1";
-  private static int port = 10000;
+  private static int port = 10001;
 
   @Before
   public void init() {
@@ -41,7 +41,7 @@ public class SocketTest {
           }
         });
     try {
-      Thread.sleep(4000);
+      Thread.sleep(1000);
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
@@ -49,17 +49,26 @@ public class SocketTest {
   }
 
   @Test
-  public void testPeerServerAndPeerClient() {
-    //peer server is already start at this port
-    Node node = new Node(new InetSocketAddress(localIp, port));
+  public void testPeerServerAndPeerClient() throws InterruptedException {
+    //wait some time until peer server thread starts at this port successfully
+    Thread.sleep(500);
+    Node serverNode = new Node(new InetSocketAddress(localIp, port));
 
     //peer client try to connect peer server using random port
-    io.netty.channel.Channel nettyChannel = ChannelManager.getPeerClient().connectAsync(node, false)
-        .channel();
+    io.netty.channel.Channel nettyChannel = ChannelManager.getPeerClient()
+        .connectAsync(serverNode, false).channel();
 
-    PingMessage pingMessage = new PingMessage();
-    boolean sendSuccess = sendMessage(nettyChannel, pingMessage);
-    Assert.assertTrue(sendSuccess);
+    while (true) {
+      if (!nettyChannel.isActive()) {
+        Thread.sleep(100);
+      } else {
+        System.out.println("send message test");
+        PingMessage pingMessage = new PingMessage();
+        boolean sendSuccess = sendMessage(nettyChannel, pingMessage);
+        Assert.assertTrue(sendSuccess);
+        break;
+      }
+    }
   }
 
   @After

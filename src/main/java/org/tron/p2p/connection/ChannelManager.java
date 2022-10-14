@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.P2pEventHandler;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
@@ -44,7 +45,7 @@ public class ChannelManager {
 
   @Getter
   private static final Cache<InetAddress, Long> bannedNodes = CacheBuilder
-      .newBuilder().maximumSize(2000).build();
+      .newBuilder().maximumSize(2000).build(); //ban timestamp
 
   public static void init() {
     peerServer = new PeerServer();
@@ -64,12 +65,12 @@ public class ChannelManager {
   }
 
   public static void notifyDisconnect(Channel channel) {
+    channels.remove(channel.getInetSocketAddress());
+    Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
     if (channel != null) {
-      channels.remove(channel.getInetSocketAddress());
-      Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
       InetAddress inetAddress = channel.getInetAddress();
-      if (bannedNodes.getIfPresent(inetAddress) == null) {
-        banNode(channel.getInetAddress(), Parameter.DEFAULT_BAN_TIME);
+      if (inetAddress != null) {
+        banNode(inetAddress, Parameter.DEFAULT_BAN_TIME);
       }
     }
   }
@@ -90,26 +91,29 @@ public class ChannelManager {
       InetAddress inetAddress = channel.getInetAddress();
       if (bannedNodes.getIfPresent(inetAddress) != null
           && bannedNodes.getIfPresent(inetAddress) > System.currentTimeMillis()) {
-        log.info("Peer {} recently disconnected", channel.getInetAddress());
+        log.info("Peer {} recently disconnected", channel);
         return DisconnectCode.TIME_BANNED;
       }
 
       if (!channel.isActive() && channels.size() >= Parameter.p2pConfig.getMaxConnections()) {
+        log.info("Too many peers, disconnected with {}", channel);
         return DisconnectCode.TOO_MANY_PEERS;
       }
 
       int num = getConnectionNum(channel.getInetAddress());
       if (num >= Parameter.p2pConfig.getMaxConnectionsWithSameIp()) {
+        log.info("Max connection with same ip {}", channel);
         return DisconnectCode.MAX_CONNECTION_WITH_SAME_IP;
       }
     }
 
-    if (channel.getNodeId() != null) {
+    if (StringUtils.isNotEmpty(channel.getNodeId())) {
       for (Channel c : channels.values()) {
         if (channel.getNodeId().equals(c.getNodeId())) {
           if (c.getStartTime() > channel.getStartTime()) {
             c.close();
           } else {
+            log.info("Duplicate peer {}, exist peer {}", channel, c);
             return DisconnectCode.DUPLICATE_PEER;
           }
         }
@@ -117,25 +121,30 @@ public class ChannelManager {
     }
 
     channels.put(channel.getInetSocketAddress(), channel);
-    log.info("Add peer {}, total peers: {}", channel.getInetAddress(), channels.size());
+    log.info("Add peer {}, total peers: {}", channel, channels.size());
     return DisconnectCode.NORMAL;
   }
 
   public static void banNode(InetAddress inetAddress, Long banTime) {
-    bannedNodes.put(inetAddress, System.currentTimeMillis() + banTime);
+    long now = System.currentTimeMillis();
+    if (bannedNodes.getIfPresent(inetAddress) == null
+        || bannedNodes.getIfPresent(inetAddress) < now) {
+      bannedNodes.put(inetAddress, now + banTime);
+    }
   }
 
   public static void close() {
     connPoolService.close();
     keepAliveService.close();
-    peerClient.close();
     peerServer.close();
+    peerClient.close();
   }
 
   public static void processMessage(Channel channel, byte[] data) throws P2pException {
     channel.setLastSendTime(System.currentTimeMillis());
     Message message = Message.parse(data);
-    log.info("MessageType:{}", ByteArray.byte2int(message.getType().getType()));
+//    log.info("Receive messageType {} from {}:{}", ByteArray.byte2int(message.getType().getType()),
+//        channel.getInetAddress(), channel.getInetSocketAddress().getPort());
     switch (message.getType()) {
       case KEEP_ALIVE_PING:
       case KEEP_ALIVE_PONG:
@@ -163,7 +172,7 @@ public class ChannelManager {
     handler.onMessage(channel, data);
   }
 
-  public synchronized static void updateNodeId(Channel channel, String nodeId) {
+  public static synchronized void updateNodeId(Channel channel, String nodeId) {
     channel.setNodeId(nodeId);
     List<Channel> list = new ArrayList<>();
     channels.values().forEach(c -> {
