@@ -64,7 +64,7 @@ public class PeerServer {
       log.info("TCP listener closed");
 
     } catch (Exception e) {
-      log.error("Start TCP server failed.", e);
+      log.error("Start TCP server failed", e);
     } finally {
       workerGroup.shutdownGracefully();
       bossGroup.shutdownGracefully();

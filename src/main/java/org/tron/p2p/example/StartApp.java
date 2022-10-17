@@ -68,7 +68,7 @@ public class StartApp {
         log.error("Check discover failed, must be 0/1");
         System.exit(0);
       }
-      Parameter.p2pConfig.setDiscoverEnable(d == 1 ? true : false);
+      Parameter.p2pConfig.setDiscoverEnable(d == 1);
     }
 
     if (cli.hasOption("r")) {
@@ -88,7 +88,7 @@ public class StartApp {
 
   private static CommandLine parseCli(String[] args) throws ParseException {
     Option opt1 = new Option("s", "seed", true, "seed node(s), required, [ip:port[,ip:port[...]]]");
-    opt1.setRequired(true);
+    opt1.setRequired(false);
     Option opt2 = new Option("t", "trust", true, "trust node(s), [ip:port[,ip:port[...]]]");
     opt2.setRequired(false);
     Option opt3 = new Option("a", "active", true, "active ip(s), [ip[,ip[...]]]");

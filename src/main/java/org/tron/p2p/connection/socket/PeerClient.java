@@ -21,7 +21,7 @@ public class PeerClient {
 
   public void init() {
     workerGroup = new NioEventLoopGroup(0, new ThreadFactory() {
-      private AtomicInteger cnt = new AtomicInteger(0);
+      private final AtomicInteger cnt = new AtomicInteger(0);
 
       @Override
       public Thread newThread(Runnable r) {
@@ -40,7 +40,7 @@ public class PeerClient {
       ChannelFuture f = connectAsync(host, port, remoteId, false);
       f.sync().channel().closeFuture().sync();
     } catch (Exception e) {
-      log.info("PeerClient: Can't connect to " + host + ":" + port + " (" + e.getMessage() + ")");
+      log.warn("PeerClient can't connect to {}:{} ({})", host, port, e.getMessage());
     }
   }
 

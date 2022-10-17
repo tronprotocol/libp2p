@@ -13,9 +13,6 @@ public class HandshakeService implements MessageProcess {
 
   private final int version = Parameter.p2pConfig.getVersion();
 
-  public void startHandshake(Channel channel) {
-    sendHelloMsg(channel, DisconnectCode.NORMAL);
-  }
 
   @Override
   public void processMessage(Channel channel, Message message) {
@@ -40,16 +37,16 @@ public class HandshakeService implements MessageProcess {
       if (msg.getCode() != DisconnectCode.NORMAL.getValue()
           || msg.getVersion() != version) {
         log.info("Handshake failed {}, code: {}, version: {}",
-                channel.getInetAddress(),
-                DisconnectCode.NORMAL.getValue(),
-                msg.getVersion());
+            channel.getInetAddress(),
+            DisconnectCode.NORMAL.getValue(),
+            msg.getVersion());
         channel.close();
         return;
       }
     } else {
       if (msg.getVersion() != version) {
         log.info("Peer {} different p2p version, peer->{}, me->{}",
-                channel.getInetAddress(), msg.getVersion(), version);
+            channel.getInetAddress(), msg.getVersion(), version);
         sendHelloMsg(channel, DisconnectCode.DIFFERENT_VERSION);
         channel.close();
         return;

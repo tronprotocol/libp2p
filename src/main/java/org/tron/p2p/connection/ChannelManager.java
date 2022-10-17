@@ -143,8 +143,8 @@ public class ChannelManager {
   public static void processMessage(Channel channel, byte[] data) throws P2pException {
     channel.setLastSendTime(System.currentTimeMillis());
     Message message = Message.parse(data);
-//    log.info("Receive messageType {} from {}:{}", ByteArray.byte2int(message.getType().getType()),
-//        channel.getInetAddress(), channel.getInetSocketAddress().getPort());
+    log.debug("Receive messageType {} from {}:{}", ByteArray.byte2int(message.getType().getType()),
+        channel.getInetAddress(), channel.getInetSocketAddress().getPort());
     switch (message.getType()) {
       case KEEP_ALIVE_PING:
       case KEEP_ALIVE_PONG:

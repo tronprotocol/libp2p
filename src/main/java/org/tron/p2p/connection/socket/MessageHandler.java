@@ -13,7 +13,7 @@ import org.tron.p2p.connection.business.handshake.DisconnectCode;
 @Slf4j(topic = "net")
 public class MessageHandler extends ByteToMessageDecoder {
 
-  private Channel channel;
+  private final Channel channel;
 
   public MessageHandler(Channel channel) {
     this.channel = channel;

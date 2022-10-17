@@ -33,8 +33,8 @@ public class KeepAliveService implements MessageProcess {
                 p.pingSent = now;
               }
             });
-      } catch (Throwable t) {
-        log.error("Exception in keep alive task.", t);
+      } catch (Exception t) {
+        log.error("Exception in keep alive task", t);
       }
     }, 2, 2, TimeUnit.SECONDS);
   }
