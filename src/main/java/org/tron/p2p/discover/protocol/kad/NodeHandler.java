@@ -4,8 +4,6 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.Node;
@@ -19,40 +17,25 @@ import org.tron.p2p.discover.message.*;
 @Slf4j(topic = "net")
 public class NodeHandler {
 
-  private Node sourceNode;
   private Node node;
   private volatile State state;
   private KadService kadService;
-  //  private NodeStatistics nodeStatistics;
   private NodeHandler replaceCandidate;
   private InetSocketAddress inetSocketAddress;
   private AtomicInteger pingTrials = new AtomicInteger(3);
   private volatile boolean waitForPong = false;
   private volatile boolean waitForNeighbors = false;
-  private volatile long pingSent;
-  @Getter
-  @Setter
-  private int reputation;
 
 
   public NodeHandler(Node node, KadService kadService) {
     this.node = node;
     this.kadService = kadService;
     this.inetSocketAddress = new InetSocketAddress(node.getHost(), node.getPort());
-    //this.nodeStatistics = new NodeStatistics();
     changeState(State.DISCOVERED);
   }
 
   public InetSocketAddress getInetSocketAddress() {
     return inetSocketAddress;
-  }
-
-  public Node getSourceNode() {
-    return sourceNode;
-  }
-
-  public void setSourceNode(Node sourceNode) {
-    this.sourceNode = sourceNode;
   }
 
   public Node getNode() {
@@ -67,10 +50,6 @@ public class NodeHandler {
     return state;
   }
 
-//  public NodeStatistics getNodeStatistics() {
-//    return nodeStatistics;
-//  }
-
   private void challengeWith(NodeHandler replaceCandidate) {
     this.replaceCandidate = replaceCandidate;
     changeState(State.EVICTCANDIDATE);
@@ -80,11 +59,7 @@ public class NodeHandler {
   public void changeState(State newState) {
     State oldState = state;
     if (newState == State.DISCOVERED) {
-      if (sourceNode != null && sourceNode.getPort() != node.getPort()) {
-        changeState(State.DEAD);
-      } else {
-        sendPing();
-      }
+      sendPing();
     }
 
     if (newState == State.ALIVE) {
@@ -145,11 +120,6 @@ public class NodeHandler {
   public void handlePong(PongMessage msg) {
     if (waitForPong) {
       waitForPong = false;
-      //getNodeStatistics().discoverMessageLatency.add(System.currentTimeMillis() - pingSent);
-      //Metrics.histogramObserve(MetricKeys.Histogram.PING_PONG_LATENCY,
-      //    (System.currentTimeMillis() - pingSent) / Metrics.MILLISECONDS_PER_SECOND);
-      //getNodeStatistics().lastPongReplyTime.set(System.currentTimeMillis());
-      node.setId(msg.getFrom().getId());
       node.setP2pVersion(msg.getVersion());
       if (!node.isConnectible(Parameter.p2pConfig.getVersion())) {
         changeState(State.DEAD);
@@ -193,7 +163,6 @@ public class NodeHandler {
   public void sendPing() {
     PingMessage msg = new PingMessage(kadService.getPublicHomeNode(), getNode());
     waitForPong = true;
-    pingSent = System.currentTimeMillis();
     sendMessage(msg);
 
     if (kadService.getPongTimer().isShutdown()) {
@@ -229,7 +198,6 @@ public class NodeHandler {
 
   private void sendMessage(Message msg) {
     kadService.sendOutbound(new UdpEvent(msg, getInetSocketAddress()));
-    //nodeStatistics.messageStatistics.addUdpOutMessage(msg.getType());
   }
 
   @Override
