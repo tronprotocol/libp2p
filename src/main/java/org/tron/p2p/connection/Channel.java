@@ -85,7 +85,7 @@ public class Channel {
         || throwable instanceof IOException) {
       log.warn("Close peer {}, reason: {}", address, throwable.getMessage());
     } else if (baseThrowable instanceof P2pException) {
-      log.warn("Close peer {}, type: {}, info: {}",
+      log.warn("Close peer {}, type: ({}), info: {}",
           address, ((P2pException) baseThrowable).getType(), baseThrowable.getMessage());
     } else {
       log.error("Close peer {}, exception caught", address, throwable);

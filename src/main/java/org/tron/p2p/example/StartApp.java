@@ -104,7 +104,7 @@ public class StartApp {
     opt7.setRequired(false);
     Option opt8 = new Option("P", "port", true, "UDP & TCP port, default 18888");
     opt8.setRequired(false);
-    Option opt9 = new Option("v", "version", true, "p2p version, default 1");
+    Option opt9 = new Option("v", "version", true, "p2p version, int, default 1");
     opt9.setRequired(false);
     Option opt10 = new Option("mA", "minActive", true, "minActiveConnections, default 2");
     opt10.setRequired(false);
