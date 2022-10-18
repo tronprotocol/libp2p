@@ -147,7 +147,11 @@ public class ChannelManager {
   }
 
   public static void processMessage(Channel channel, byte[] data) throws P2pException {
-    channel.setLastSendTime(System.currentTimeMillis());
+    if (data[0] > 0) {
+      handMessage(channel, data);
+      return;
+    }
+
     Message message = Message.parse(data);
     switch (message.getType()) {
       case KEEP_ALIVE_PING:
@@ -158,8 +162,7 @@ public class ChannelManager {
         handshakeService.processMessage(channel, message);
         break;
       default:
-        handMessage(channel, data);
-        break;
+        throw new P2pException(P2pException.TypeEnum.NO_SUCH_MESSAGE, "type:" + data[0]);
     }
   }
 
