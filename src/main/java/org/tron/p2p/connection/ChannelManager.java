@@ -65,6 +65,10 @@ public class ChannelManager {
   }
 
   public static void notifyDisconnect(Channel channel) {
+    if (channel.getInetSocketAddress() == null) {
+      log.warn("Notify Disconnect peer has no address.");
+      return;
+    }
     channels.remove(channel.getInetSocketAddress());
     Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
     if (channel != null) {
@@ -143,8 +147,6 @@ public class ChannelManager {
   public static void processMessage(Channel channel, byte[] data) throws P2pException {
     channel.setLastSendTime(System.currentTimeMillis());
     Message message = Message.parse(data);
-//    log.info("Receive messageType {} from {}:{}", ByteArray.byte2int(message.getType().getType()),
-//        channel.getInetAddress(), channel.getInetSocketAddress().getPort());
     switch (message.getType()) {
       case KEEP_ALIVE_PING:
       case KEEP_ALIVE_PONG:

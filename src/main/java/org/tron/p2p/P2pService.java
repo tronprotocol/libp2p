@@ -49,8 +49,8 @@ public class P2pService {
     return NodeManager.getAllNodes();
   }
 
-  public static void updateNodeId(Channel channel, String nodeId) {
+  public void updateNodeId(Channel channel, String nodeId) {
     ChannelManager.updateNodeId(channel, nodeId);
   }
-  
+
 }

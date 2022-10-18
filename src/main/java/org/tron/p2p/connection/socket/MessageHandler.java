@@ -32,9 +32,9 @@ public class MessageHandler extends ByteToMessageDecoder {
       channel.close();
       return;
     }
-    // if (channel.isActive()) {
-    Parameter.handlerList.forEach(h -> h.onConnect(channel));
-    //}
+    if (channel.isActive()) {
+      Parameter.handlerList.forEach(h -> h.onConnect(channel));
+    }
   }
 
   @Override
