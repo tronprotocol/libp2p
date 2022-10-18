@@ -8,6 +8,7 @@ import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
+import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.stats.P2pStats;
 import org.tron.p2p.stats.StatsManager;
 
@@ -29,8 +30,8 @@ public class P2pService {
     log.info("P2p service closed");
   }
 
-  public boolean register(P2pEventHandler p2PEventHandler) {
-    return Parameter.addP2pEventHandle(p2PEventHandler);
+  public void register(P2pEventHandler p2PEventHandler) throws P2pException {
+    Parameter.addP2pEventHandle(p2PEventHandler);
   }
 
   public void connect(InetSocketAddress address) {

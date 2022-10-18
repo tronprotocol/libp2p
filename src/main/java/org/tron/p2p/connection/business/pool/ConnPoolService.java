@@ -28,6 +28,7 @@ import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
+import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.utils.CollectionUtils;
 
 @Slf4j(topic = "net")
@@ -35,7 +36,7 @@ public class ConnPoolService extends P2pEventHandler {
 
   private final List<Channel> activePeers = Collections.synchronizedList(new ArrayList<>());
   private Cache<InetAddress, Long> peerClientCache = CacheBuilder.newBuilder()
-      .maximumSize(1000).expireAfterWrite(180, TimeUnit.SECONDS).recordStats().build();
+      .maximumSize(1000).expireAfterWrite(120, TimeUnit.SECONDS).recordStats().build();
   @Getter
   private final AtomicInteger passivePeersCount = new AtomicInteger(0);
   @Getter
@@ -48,7 +49,10 @@ public class ConnPoolService extends P2pEventHandler {
 
   public ConnPoolService() {
     this.types = new ArrayList<>(); //no message type registers
-    Parameter.addP2pEventHandle(this);
+    try {
+      Parameter.addP2pEventHandle(this);
+    } catch (P2pException e) {
+    }
   }
 
   public void init(PeerClient peerClient) {
@@ -128,9 +132,11 @@ public class ConnPoolService extends P2pEventHandler {
           || (peerClientCache.getIfPresent(inetAddress) != null)) {
         continue;
       }
-      filtered.add(node);
+      // sometimes error occurs if update_time changes when sort, so we copy it
+      filtered.add((Node) node.clone());
     }
-    //order by updateTime desc
+
+    //order by updateTime desc.
     filtered.sort(Comparator.comparingLong(node -> -node.getUpdateTime()));
     return CollectionUtils.truncate(filtered, limit);
   }

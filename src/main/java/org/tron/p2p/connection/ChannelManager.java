@@ -97,7 +97,7 @@ public class ChannelManager {
         return DisconnectCode.TIME_BANNED;
       }
 
-      if (!channel.isActive() && channels.size() >= Parameter.p2pConfig.getMaxConnections()) {
+      if (channels.size() >= Parameter.p2pConfig.getMaxConnections()) {
         log.info("Too many peers, disconnected with {}", channel);
         return DisconnectCode.TOO_MANY_PEERS;
       }
@@ -143,7 +143,7 @@ public class ChannelManager {
   }
 
   public static void processMessage(Channel channel, byte[] data) throws P2pException {
-    if (data[0] > 0) {
+    if (data[0] >= 0) {
       handMessage(channel, data);
       return;
     }

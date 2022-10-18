@@ -26,11 +26,16 @@ public class KeepAliveService implements MessageProcess {
         ChannelManager.getChannels().values().stream()
             .filter(p -> !p.isDisconnect())
             .forEach(p -> {
-              if ((!p.waitForPong && now - p.getLastSendTime() > KEEP_ALIVE_PERIOD)
-                  || (now - p.pingSent > KEEP_ALIVE_PERIOD)) {
-                p.send(new PingMessage());
-                p.waitForPong = true;
-                p.pingSent = now;
+              if (p.waitForPong) {
+                if (now - p.pingSent > KEEP_ALIVE_PERIOD) {
+                  p.close();
+                }
+              } else {
+                if (now - p.getLastSendTime() > KEEP_ALIVE_PERIOD) {
+                  p.send(new PingMessage());
+                  p.waitForPong = true;
+                  p.pingSent = now;
+                }
               }
             });
       } catch (Exception t) {

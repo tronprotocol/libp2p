@@ -54,7 +54,7 @@ public class HandshakeService implements MessageProcess {
       sendHelloMsg(channel, DisconnectCode.NORMAL);
     }
 
-    Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
+    Parameter.handlerList.forEach(h -> h.onConnect(channel));
   }
 
   private void sendHelloMsg(Channel channel, DisconnectCode code) {

@@ -11,7 +11,8 @@ import org.tron.p2p.base.Constant;
 import org.tron.p2p.utils.NetUtil;
 
 @Slf4j(topic = "net")
-public class Node implements Serializable {
+public class Node implements Serializable, Cloneable {
+
   private static final long serialVersionUID = -4267600517925770636L;
 
   private byte[] id;
@@ -132,5 +133,14 @@ public class Node implements Serializable {
 
   public InetSocketAddress getInetSocketAddress() {
     return new InetSocketAddress(host, port);
+  }
+
+  @Override
+  public Object clone() {
+    try {
+      return super.clone();
+    } catch (CloneNotSupportedException ignored) {
+    }
+    return null;
   }
 }
