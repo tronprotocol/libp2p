@@ -38,7 +38,6 @@ public class Channel {
   private InetSocketAddress inetSocketAddress;
   @Getter
   private InetAddress inetAddress;
-  private MessageHandler messageHandler;
   @Getter
   private volatile long disconnectTime;
   @Getter
@@ -65,7 +64,7 @@ public class Channel {
     this.discoveryMode = discoveryMode;
     this.nodeId = nodeId;
     this.isActive = StringUtils.isNotEmpty(nodeId);
-    this.messageHandler = new MessageHandler(this);
+    MessageHandler messageHandler = new MessageHandler(this);
     pipeline.addLast("readTimeoutHandler", new ReadTimeoutHandler(60, TimeUnit.SECONDS));
     pipeline.addLast(TrafficStats.tcp);
     pipeline.addLast("protoPrepend", new ProtobufVarint32LengthFieldPrepender());

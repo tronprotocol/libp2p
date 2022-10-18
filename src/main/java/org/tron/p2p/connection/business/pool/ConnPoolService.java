@@ -88,13 +88,12 @@ public class ConnPoolService extends P2pEventHandler {
     p2pConfig.getActiveNodes().forEach(address -> {
       if (!addressInUse.contains(address.getAddress())) {
         addressInUse.add(address.getAddress());
-        Node node = new Node(address);
-        node.setId(null); //not used active node, where nodeId = null
+        Node node = new Node(address); //use a random NodeId for config activeNodes
         connectNodes.add(node);
       }
     });
 
-    //calculate lackSize
+    //calculate lackSize exclude config activeNodes
     int size = Math.max(p2pConfig.getMinConnections() - activePeers.size(),
         p2pConfig.getMinActiveConnections() - activePeersCount.get());
     int lackSize = size - connectNodes.size();
@@ -107,7 +106,7 @@ public class ConnPoolService extends P2pEventHandler {
       connectNodes.addAll(newNodes);
     }
 
-    log.info("lackSize:{}, connectNodes:{}", lackSize, connectNodes.size());
+    log.info("LackSize:{}, connectNodes:{}", size, connectNodes.size());
     //establish tcp connection with chose nodes by peerClient
     connectNodes.forEach(n -> {
       peerClient.connectAsync(n, false);
@@ -153,15 +152,15 @@ public class ConnPoolService extends P2pEventHandler {
     if (!peers.isEmpty()) {
       List<Channel> list = new ArrayList<>(peers);
       Channel peer = list.get(new Random().nextInt(peers.size()));
+      log.info("disconnect with peer random: {}", peer);
       peer.close();
     }
   }
 
   private synchronized void logActivePeers() {
-    String str = String.format("Peer stats: channels %d, activePeers %d, active %d, passive %d",
+    log.info("Peer stats: channels {}, activePeers {}, active {}, passive {}",
         ChannelManager.getChannels().size(), activePeers.size(), activePeersCount.get(),
         passivePeersCount.get());
-    log.info(str);
   }
 
   @Override

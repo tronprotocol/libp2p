@@ -12,7 +12,7 @@ import org.tron.p2p.connection.ChannelManager;
 @Slf4j(topic = "net")
 public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> {
 
-  private String remoteId;
+  private final String remoteId;
 
   private boolean peerDiscoveryMode = false;
 
@@ -40,7 +40,7 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
       });
 
     } catch (Exception e) {
-      log.error("Unexpected error: ", e);
+      log.error("Unexpected initChannel error", e);
     }
   }
 

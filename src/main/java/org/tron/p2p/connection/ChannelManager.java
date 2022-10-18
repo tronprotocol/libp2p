@@ -71,7 +71,9 @@ public class ChannelManager {
     }
     channels.remove(channel.getInetSocketAddress());
     Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
-    if (channel != null) {
+    if (channel != null && channel.getInetSocketAddress() != null) {
+      channels.remove(channel.getInetSocketAddress());
+      Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
       InetAddress inetAddress = channel.getInetAddress();
       if (inetAddress != null) {
         banNode(inetAddress, Parameter.DEFAULT_BAN_TIME);
