@@ -100,11 +100,15 @@ public class Channel {
     this.isTrustPeer = Parameter.p2pConfig.getTrustNodes().contains(inetAddress);
   }
 
-  public void close() {
+  public void close(long banTime) {
     this.isDisconnect = true;
     this.disconnectTime = System.currentTimeMillis();
-    ChannelManager.banNode(this.inetAddress, Parameter.DEFAULT_BAN_TIME);
+    ChannelManager.banNode(this.inetAddress, banTime);
     ctx.close();
+  }
+
+  public void close() {
+    close(Parameter.DEFAULT_BAN_TIME);
   }
 
   public void send(byte[] data) {
