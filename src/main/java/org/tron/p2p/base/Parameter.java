@@ -32,13 +32,13 @@ public class Parameter {
   public static volatile Map<Byte, P2pEventHandler> handlerMap = new HashMap<>();
 
   public static void addP2pEventHandle(P2pEventHandler p2PEventHandler) throws P2pException {
-    if (p2PEventHandler.getTypes() != null) {
-      for (Byte type : p2PEventHandler.getTypes()) {
+    if (p2PEventHandler.getTypeSet() != null) {
+      for (Byte type : p2PEventHandler.getTypeSet()) {
         if (handlerMap.get(type) != null) {
           throw new P2pException(TypeEnum.TYPE_ALREADY_REGISTERED, "type:" + type);
         }
       }
-      for (Byte type : p2PEventHandler.getTypes()) {
+      for (Byte type : p2PEventHandler.getTypeSet()) {
         handlerMap.put(type, p2PEventHandler);
       }
     }

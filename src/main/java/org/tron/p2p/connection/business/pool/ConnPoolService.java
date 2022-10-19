@@ -48,7 +48,7 @@ public class ConnPoolService extends P2pEventHandler {
   private PeerClient peerClient;
 
   public ConnPoolService() {
-    this.types = new ArrayList<>(); //no message type registers
+    this.typeSet = new HashSet<>(); //no message type registers
     try {
       Parameter.addP2pEventHandle(this);
     } catch (P2pException e) {

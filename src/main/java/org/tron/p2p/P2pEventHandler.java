@@ -1,14 +1,13 @@
 package org.tron.p2p;
 
+import java.util.Set;
 import lombok.Getter;
 import org.tron.p2p.connection.Channel;
-
-import java.util.List;
 
 public abstract class P2pEventHandler {
 
   @Getter
-  protected List<Byte> types;
+  protected Set<Byte> typeSet;
 
   public void onConnect(Channel channel) {
   }
