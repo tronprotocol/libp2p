@@ -13,7 +13,7 @@ public class P2pProtobufVarint32FrameDecoder extends ByteToMessageDecoder {
 
   private static final int maxMsgLength = 5 * 1024 * 1024;//5M
 
-  private Channel channel;
+  private final Channel channel;
 
   public P2pProtobufVarint32FrameDecoder(Channel channel) {
     this.channel = channel;
@@ -69,7 +69,7 @@ public class P2pProtobufVarint32FrameDecoder extends ByteToMessageDecoder {
   }
 
   @Override
-  protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
+  protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
     in.markReaderIndex();
     int preIndex = in.readerIndex();
     int length = readRawVarint32(in);

@@ -110,7 +110,7 @@ public class ConnPoolService extends P2pEventHandler {
       connectNodes.addAll(newNodes);
     }
 
-    log.info("LackSize:{}, connectNodes:{}", size, connectNodes.size());
+    log.info("Lack size:{}, connectNodes size:{}", size, connectNodes.size());
     //establish tcp connection with chose nodes by peerClient
     connectNodes.forEach(n -> {
       peerClient.connectAsync(n, false);
@@ -158,7 +158,7 @@ public class ConnPoolService extends P2pEventHandler {
     if (!peers.isEmpty()) {
       List<Channel> list = new ArrayList<>(peers);
       Channel peer = list.get(new Random().nextInt(peers.size()));
-      log.info("disconnect with peer random: {}", peer);
+      log.info("Disconnect with peer random: {}", peer);
       peer.close();
     }
   }

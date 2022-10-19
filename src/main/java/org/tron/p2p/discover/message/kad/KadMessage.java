@@ -6,7 +6,7 @@ import org.tron.p2p.discover.message.MessageType;
 
 public abstract class KadMessage extends Message {
 
-  public KadMessage(MessageType type, byte[] data) {
+  protected KadMessage(MessageType type, byte[] data) {
     super(type, data);
   }
 

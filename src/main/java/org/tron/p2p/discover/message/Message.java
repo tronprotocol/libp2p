@@ -11,7 +11,7 @@ public abstract class Message {
   protected MessageType type;
   protected byte[] data;
 
-  public Message(MessageType type, byte[] data) {
+  protected Message(MessageType type, byte[] data) {
     this.type = type;
     this.data = data;
   }
@@ -51,7 +51,7 @@ public abstract class Message {
   }
 
   public byte[] getSendData() {
-    return ArrayUtils.add(this.data, 0, type.getType());
+    return ArrayUtils.insert(0, this.data, type.getType());
   }
 
   public abstract boolean valid();
