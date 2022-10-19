@@ -35,10 +35,11 @@ public class Parameter {
     if (p2PEventHandler.getTypes() != null) {
       for (Byte type : p2PEventHandler.getTypes()) {
         if (handlerMap.get(type) != null) {
-          throw new P2pException(TypeEnum.TYPE_ALREADY_REGISTERED, "type:" + type.byteValue());
-        } else {
-          handlerMap.put(type, p2PEventHandler);
+          throw new P2pException(TypeEnum.TYPE_ALREADY_REGISTERED, "type:" + type);
         }
+      }
+      for (Byte type : p2PEventHandler.getTypes()) {
+        handlerMap.put(type, p2PEventHandler);
       }
     }
     handlerList.add(p2PEventHandler);
