@@ -50,7 +50,6 @@ public class KadService implements DiscoverService {
   private DiscoverTask discoverTask;
 
   public void init() {
-    log.debug("KadService init");
     for (InetSocketAddress address : Parameter.p2pConfig.getSeedNodes()) {
       bootNodes.add(new Node(address));
     }
@@ -108,9 +107,7 @@ public class KadService implements DiscoverService {
 
   @Override
   public void channelActivated() {
-    log.debug("channel activated");
     if (!inited) {
-      log.debug("start process boot nodes, size:{}", bootNodes.size());
       inited = true;
 
       for (Node node : bootNodes) {
