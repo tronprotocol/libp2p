@@ -7,7 +7,7 @@ import org.tron.p2p.connection.Channel;
 public abstract class P2pEventHandler {
 
   @Getter
-  protected Set<Byte> typeSet;
+  protected Set<Byte> messageTypes;
 
   public void onConnect(Channel channel) {
   }
