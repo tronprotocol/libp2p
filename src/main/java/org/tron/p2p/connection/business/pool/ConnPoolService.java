@@ -48,7 +48,7 @@ public class ConnPoolService extends P2pEventHandler {
   private PeerClient peerClient;
 
   public ConnPoolService() {
-    this.typeSet = new HashSet<>(); //no message type registers
+    this.messageTypes = new HashSet<>(); //no message type registers
     try {
       Parameter.addP2pEventHandle(this);
     } catch (P2pException e) {
@@ -110,7 +110,7 @@ public class ConnPoolService extends P2pEventHandler {
       connectNodes.addAll(newNodes);
     }
 
-    log.info("Lack size:{}, connectNodes size:{}", size, connectNodes.size());
+    log.debug("Lack size:{}, connectNodes size:{}", size, connectNodes.size());
     //establish tcp connection with chose nodes by peerClient
     connectNodes.forEach(n -> {
       peerClient.connectAsync(n, false);
@@ -142,12 +142,10 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   private void check() {
-    // check if active channels < maxConnections
     if (ChannelManager.getChannels().size() < p2pConfig.getMaxConnections()) {
       return;
     }
 
-    // filter trust peer and active peer
     Collection<Channel> peers = activePeers.stream()
         .filter(peer -> !peer.isDisconnect())
         .filter(peer -> !peer.isTrustPeer())
@@ -158,7 +156,7 @@ public class ConnPoolService extends P2pEventHandler {
     if (!peers.isEmpty()) {
       List<Channel> list = new ArrayList<>(peers);
       Channel peer = list.get(new Random().nextInt(peers.size()));
-      log.info("Disconnect with peer random: {}", peer);
+      log.info("Disconnect with peer randomly: {}", peer);
       peer.close();
     }
   }
@@ -171,7 +169,6 @@ public class ConnPoolService extends P2pEventHandler {
 
   @Override
   public synchronized void onConnect(Channel peer) {
-    log.info("ConnPoolService onConnect");
     if (!activePeers.contains(peer)) {
       if (!peer.isActive()) {
         passivePeersCount.incrementAndGet();
@@ -185,7 +182,6 @@ public class ConnPoolService extends P2pEventHandler {
 
   @Override
   public synchronized void onDisconnect(Channel peer) {
-    log.info("ConnPoolService onDisconnect");
     if (activePeers.contains(peer)) {
       if (!peer.isActive()) {
         passivePeersCount.decrementAndGet();
