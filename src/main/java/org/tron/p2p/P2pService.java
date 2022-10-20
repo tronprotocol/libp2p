@@ -46,6 +46,10 @@ public class P2pService {
     return NodeManager.getTableNodes();
   }
 
+  public List<Node> getConnectableNodes() {
+    return NodeManager.getConnectableNodes();
+  }
+
   public List<Node> getAllNodes() {
     return NodeManager.getAllNodes();
   }

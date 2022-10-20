@@ -28,7 +28,8 @@ public class P2pException extends Exception {
     PARSE_MESSAGE_FAILED(2, "parse message failed"),
     MESSAGE_WITH_WRONG_LENGTH(3, "message with wrong length"),
     BAD_MESSAGE(4, "bad message"),
-    TYPE_ALREADY_REGISTERED(5, "type already registered");
+    BAD_PROTOCOL(5, "bad protocol"),
+    TYPE_ALREADY_REGISTERED(6, "type already registered");
 
     private Integer value;
     private String desc;
