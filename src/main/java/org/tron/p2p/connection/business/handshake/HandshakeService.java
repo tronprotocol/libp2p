@@ -13,6 +13,9 @@ public class HandshakeService implements MessageProcess {
 
   private final int version = Parameter.p2pConfig.getVersion();
 
+  public void startHandshake(Channel channel) {
+    sendHelloMsg(channel, DisconnectCode.NORMAL);
+  }
 
   @Override
   public void processMessage(Channel channel, Message message) {
