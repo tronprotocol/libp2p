@@ -51,7 +51,7 @@ public abstract class Message {
   }
 
   public byte[] getSendData() {
-    return ArrayUtils.insert(0, this.data, type.getType());
+    return ArrayUtils.add(this.data, 0, type.getType());
   }
 
   public abstract boolean valid();
