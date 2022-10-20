@@ -110,7 +110,7 @@ public class ConnPoolService extends P2pEventHandler {
       connectNodes.addAll(newNodes);
     }
 
-    log.info("Lack size:{}, connectNodes size:{}", size, connectNodes.size());
+    log.debug("Lack size:{}, connectNodes size:{}", size, connectNodes.size());
     //establish tcp connection with chose nodes by peerClient
     connectNodes.forEach(n -> {
       peerClient.connectAsync(n, false);
@@ -142,12 +142,10 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   private void check() {
-    // check if active channels < maxConnections
     if (ChannelManager.getChannels().size() < p2pConfig.getMaxConnections()) {
       return;
     }
 
-    // filter trust peer and active peer
     Collection<Channel> peers = activePeers.stream()
         .filter(peer -> !peer.isDisconnect())
         .filter(peer -> !peer.isTrustPeer())
