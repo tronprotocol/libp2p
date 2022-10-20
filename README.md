@@ -1,8 +1,8 @@
-# j-libp2p
-j-libp2p is a p2p network SDK implemented in java language. The functional modules that have been implemented so far include node discovery, connection management, and so on. Subsequent versions will implement more functions.
+# libp2p
+libp2p is a p2p network SDK implemented in java language. The functional modules that have been implemented so far include node discovery, connection management, and so on. Subsequent versions will implement more functions.
 
 # Build
-Building j-libp2p requires `git` and `Oracle JDK 1.8` to be installed, other JDK versions are not supported yet. Make sure you operate on `Linux` and `MacOS` operating systems.
+Building libp2p requires `git` and `Oracle JDK 1.8` to be installed, other JDK versions are not supported yet. Make sure you operate on `Linux` and `MacOS` operating systems.
 
 Clone the repo and switch to the `main` branch
 
@@ -11,20 +11,21 @@ Clone the repo and switch to the `main` branch
   $ cd libp2p
   $ git checkout -t origin/main
   ```
-then run the following command to build libp2p, the `java-p2p.jar` file can be found in `libp2p/build/libs/` after build successful.
+then run the following command to build libp2p, the `libp2p.jar` file can be found in `libp2p/build/libs/` after build successful.
 ```bash
 $ ./gradlew clean build -x test
 ```
 
 # Usage
-j-libp2p can run independently or be imported into other projects.
+libp2p can run independently or be imported into other projects.
 
 ## Run independently
-Running java-tron requires Oracle JDK 1.8 to be installed, other JDK versions are not supported yet. Make sure you operate on Linux and MacOS operating systems.
+Running libp2p requires Oracle JDK 1.8 to be installed, other JDK versions are not supported yet. Make sure you operate on Linux and MacOS operating systems.
 then run the following command to start the node:
 ```bash
-$ nohup java -jar java-p2p.jar >> start.log 2>&1 &
+$ nohup java -jar libp2p.jar [options] >> start.log 2>&1 &
 ```
+See the manual for details on [options](https://github.com/tronprotocol/libp2p/tree/main/src/main/java/org/tron/p2p/example/README.md)
 
 ## How to include the dependency
 ### Gradle Setting
