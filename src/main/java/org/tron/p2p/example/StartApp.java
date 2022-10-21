@@ -71,8 +71,12 @@ public class StartApp {
       Parameter.p2pConfig.setDiscoverEnable(d == 1);
     }
 
-    if (cli.hasOption("r")) {
-      Parameter.p2pConfig.setDisconnectionPolicyEnable(true);
+    if (cli.hasOption("p")) {
+      Parameter.p2pConfig.setPort(Integer.parseInt(cli.getOptionValue("p")));
+    }
+
+    if (cli.hasOption("v")) {
+      Parameter.p2pConfig.setVersion(Integer.parseInt(cli.getOptionValue("v")));
     }
 
     p2pService.start(Parameter.p2pConfig);
@@ -87,27 +91,23 @@ public class StartApp {
   }
 
   private static CommandLine parseCli(String[] args) throws ParseException {
-    Option opt1 = new Option("s", "seed", true, "seed node(s), required, [ip:port[,ip:port[...]]]");
+    Option opt1 = new Option("s", "seed-nodes", true,
+        "seed node(s), required, ip:port[,ip:port[...]]");
     opt1.setRequired(false);
-    Option opt2 = new Option("t", "trust", true, "trust node(s), [ip:port[,ip:port[...]]]");
+    Option opt2 = new Option("t", "trust-ips", true, "trust ip(s), ip[,ip[...]]");
     opt2.setRequired(false);
-    Option opt3 = new Option("a", "active", true, "active ip(s), [ip[,ip[...]]]");
+    Option opt3 = new Option("a", "active-nodes", true, "active node(s), ip:port[,ip:port[...]]");
     opt3.setRequired(false);
-    Option opt4 = new Option("M", "max", true, "maxConnections, default 50");
+    Option opt4 = new Option("M", "max-connection", true, "max connection number, int, default 50");
     opt4.setRequired(false);
-    Option opt5 = new Option("m", "min", true, "minConnections, default 8");
+    Option opt5 = new Option("m", "min-connection", true, "min connection number, int, default 8");
     opt5.setRequired(false);
     Option opt6 = new Option("d", "discover", true, "enable p2p discover, 0/1, default 1");
     opt6.setRequired(false);
-    Option opt7 = new Option("r", "disconnect", false,
-        "enable disconnect with connection randomly when reach maxConnections, default false");
+    Option opt7 = new Option("p", "port", true, "UDP & TCP port, int, default 18888");
     opt7.setRequired(false);
-    Option opt8 = new Option("P", "port", true, "UDP & TCP port, default 18888");
+    Option opt8 = new Option("v", "version", true, "p2p version, int, default 1");
     opt8.setRequired(false);
-    Option opt9 = new Option("v", "version", true, "p2p version, int, default 1");
-    opt9.setRequired(false);
-    Option opt10 = new Option("mA", "minActive", true, "minActiveConnections, default 2");
-    opt10.setRequired(false);
 
     Options options = new Options();
     options.addOption(opt1);
@@ -118,8 +118,6 @@ public class StartApp {
     options.addOption(opt6);
     options.addOption(opt7);
     options.addOption(opt8);
-    options.addOption(opt9);
-    options.addOption(opt10);
 
     CommandLine cli;
     CommandLineParser cliParser = new DefaultParser();
