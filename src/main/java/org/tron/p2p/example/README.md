@@ -1,7 +1,7 @@
 # Run independently
 command of start a p2p node:
 ```bash
-$ nohup java -jar java-p2p.jar [options] >> start.log 2>&1 &
+$ nohup java -jar libp2p.jar [options] >> start.log 2>&1 &
 ```
 
 available cli options:
@@ -20,17 +20,17 @@ For details please check [StartApp](https://github.com/tronprotocol/libp2p/blob/
 For example
 Node A, start with default configuration parameters. Let's say its ip is 127.0.0.1
 ```bash
-$ nohup java -jar java-p2p.jar >> start.log 2>&1 &
+$ nohup java -jar libp2p.jar >> start.log 2>&1 &
 ```
 
 Node B, start with seed nodes(127.0.0.1:18888). Let's say its ip is 127.0.0.2
 ```bash
-$ nohup java -jar java-p2p.jar -s 127.0.0.1:18888 >> start.log 2>&1 &
+$ nohup java -jar libp2p.jar -s 127.0.0.1:18888 >> start.log 2>&1 &
 ```
 
 Node C, start with with seed nodes(127.0.0.1:18888). Let's say its ip is 127.0.0.3
 ```bash
-$ nohup java -jar java-p2p.jar -s 127.0.0.1:18888 >> start.log 2>&1 &
+$ nohup java -jar libp2p.jar -s 127.0.0.1:18888 >> start.log 2>&1 &
 ```
 
 After the three nodes are successfully started, the normal situation is that node B can discover node C (or node C can discover B), and the three of them can establish a tcp connection with each other.
@@ -46,45 +46,45 @@ After the three nodes are successfully started, the normal situation is that nod
 
 ## Interface
 * `P2pService.start` 
-  @param: p2pConfig P2pConfig
-  @return: void
-  desc: the startup interface of p2p service
+  - @param: p2pConfig P2pConfig
+  - @return: void
+  - desc: the startup interface of p2p service
 * `P2pService.close` 
-  @param: 
-  @return: void
-  desc: the close interface of p2p service
+  - @param: 
+  - @return: void
+  - desc: the close interface of p2p service
 * `P2pService.register` 
-  @param: p2PEventHandler P2pEventHandler
-  @return: void
-  desc: register p2p event handler
+  - @param: p2PEventHandler P2pEventHandler
+  - @return: void
+  - desc: register p2p event handler
 * `P2pService.connect` 
-  @param: address InetSocketAddress
-  @return: void
-  desc: connect to a node with socket address
+  - @param: address InetSocketAddress
+  - @return: void
+  - desc: connect to a node with socket address
 * `P2pService.getAllNodes` 
-  @param: 
-  @return: List<Node>
-  desc: get all the nodes
+  - @param: 
+  - @return: List<Node>
+  - desc: get all the nodes
 * `P2pService.getTableNodes` 
-  @param: 
-  @return: List<Node>
-  desc: get all the nodes that in the hash table
+  - @param: 
+  - @return: List<Node>
+  - desc: get all the nodes that in the hash table
 * `P2pService.getConnectableNodes` 
-  @param: 
-  @return: List<Node>
-  desc: get all the nodes that can be connected
+  - @param: 
+  - @return: List<Node>
+  - desc: get all the nodes that can be connected
 * `P2pService.getP2pStats()` 
-  @param: 
-  @return: void
-  desc: get statistics information of p2p service
+  - @param: 
+  - @return: void
+  - desc: get statistics information of p2p service
 * `Channel.send`
-  @param: data byte[]
-  @return: void
-  desc: send messages to the peer node through the channel
+  - @param: data byte[]
+  - @return: void
+  - desc: send messages to the peer node through the channel
 * `Channel.close` 
-  @param: 
-  @return: void
-  desc: the close interface of channel
+  - @param: 
+  - @return: void
+  - desc: the close interface of channel
 
 ## Steps for usage
 1. Config p2p parameters
@@ -150,8 +150,18 @@ config.setMaxConnectionsWithSameIp(2);
 ```
 
 ### Handler
-Implement definition message, `data[0]` is message type
+Implement definition message
 ```bash
+public class TestMessage {
+    protected MessageTypes type;
+    protected byte[] data;
+    public TestMessage(byte[] data) {
+      this.type = MessageTypes.TEST;
+      this.data = data;
+    }
+
+}
+
 public enum MessageTypes {
 
     FIRST((byte)0x00),
@@ -182,19 +192,12 @@ public enum MessageTypes {
       return map.get(type);
     }
   }
-
-  public class TestMessage {
-    protected MessageTypes type;
-    protected byte[] data;
-    public TestMessage(byte[] data) {
-      this.type = MessageTypes.TEST;
-      this.data = data;
-    }
-
-  }
 ```
 
-Implement P2pEventHandler
+Inheritance implements the P2pEventHandler class.  
+* `onConnect` is called back after the TCP connection is established. 
+* `onDisconnect` is called back after the TCP connection is closed.
+* `onMessage` is called back after receive message on channel. Note that `data[0]` is the message type.
 ```bash
 public class MyP2pEventHandler extends P2pEventHandler {
 
