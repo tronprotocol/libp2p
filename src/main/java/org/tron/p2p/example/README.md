@@ -18,22 +18,22 @@ available cli options:
 For details please check [StartApp](https://github.com/tronprotocol/libp2p/blob/main/src/main/java/org/tron/p2p/example/StartApp.java).
 
 For example
-Node A, start with default configuration parameters. Let's say its ip is 127.0.0.1
+Node A, starts with default configuration parameters. Let's say its IP is 127.0.0.1
 ```bash
 $ nohup java -jar libp2p.jar >> start.log 2>&1 &
 ```
 
-Node B, start with seed nodes(127.0.0.1:18888). Let's say its ip is 127.0.0.2
+Node B, start with seed nodes(127.0.0.1:18888). Let's say its IP is 127.0.0.2
 ```bash
 $ nohup java -jar libp2p.jar -s 127.0.0.1:18888 >> start.log 2>&1 &
 ```
 
-Node C, start with with seed nodes(127.0.0.1:18888). Let's say its ip is 127.0.0.3
+Node C, start with with seed nodes(127.0.0.1:18888). Let's say its IP is 127.0.0.3
 ```bash
 $ nohup java -jar libp2p.jar -s 127.0.0.1:18888 >> start.log 2>&1 &
 ```
 
-After the three nodes are successfully started, the normal situation is that node B can discover node C (or node C can discover B), and the three of them can establish a tcp connection with each other.
+After the three nodes are successfully started, the usual situation is that node B can discover node C (or node C can discover B), and the three of them can establish a TCP connection with each other.
 
 
 # Use as a dependency
@@ -60,7 +60,7 @@ After the three nodes are successfully started, the normal situation is that nod
 * `P2pService.connect` 
   - @param: address InetSocketAddress
   - @return: void
-  - desc: connect to a node with socket address
+  - desc: connect to a node with a socket address
 * `P2pService.getAllNodes` 
   - @param: 
   - @return: List<Node>
@@ -104,7 +104,7 @@ Set p2p version
 config.setVersion(11111);
 ```
 
-Set tcp and udp listen port
+Set TCP and UDP listen port
 ```bash
 config.setPort(18888);
 ```
@@ -197,7 +197,7 @@ public enum MessageTypes {
 Inheritance implements the P2pEventHandler class.  
 * `onConnect` is called back after the TCP connection is established. 
 * `onDisconnect` is called back after the TCP connection is closed.
-* `onMessage` is called back after receive message on channel. Note that `data[0]` is the message type.
+* `onMessage` is called back after receiving a message on the channel. Note that `data[0]` is the message type.
 ```bash
 public class MyP2pEventHandler extends P2pEventHandler {
 
