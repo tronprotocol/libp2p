@@ -11,7 +11,7 @@ Clone the repo and switch to the `main` branch
   $ cd libp2p
   $ git checkout -t origin/main
   ```
-then run the following command to build libp2p, the `libp2p.jar` file can be found in `libp2p/build/libs/` after build successful.
+Then, run the following command to build libp2p, the `libp2p.jar` file can be found in `libp2p/build/libs/` after being built successfully.
 ```bash
 $ ./gradlew clean build -x test
 ```
@@ -36,7 +36,7 @@ repositories {
     maven { url 'https://jitpack.io' }
 }
 ```
-Then add required packages as dependencies. Please add dependencies locally.
+Then add the required packages as dependencies. Please add dependencies locally.
 ```bash
 dependencies {
 	implementation 'com.github.tronprotocol:libp2p:-SNAPSHOT'
