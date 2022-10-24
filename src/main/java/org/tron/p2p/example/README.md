@@ -6,14 +6,14 @@ $ nohup java -jar libp2p.jar [options] >> start.log 2>&1 &
 
 available cli options:
 ```bash
- -a,--active <arg>       active ip(s), ip[,ip[...]]
- -d,--discover <arg>     enable p2p discover, 0/1, default 1
- -M,--max <arg>          maxConnections, default 50
- -m,--min <arg>          minConnections, default 8
- -p,--port <arg>         UDP & TCP port, default 18888
- -s,--seed <arg>         seed node(s), required, ip:port[,ip:port[...]]
- -t,--trust <arg>        trust node(s), ip:port[,ip:port[...]]
- -v,--version <arg>      p2p version, default 1
+ -a,--active-nodes <arg>       active node(s), ip:port[,ip:port[...]]
+ -d,--discover <arg>           enable p2p discover, 0/1, default 1
+ -M,--max-connection <arg>     max connection number, int, default 50
+ -m,--min-connection <arg>     minConnections, default 8
+ -p,--port <arg>               UDP & TCP port, int, default 18888
+ -s,--seed-nodes <arg>         seed node(s), required, ip:port[,ip:port[...]]
+ -t,--trust-ips <arg>          trust ip(s), ip[,ip[...]]
+ -v,--version <arg>            p2p version, int, default 1
 ```
 For details please check [StartApp](https://github.com/tronprotocol/libp2p/blob/main/src/main/java/org/tron/p2p/example/StartApp.java).
 
