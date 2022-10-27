@@ -29,6 +29,8 @@ public class ChannelManager {
 
   private static byte tronHelloMessageType = 32;
 
+  private static byte tronDisconnectType = 33;
+
   private static PeerServer peerServer;
 
   @Getter
@@ -125,7 +127,8 @@ public class ChannelManager {
     }
 
     channels.put(channel.getInetSocketAddress(), channel);
-    log.info("Add peer {}, total peers: {}", channel, channels.size());
+    log.info("Add peer {}, total peers: {}",
+            channel.getInetSocketAddress(), channels.size());
     return DisconnectCode.NORMAL;
   }
 
@@ -171,7 +174,7 @@ public class ChannelManager {
     }
 
     if (!channel.isFinishHandshake()) {
-      if (tronHelloMessageType != data[0]) {
+      if (!channel.isFinishHandshake() && tronDisconnectType != data[0]) {
         throw new P2pException(P2pException.TypeEnum.BAD_PROTOCOL, "type: " + data[0]);
       }
       channel.setFinishHandshake(true);
