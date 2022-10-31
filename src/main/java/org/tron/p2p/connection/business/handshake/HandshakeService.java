@@ -57,6 +57,7 @@ public class HandshakeService implements MessageProcess {
       sendHelloMsg(channel, DisconnectCode.NORMAL);
     }
 
+    channel.updateLatency(System.currentTimeMillis() - channel.getStartTime());
     Parameter.handlerList.forEach(h -> h.onConnect(channel));
   }
 

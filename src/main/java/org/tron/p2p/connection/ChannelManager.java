@@ -27,8 +27,6 @@ import org.tron.p2p.utils.NetUtil;
 @Slf4j(topic = "net")
 public class ChannelManager {
 
-  private static byte tronHelloMessageType = 32;
-
   private static PeerServer peerServer;
 
   @Getter
@@ -125,7 +123,8 @@ public class ChannelManager {
     }
 
     channels.put(channel.getInetSocketAddress(), channel);
-    log.info("Add peer {}, total channels: {}", channel, channels.size());
+
+    log.info("Add peer {}, total channels: {}", channel.getInetSocketAddress(), channels.size());
     return DisconnectCode.NORMAL;
   }
 
@@ -171,9 +170,6 @@ public class ChannelManager {
     }
 
     if (!channel.isFinishHandshake()) {
-      if (tronHelloMessageType != data[0]) {
-        throw new P2pException(P2pException.TypeEnum.BAD_PROTOCOL, "type: " + data[0]);
-      }
       channel.setFinishHandshake(true);
       Parameter.handlerList.forEach(h -> h.onConnect(channel));
     }

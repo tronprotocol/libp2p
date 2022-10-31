@@ -31,7 +31,7 @@ import org.tron.p2p.utils.ByteArray;
 public class Channel {
 
   public volatile boolean waitForPong = false;
-  public volatile long pingSent;
+  public volatile long pingSent = System.currentTimeMillis();;
 
   private ChannelHandlerContext ctx;
   @Getter
@@ -59,6 +59,9 @@ public class Channel {
   private String nodeId;
   @Getter
   private boolean discoveryMode;
+  @Getter
+  private long latency;
+  private long count;
 
   public void init(ChannelPipeline pipeline, String nodeId, boolean discoveryMode) {
     this.discoveryMode = discoveryMode;
@@ -133,6 +136,12 @@ public class Channel {
       }
     });
     setLastSendTime(System.currentTimeMillis());
+  }
+
+  public void updateLatency(long latency) {
+    long total = this.latency * this.count;
+    this.count++;
+    this.latency = (total + latency) / this.count;
   }
 
   @Override

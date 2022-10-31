@@ -1,6 +1,7 @@
 package org.tron.p2p.connection.business.keepalive;
 
-import static org.tron.p2p.base.Parameter.KEEP_ALIVE_PERIOD;
+import static org.tron.p2p.base.Parameter.KEEP_ALIVE_TIMEOUT;
+import static org.tron.p2p.base.Parameter.PING_TIMEOUT;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -27,11 +28,11 @@ public class KeepAliveService implements MessageProcess {
             .filter(p -> !p.isDisconnect())
             .forEach(p -> {
               if (p.waitForPong) {
-                if (now - p.pingSent > KEEP_ALIVE_PERIOD) {
+                if (now - p.pingSent > KEEP_ALIVE_TIMEOUT) {
                   p.close();
                 }
               } else {
-                if (now - p.getLastSendTime() > KEEP_ALIVE_PERIOD) {
+                if (now - p.getLastSendTime() > PING_TIMEOUT) {
                   p.send(new PingMessage());
                   p.waitForPong = true;
                   p.pingSent = now;
@@ -55,6 +56,7 @@ public class KeepAliveService implements MessageProcess {
         channel.send(new PongMessage());
         break;
       case KEEP_ALIVE_PONG:
+        channel.updateLatency(System.currentTimeMillis() - channel.pingSent);
         channel.waitForPong = false;
         break;
       default:

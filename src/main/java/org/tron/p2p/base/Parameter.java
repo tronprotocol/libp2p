@@ -19,7 +19,9 @@ public class Parameter {
 
   public static final int NODE_CONNECTION_TIMEOUT = 2000;
 
-  public static final int KEEP_ALIVE_PERIOD = 20_000;
+  public static final int KEEP_ALIVE_TIMEOUT = 20_000;
+
+  public static final int PING_TIMEOUT = 20_000;
 
   public static final int NETWORK_TIME_DIFF = 1000;
 
