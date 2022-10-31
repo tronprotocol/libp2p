@@ -1,15 +1,14 @@
 package org.tron.p2p.discover.message.kad;
 
-import com.google.protobuf.ByteString;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.message.MessageType;
 import org.tron.p2p.protos.Discover;
 import org.tron.p2p.protos.Discover.Endpoint;
-import org.tron.p2p.utils.ByteArray;
 import org.tron.p2p.utils.NetUtil;
 
 public class PingMessage extends KadMessage {
+
   private Discover.PingMessage pingMessage;
 
   public PingMessage(byte[] data) throws Exception {
@@ -19,16 +18,8 @@ public class PingMessage extends KadMessage {
 
   public PingMessage(Node from, Node to) {
     super(MessageType.KAD_PING, null);
-    Endpoint fromEndpoint = Endpoint.newBuilder()
-        .setNodeId(ByteString.copyFrom(from.getId()))
-        .setPort(from.getPort())
-        .setAddress(ByteString.copyFrom(ByteArray.fromString(from.getHost())))
-        .build();
-    Endpoint toEndpoint = Endpoint.newBuilder()
-        .setNodeId(ByteString.copyFrom(to.getId()))
-        .setPort(to.getPort())
-        .setAddress(ByteString.copyFrom(ByteArray.fromString(to.getHost())))
-        .build();
+    Endpoint fromEndpoint = getEndpointFromNode(from);
+    Endpoint toEndpoint = getEndpointFromNode(to);
     this.pingMessage = Discover.PingMessage.newBuilder()
         .setVersion(Parameter.p2pConfig.getVersion())
         .setFrom(fromEndpoint)

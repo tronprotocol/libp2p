@@ -44,12 +44,15 @@ public class PeerClient {
     }
   }
 
-  public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
-    return connectAsync(node.getHost(), node.getPort(),
+  public ChannelFuture connectAsync(Node node, boolean useIpv6, boolean discoveryMode) {
+    String host = useIpv6 ? node.getHostV6() : node.getHostV4();
+    return connectAsync(host, node.getPort(),
         node.getId() == null ? null : node.getHexId(), discoveryMode)
         .addListener((ChannelFutureListener) future -> {
           if (!future.isSuccess()) {
-            log.warn("Connect to peer {} fail, cause:{}", node.getInetSocketAddress().getAddress(),
+            log.warn("Connect to peer {} fail, cause:{}",
+                useIpv6 ? node.getInetSocketAddressV6().getAddress()
+                    : node.getInetSocketAddressV4().getAddress(),
                 future.cause().getMessage());
             future.channel().close();
           }

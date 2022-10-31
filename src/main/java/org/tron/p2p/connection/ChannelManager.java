@@ -125,7 +125,7 @@ public class ChannelManager {
     }
 
     channels.put(channel.getInetSocketAddress(), channel);
-    log.info("Add peer {}, total peers: {}", channel, channels.size());
+    log.info("Add peer {}, total channels: {}", channel, channels.size());
     return DisconnectCode.NORMAL;
   }
 

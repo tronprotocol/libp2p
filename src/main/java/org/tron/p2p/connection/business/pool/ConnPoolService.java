@@ -110,11 +110,18 @@ public class ConnPoolService extends P2pEventHandler {
       connectNodes.addAll(newNodes);
     }
 
-    log.debug("Lack size:{}, connectNodes size:{}", size, connectNodes.size());
+    //log.info("Lack size:{}, connectNodes size:{}", size, connectNodes.size());
     //establish tcp connection with chose nodes by peerClient
     connectNodes.forEach(n -> {
-      peerClient.connectAsync(n, false);
-      peerClientCache.put(n.getInetSocketAddress().getAddress(), System.currentTimeMillis());
+      if (n.isIpV4Compatible()) {
+        peerClient.connectAsync(n, false, false);
+        peerClientCache.put(n.getInetSocketAddressV4().getAddress(), System.currentTimeMillis());
+      } else if (n.isIpV6Compatible()) {
+        peerClient.connectAsync(n, true, false);
+        peerClientCache.put(n.getInetSocketAddressV6().getAddress(), System.currentTimeMillis());
+      } else {
+        log.error("Not compatible IP Stack");
+      }
     });
   }
 
@@ -122,15 +129,26 @@ public class ConnPoolService extends P2pEventHandler {
     List<Node> filtered = new ArrayList<>();
     long now = System.currentTimeMillis();
     for (Node node : connectableNodes) {
-      InetAddress inetAddress = node.getInetSocketAddress().getAddress();
-      Long forbiddenTime = ChannelManager.getBannedNodes().getIfPresent(inetAddress);
-      if ((node.getHost().equals(p2pConfig.getIp()) && node.getPort() == p2pConfig.getPort())
-          || (forbiddenTime != null && now <= forbiddenTime)
-          || (ChannelManager.getConnectionNum(inetAddress)
-          >= p2pConfig.getMaxConnectionsWithSameIp())
-          || (node.getId() != null && nodesInUse.contains(node.getHexId()))
-          || (peerClientCache.getIfPresent(inetAddress) != null)) {
+      if (node.getId() != null && nodesInUse.contains(node.getHexId())) {
         continue;
+      }
+      if (!node.isIpStackCompatible()) {
+        continue;
+      }
+      if (node.isIpV4Compatible()) {
+        if (node.getHostV4().equals(p2pConfig.getIp()) && node.getPort() == p2pConfig.getPort()) {
+          continue;
+        }
+        if (filter(node.getInetSocketAddressV4().getAddress(), now)) {
+          continue;
+        }
+      } else if (node.isIpV6Compatible()) {
+        if (node.getHostV6().equals(p2pConfig.getIpv6()) && node.getPort() == p2pConfig.getPort()) {
+          continue;
+        }
+        if (filter(node.getInetSocketAddressV6().getAddress(), now)) {
+          continue;
+        }
       }
       // sometimes error occurs if update_time changes when sort, so we copy it
       filtered.add((Node) node.clone());
@@ -139,6 +157,14 @@ public class ConnPoolService extends P2pEventHandler {
     //order by updateTime desc.
     filtered.sort(Comparator.comparingLong(node -> -node.getUpdateTime()));
     return CollectionUtils.truncate(filtered, limit);
+  }
+
+  private boolean filter(InetAddress inetAddress, long now) {
+    Long forbiddenTime = ChannelManager.getBannedNodes().getIfPresent(inetAddress);
+    return (forbiddenTime != null && now <= forbiddenTime)
+        || (ChannelManager.getConnectionNum(inetAddress)
+        >= p2pConfig.getMaxConnectionsWithSameIp())
+        || (peerClientCache.getIfPresent(inetAddress) != null);
   }
 
   private void check() {

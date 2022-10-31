@@ -1,5 +1,6 @@
 package org.tron.p2p.discover.protocol.kad;
 
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -11,20 +12,20 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.DiscoverService;
 import org.tron.p2p.discover.Node;
-import org.tron.p2p.discover.message.kad.KadMessage;
-import org.tron.p2p.discover.protocol.kad.table.NodeTable;
-import org.tron.p2p.discover.socket.UdpEvent;
 import org.tron.p2p.discover.message.kad.FindNodeMessage;
+import org.tron.p2p.discover.message.kad.KadMessage;
 import org.tron.p2p.discover.message.kad.NeighborsMessage;
 import org.tron.p2p.discover.message.kad.PingMessage;
 import org.tron.p2p.discover.message.kad.PongMessage;
+import org.tron.p2p.discover.protocol.kad.table.NodeTable;
+import org.tron.p2p.discover.socket.UdpEvent;
 
 @Slf4j(topic = "net")
 public class KadService implements DiscoverService {
@@ -35,11 +36,11 @@ public class KadService implements DiscoverService {
   @Setter
   private static long pingTimeout = 15_000;
 
-  private List<Node> bootNodes = new ArrayList<>();
+  private final List<Node> bootNodes = new ArrayList<>();
 
   private volatile boolean inited = false;
 
-  private Map<String, NodeHandler> nodeHandlerMap = new ConcurrentHashMap<>();
+  private final Map<String, NodeHandler> nodeHandlerMap = new ConcurrentHashMap<>();
 
   private Consumer<UdpEvent> messageSender;
 
@@ -48,6 +49,8 @@ public class KadService implements DiscoverService {
 
   private ScheduledExecutorService pongTimer;
   private DiscoverTask discoverTask;
+
+  private static Map<String, String> host2Key = new ConcurrentHashMap<>();
 
   public void init() {
     for (InetSocketAddress address : Parameter.p2pConfig.getSeedNodes()) {
@@ -58,7 +61,7 @@ public class KadService implements DiscoverService {
     }
     this.pongTimer = Executors.newSingleThreadScheduledExecutor();
     this.homeNode = new Node(Parameter.p2pConfig.getNodeID(), Parameter.p2pConfig.getIp(),
-        Parameter.p2pConfig.getPort());
+        Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort());
     this.table = new NodeTable(homeNode);
 
     if (Parameter.p2pConfig.isDiscoverEnable()) {
@@ -85,6 +88,7 @@ public class KadService implements DiscoverService {
   public List<Node> getConnectableNodes() {
     return getAllNodes().stream()
         .filter(node -> node.isConnectible(Parameter.p2pConfig.getVersion()))
+        .filter(Node::isIpStackCompatible)
         .collect(Collectors.toList());
   }
 
@@ -118,12 +122,12 @@ public class KadService implements DiscoverService {
 
   @Override
   public void handleEvent(UdpEvent udpEvent) {
-    KadMessage m = (KadMessage)udpEvent.getMessage();
+    KadMessage m = (KadMessage) udpEvent.getMessage();
 
     InetSocketAddress sender = udpEvent.getAddress();
-
-    Node n = new Node(m.getFrom().getId(), sender.getHostString(), sender.getPort(),
-        m.getFrom().getPort());
+    Node n = new Node(m.getFrom().getId(), m.getFrom().getHostV4(), m.getFrom().getHostV6(),
+        sender.getPort(), m.getFrom().getPort());
+    boolean useV4 = sender.getAddress() instanceof Inet4Address;
 
     NodeHandler nodeHandler = getNodeHandler(n);
     nodeHandler.getNode().setId(n.getId());
@@ -131,13 +135,13 @@ public class KadService implements DiscoverService {
 
     switch (m.getType()) {
       case KAD_PING:
-        nodeHandler.handlePing((PingMessage) m);
+        nodeHandler.handlePing((PingMessage) m, useV4);
         break;
       case KAD_PONG:
         nodeHandler.handlePong((PongMessage) m);
         break;
       case KAD_FIND_NODE:
-        nodeHandler.handleFindNode((FindNodeMessage) m);
+        nodeHandler.handleFindNode((FindNodeMessage) m, useV4);
         break;
       case KAD_NEIGHBORS:
         nodeHandler.handleNeighbours((NeighborsMessage) m);
@@ -153,8 +157,11 @@ public class KadService implements DiscoverService {
     if (ret == null) {
       trimTable();
       ret = new NodeHandler(n, this);
-      nodeHandlerMap.put(key, ret);
+    } else {
+      ret.getNode().updateHostV4(n.getHostV4());
+      ret.getNode().updateHostV6(n.getHostV6());
     }
+    nodeHandlerMap.put(key, ret);
     return ret;
   }
 
@@ -197,12 +204,57 @@ public class KadService implements DiscoverService {
   }
 
   private String getKey(Node n) {
-    return getKey(new InetSocketAddress(n.getHost(), n.getPort()));
+    return getKey(n.getHostV4(), n.getHostV6(), n.getPort());
   }
 
-  private String getKey(InetSocketAddress address) {
-    InetAddress inetAddress = address.getAddress();
-    return (inetAddress == null ? address.getHostString() : inetAddress.getHostAddress()) + ":"
-        + address.getPort();
+  // if hostV4:port or hostV6:port exist, we consider they are the same node. orders may like this:
+  // first node with v4, then node with v4 & v6
+  // first node with v6, then node with v4 & v6
+  // first node with v4 & v6, then node with v4
+  // first node with v4 & v6, then node with v6
+  public static String getKey(String hostV4, String hostV6, int port) {
+
+    if ((StringUtils.isNotEmpty(hostV4) && StringUtils.isEmpty(hostV6)) || (
+        StringUtils.isEmpty(hostV4) && StringUtils.isNotEmpty(hostV6))) {
+
+      InetSocketAddress inet = StringUtils.isNotEmpty(hostV4) ? new InetSocketAddress(hostV4, port)
+          : new InetSocketAddress(hostV6, port);
+      InetAddress inetAddress = inet.getAddress();
+      String host = inetAddress == null ? inet.getHostString() : inetAddress.getHostAddress();
+
+      String hostPort = host + "-" + port;
+      if (host2Key.containsKey(hostPort)) {
+        return host2Key.get(hostPort);
+      } else {
+        int value = host2Key.size();
+        host2Key.put(hostPort, String.valueOf(value));
+        return String.valueOf(value);
+      }
+    } else if (StringUtils.isNotEmpty(hostV4) && StringUtils.isNotEmpty(hostV6)) {
+
+      InetSocketAddress inet = new InetSocketAddress(hostV4, port);
+      InetAddress inetAddress = inet.getAddress();
+      String host1 = inetAddress == null ? inet.getHostString() : inetAddress.getHostAddress();
+      String hostPort1 = host1 + "-" + port;
+      if (host2Key.containsKey(hostPort1)) {
+        return host2Key.get(hostPort1);
+      }
+
+      inet = new InetSocketAddress(hostV6, port);
+      inetAddress = inet.getAddress();
+      String host2 = inetAddress == null ? inet.getHostString() : inetAddress.getHostAddress();
+      String hostPort2 = host2 + "-" + port;
+      if (host2Key.containsKey(hostPort2)) {
+        return host2Key.get(hostPort2);
+      }
+
+      int value = host2Key.size();
+      host2Key.put(hostPort1, String.valueOf(value));
+      host2Key.put(hostPort2, String.valueOf(value));
+      return String.valueOf(value);
+    } else {
+      //impossible
+      return null;
+    }
   }
 }

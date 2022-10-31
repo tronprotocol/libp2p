@@ -78,7 +78,7 @@ public class StartApp {
     if (cli.hasOption("v")) {
       Parameter.p2pConfig.setVersion(Integer.parseInt(cli.getOptionValue("v")));
     }
-
+    System.out.println("ipv6: " + Parameter.p2pConfig.getIpv6());
     p2pService.start(Parameter.p2pConfig);
 
     while (true) {
@@ -136,10 +136,13 @@ public class StartApp {
   private static List<InetSocketAddress> parse(String paras) {
     List<InetSocketAddress> nodes = new ArrayList<>();
     for (String para : paras.split(",")) {
-      String host = para.split(":")[0];
-      int port = Integer.parseInt(para.split(":")[1]);
-      InetSocketAddress address = new InetSocketAddress(host, port);
-      nodes.add(address);
+      int index = para.lastIndexOf(":");
+      if (index > 0) {
+        String host = para.substring(0, index);
+        int port = Integer.parseInt(para.substring(index + 1));
+        InetSocketAddress address = new InetSocketAddress(host, port);
+        nodes.add(address);
+      }
     }
     return nodes;
   }

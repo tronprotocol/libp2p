@@ -11,17 +11,17 @@ public class NetUtilTest {
 
   @Test
   public void testValidIp() {
-    boolean flag = NetUtil.validIp(null);
+    boolean flag = NetUtil.validIpV4(null);
     Assert.assertTrue(!flag);
-    flag = NetUtil.validIp("a.1.1.1");
+    flag = NetUtil.validIpV4("a.1.1.1");
     Assert.assertTrue(!flag);
-    flag = NetUtil.validIp("1.1.1");
+    flag = NetUtil.validIpV4("1.1.1");
     Assert.assertTrue(!flag);
-    flag = NetUtil.validIp("0.0.0.0");
+    flag = NetUtil.validIpV4("0.0.0.0");
     Assert.assertTrue(!flag);
-    flag = NetUtil.validIp("256.1.2.3");
+    flag = NetUtil.validIpV4("256.1.2.3");
     Assert.assertTrue(!flag);
-    flag = NetUtil.validIp("1.1.1.1");
+    flag = NetUtil.validIpV4("1.1.1.1");
     Assert.assertTrue(flag);
   }
 
@@ -39,7 +39,7 @@ public class NetUtilTest {
     flag = NetUtil.validNode(node);
     Assert.assertTrue(!flag);
 
-    node = new Node(NetUtil.getNodeId(), "1.1.1", 1000);
+    node = new Node(NetUtil.getNodeId(), "1.1.1", null, 1000);
     flag = NetUtil.validNode(node);
     Assert.assertTrue(!flag);
   }
@@ -73,6 +73,35 @@ public class NetUtilTest {
     Assert.assertFalse(ip.startsWith("172.29."));
     Assert.assertFalse(ip.startsWith("172.30."));
     Assert.assertFalse(ip.startsWith("172.31."));
+  }
+
+  @Test
+  public void testIPv6Format() {
+    String std = "fe80:0:0:0:204:61ff:fe9d:f156";
+    int randomPort = 10001;
+    String ip1 = new InetSocketAddress("fe80:0000:0000:0000:0204:61ff:fe9d:f156",
+        randomPort).getAddress().getHostAddress();
+    Assert.assertEquals(ip1, std);
+
+    String ip2 = new InetSocketAddress("fe80::204:61ff:fe9d:f156",
+        randomPort).getAddress().getHostAddress();
+    Assert.assertEquals(ip2, std);
+
+    String ip3 = new InetSocketAddress("fe80:0000:0000:0000:0204:61ff:254.157.241.86",
+        randomPort).getAddress().getHostAddress();
+    Assert.assertEquals(ip3, std);
+
+    String ip4 = new InetSocketAddress("fe80:0:0:0:0204:61ff:254.157.241.86",
+        randomPort).getAddress().getHostAddress();
+    Assert.assertEquals(ip4, std);
+
+    String ip5 = new InetSocketAddress("fe80::204:61ff:254.157.241.86",
+        randomPort).getAddress().getHostAddress();
+    Assert.assertEquals(ip5, std);
+
+    String ip6 = new InetSocketAddress("FE80::204:61ff:254.157.241.86",
+        randomPort).getAddress().getHostAddress();
+    Assert.assertEquals(ip6, std);
   }
 
 }

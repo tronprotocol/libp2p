@@ -56,7 +56,7 @@ public class SocketTest {
 
     //peer client try to connect peer server using random port
     io.netty.channel.Channel nettyChannel = ChannelManager.getPeerClient()
-        .connectAsync(serverNode, false).channel();
+        .connectAsync(serverNode, false, false).channel();
 
     while (true) {
       if (!nettyChannel.isActive()) {

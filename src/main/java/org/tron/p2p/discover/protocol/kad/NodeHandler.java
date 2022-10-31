@@ -7,12 +7,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.Node;
+import org.tron.p2p.discover.message.Message;
 import org.tron.p2p.discover.message.kad.FindNodeMessage;
 import org.tron.p2p.discover.message.kad.NeighborsMessage;
 import org.tron.p2p.discover.message.kad.PingMessage;
 import org.tron.p2p.discover.message.kad.PongMessage;
 import org.tron.p2p.discover.socket.UdpEvent;
-import org.tron.p2p.discover.message.*;
 
 @Slf4j(topic = "net")
 public class NodeHandler {
@@ -21,21 +21,17 @@ public class NodeHandler {
   private volatile State state;
   private KadService kadService;
   private NodeHandler replaceCandidate;
-  private InetSocketAddress inetSocketAddress;
   private AtomicInteger pingTrials = new AtomicInteger(3);
   private volatile boolean waitForPong = false;
   private volatile boolean waitForNeighbors = false;
 
-
   public NodeHandler(Node node, KadService kadService) {
     this.node = node;
     this.kadService = kadService;
-    this.inetSocketAddress = new InetSocketAddress(node.getHost(), node.getPort());
-    changeState(State.DISCOVERED);
-  }
-
-  public InetSocketAddress getInetSocketAddress() {
-    return inetSocketAddress;
+    // send ping only if IP stack is compatible
+    if (node.isIpStackCompatible()) {
+      changeState(State.DISCOVERED);
+    }
   }
 
   public Node getNode() {
@@ -105,9 +101,9 @@ public class NodeHandler {
     state = newState;
   }
 
-  public void handlePing(PingMessage msg) {
+  public void handlePing(PingMessage msg, boolean useV4) {
     if (!kadService.getTable().getNode().equals(node)) {
-      sendPong();
+      sendPong(useV4);
     }
     node.setP2pVersion(msg.getVersion());
     if (!node.isConnectible(Parameter.p2pConfig.getVersion())) {
@@ -131,7 +127,7 @@ public class NodeHandler {
 
   public void handleNeighbours(NeighborsMessage msg) {
     if (!waitForNeighbors) {
-      log.warn("Receive neighbors from {} without send find nodes", node.getHost());
+      log.warn("Receive neighbors from {} without send find nodes", node.getHostKey());
       return;
     }
     waitForNeighbors = false;
@@ -142,9 +138,9 @@ public class NodeHandler {
     }
   }
 
-  public void handleFindNode(FindNodeMessage msg) {
+  public void handleFindNode(FindNodeMessage msg, boolean useV4) {
     List<Node> closest = kadService.getTable().getClosestNodes(msg.getTargetId());
-    sendNeighbours(closest, msg.getTimestamp());
+    sendNeighbours(closest, msg.getTimestamp(), useV4);
   }
 
   public void handleTimedOut() {
@@ -161,9 +157,11 @@ public class NodeHandler {
   }
 
   public void sendPing() {
+//    log.info("sendPing ipv4:{}, ipv6:{}", node.getInetSocketAddressV4(),
+//        node.getInetSocketAddressV6());
     PingMessage msg = new PingMessage(kadService.getPublicHomeNode(), getNode());
     waitForPong = true;
-    sendMessage(msg);
+    sendMessage(msg, node.isIpV4Compatible());
 
     if (kadService.getPongTimer().isShutdown()) {
       return;
@@ -180,29 +178,32 @@ public class NodeHandler {
     }, KadService.getPingTimeout(), TimeUnit.MILLISECONDS);
   }
 
-  public void sendPong() {
+  public void sendPong(boolean useV4) {
     Message pong = new PongMessage(kadService.getPublicHomeNode());
-    sendMessage(pong);
+    sendMessage(pong, useV4);
   }
 
   public void sendFindNode(byte[] target) {
     waitForNeighbors = true;
     FindNodeMessage msg = new FindNodeMessage(kadService.getPublicHomeNode(), target);
-    sendMessage(msg);
+    sendMessage(msg, node.isIpV4Compatible());
   }
 
-  public void sendNeighbours(List<Node> neighbours, long sequence) {
+  public void sendNeighbours(List<Node> neighbours, long sequence, boolean useV4) {
     Message msg = new NeighborsMessage(kadService.getPublicHomeNode(), neighbours, sequence);
-    sendMessage(msg);
+    sendMessage(msg, useV4);
   }
 
-  private void sendMessage(Message msg) {
-    kadService.sendOutbound(new UdpEvent(msg, getInetSocketAddress()));
+  private void sendMessage(Message msg, boolean useV4) {
+    InetSocketAddress inetSocketAddress =
+        useV4 ? node.getInetSocketAddressV4() : node.getInetSocketAddressV6();
+    kadService.sendOutbound(new UdpEvent(msg, inetSocketAddress));
   }
 
   @Override
   public String toString() {
-    return "NodeHandler[state: " + state + ", node: " + node.getHost() + ":" + node.getPort() + "]";
+    return "NodeHandler[state: " + state + ", node: " + node.getHostKey() + ":" + node.getPort()
+        + "]";
   }
 
   public enum State {

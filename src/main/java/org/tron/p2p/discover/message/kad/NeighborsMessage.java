@@ -1,6 +1,5 @@
 package org.tron.p2p.discover.message.kad;
 
-import com.google.protobuf.ByteString;
 import java.util.ArrayList;
 import java.util.List;
 import org.tron.p2p.discover.Node;
@@ -10,7 +9,6 @@ import org.tron.p2p.protos.Discover;
 import org.tron.p2p.protos.Discover.Endpoint;
 import org.tron.p2p.protos.Discover.Neighbours;
 import org.tron.p2p.protos.Discover.Neighbours.Builder;
-import org.tron.p2p.utils.ByteArray;
 import org.tron.p2p.utils.NetUtil;
 
 public class NeighborsMessage extends KadMessage {
@@ -28,20 +26,11 @@ public class NeighborsMessage extends KadMessage {
         .setTimestamp(sequence);
 
     neighbours.forEach(neighbour -> {
-      Endpoint endpoint = Endpoint.newBuilder()
-          .setAddress(ByteString.copyFrom(ByteArray.fromString(neighbour.getHost())))
-          .setPort(neighbour.getPort())
-          .setNodeId(ByteString.copyFrom(neighbour.getId()))
-          .build();
-
+      Endpoint endpoint = getEndpointFromNode(neighbour);
       builder.addNeighbours(endpoint);
     });
 
-    Endpoint fromEndpoint = Endpoint.newBuilder()
-        .setAddress(ByteString.copyFrom(ByteArray.fromString(from.getHost())))
-        .setPort(from.getPort())
-        .setNodeId(ByteString.copyFrom(from.getId()))
-        .build();
+    Endpoint fromEndpoint = getEndpointFromNode(from);
 
     builder.setFrom(fromEndpoint);
 
