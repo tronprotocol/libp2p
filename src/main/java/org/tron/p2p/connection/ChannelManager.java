@@ -181,7 +181,7 @@ public class ChannelManager {
     channel.setNodeId(nodeId);
     List<Channel> list = new ArrayList<>();
     channels.values().forEach(c -> {
-      if (nodeId.equals(channel.getNodeId())) {
+      if (nodeId.equals(c.getNodeId())) {
         list.add(c);
       }
     });
@@ -191,8 +191,10 @@ public class ChannelManager {
     Channel c1 = list.get(0);
     Channel c2 = list.get(1);
     if (c1.getStartTime() > c2.getStartTime()) {
+      log.info("close channel {}, other channel {} is earlier", c1, c2);
       c1.close();
     } else {
+      log.info("close channel {}, other channel {} is earlier", c2, c1);
       c2.close();
     }
   }

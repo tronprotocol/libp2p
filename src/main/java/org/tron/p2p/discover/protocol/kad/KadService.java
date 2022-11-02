@@ -1,14 +1,11 @@
 package org.tron.p2p.discover.protocol.kad;
 
 import java.net.Inet4Address;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -52,7 +49,8 @@ public class KadService implements DiscoverService {
   private ScheduledExecutorService pongTimer;
   private DiscoverTask discoverTask;
 
-  private static Map<InetSocketAddress, Integer> host2Key = new ConcurrentHashMap<>();
+  private final Map<InetSocketAddress, String> ipv4Node = new ConcurrentHashMap<>();
+  private final Map<InetSocketAddress, String> ipv6Node = new ConcurrentHashMap<>();
 
   public void init() {
     for (InetSocketAddress address : Parameter.p2pConfig.getSeedNodes()) {
@@ -206,7 +204,7 @@ public class KadService implements DiscoverService {
   }
 
   private String getKey(Node n) {
-    return getKey(n.getHostV4(), n.getHostV6(), n.getPort());
+    return getKey(n.getHostV4(), n.getHostV6(), n.getPort(), n.getHexId());
   }
 
   // if hostV4:port or hostV6:port exist, we consider they are the same node. orders may like this:
@@ -214,43 +212,37 @@ public class KadService implements DiscoverService {
   // first node with v6, then node with v4 & v6
   // first node with v4 & v6, then node with v4
   // first node with v4 & v6, then node with v6
-  private String getKey(String hostV4, String hostV6, int port) {
+  private String getKey(String hostV4, String hostV6, int port, String nodeId) {
 
-    if ((StringUtils.isNotEmpty(hostV4) && StringUtils.isEmpty(hostV6)) || (
-        StringUtils.isEmpty(hostV4) && StringUtils.isNotEmpty(hostV6))) {
-
-      InetSocketAddress inet = StringUtils.isNotEmpty(hostV4) ? new InetSocketAddress(hostV4, port)
-          : new InetSocketAddress(hostV6, port);
-
-      if (host2Key.containsKey(inet)) {
-        return String.valueOf(host2Key.get(inet));
-      } else {
-        int group = host2Key.size();
-        host2Key.put(inet, group);
-        return String.valueOf(group);
+    if (StringUtils.isNotEmpty(hostV4) && StringUtils.isEmpty(hostV6)) {
+      InetSocketAddress inet4 = new InetSocketAddress(hostV4, port);
+      if (!ipv4Node.containsKey(inet4)) {
+        ipv4Node.put(inet4, nodeId);
       }
+      return ipv4Node.get(inet4);
+    } else if (StringUtils.isEmpty(hostV4) && StringUtils.isNotEmpty(hostV6)) {
+      InetSocketAddress inet6 = new InetSocketAddress(hostV6, port);
+      if (!ipv6Node.containsKey(inet6)) {
+        ipv6Node.put(inet6, nodeId);
+      }
+      return ipv6Node.get(inet6);
     } else if (StringUtils.isNotEmpty(hostV4) && StringUtils.isNotEmpty(hostV6)) {
-
       InetSocketAddress inet4 = new InetSocketAddress(hostV4, port);
       InetSocketAddress inet6 = new InetSocketAddress(hostV6, port);
 
-      int group;
-      if (host2Key.containsKey(inet4)) {
-        group = host2Key.get(inet4);
-        if (!host2Key.containsKey(inet6)) {
-          host2Key.put(inet6, group);
-        }
-      } else if (host2Key.containsKey(inet6)) {
-        group = host2Key.get(inet6);
-        if (!host2Key.containsKey(inet4)) {
-          host2Key.put(inet4, group);
-        }
+      String key;
+      if (ipv4Node.containsKey(inet4)) {
+        key = ipv4Node.get(inet4);
+        ipv6Node.put(inet6, key);
+      } else if (ipv6Node.containsKey(inet6)) {
+        key = ipv6Node.get(inet6);
+        ipv4Node.put(inet4, key);
       } else {
-        group = host2Key.size();
-        host2Key.put(inet4, group);
-        host2Key.put(inet6, group);
+        key = nodeId;
+        ipv4Node.put(inet4, key);
+        ipv6Node.put(inet6, key);
       }
-      return String.valueOf(group);
+      return key;
     } else {
       //impossible
       return null;
