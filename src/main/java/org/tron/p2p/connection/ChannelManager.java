@@ -181,7 +181,7 @@ public class ChannelManager {
     channel.setNodeId(nodeId);
     List<Channel> list = new ArrayList<>();
     channels.values().forEach(c -> {
-      if (nodeId.equals(channel.getNodeId())) {
+      if (nodeId.equals(c.getNodeId())) {
         list.add(c);
       }
     });
