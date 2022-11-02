@@ -5,8 +5,10 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -50,7 +52,8 @@ public class KadService implements DiscoverService {
   private ScheduledExecutorService pongTimer;
   private DiscoverTask discoverTask;
 
-  private static Map<String, String> host2Key = new ConcurrentHashMap<>();
+  private static Map<InetSocketAddress, Integer> host2Key = new ConcurrentHashMap<>();
+  private static Map<Integer, Set<InetSocketAddress>> key2Host = new ConcurrentHashMap<>();
 
   public void init() {
     for (InetSocketAddress address : Parameter.p2pConfig.getSeedNodes()) {
@@ -212,49 +215,74 @@ public class KadService implements DiscoverService {
   // first node with v6, then node with v4 & v6
   // first node with v4 & v6, then node with v4
   // first node with v4 & v6, then node with v6
-  public static String getKey(String hostV4, String hostV6, int port) {
+  private String getKey(String hostV4, String hostV6, int port) {
 
     if ((StringUtils.isNotEmpty(hostV4) && StringUtils.isEmpty(hostV6)) || (
         StringUtils.isEmpty(hostV4) && StringUtils.isNotEmpty(hostV6))) {
 
       InetSocketAddress inet = StringUtils.isNotEmpty(hostV4) ? new InetSocketAddress(hostV4, port)
           : new InetSocketAddress(hostV6, port);
-      InetAddress inetAddress = inet.getAddress();
-      String host = inetAddress == null ? inet.getHostString() : inetAddress.getHostAddress();
 
-      String hostPort = host + "-" + port;
-      if (host2Key.containsKey(hostPort)) {
-        return host2Key.get(hostPort);
+      if (host2Key.containsKey(inet)) {
+        return String.valueOf(host2Key.get(inet));
       } else {
-        int value = host2Key.size();
-        host2Key.put(hostPort, String.valueOf(value));
-        return String.valueOf(value);
+        int group = host2Key.size();
+        host2Key.put(inet, group);
+        Set<InetSocketAddress> inetSet = key2Host.getOrDefault(group, new HashSet<>());
+        inetSet.add(inet);
+        key2Host.put(group, inetSet);
+        return String.valueOf(group);
       }
     } else if (StringUtils.isNotEmpty(hostV4) && StringUtils.isNotEmpty(hostV6)) {
 
-      InetSocketAddress inet = new InetSocketAddress(hostV4, port);
-      InetAddress inetAddress = inet.getAddress();
-      String host1 = inetAddress == null ? inet.getHostString() : inetAddress.getHostAddress();
-      String hostPort1 = host1 + "-" + port;
-      if (host2Key.containsKey(hostPort1)) {
-        return host2Key.get(hostPort1);
+      InetSocketAddress inet4 = new InetSocketAddress(hostV4, port);
+      InetSocketAddress inet6 = new InetSocketAddress(hostV6, port);
+
+      int group;
+      if (host2Key.containsKey(inet4)) {
+        group = host2Key.get(inet4);
+        if (!host2Key.containsKey(inet6)) {
+          host2Key.put(inet6, group);
+        }
+      } else if (host2Key.containsKey(inet6)) {
+        group = host2Key.get(inet6);
+        if (!host2Key.containsKey(inet4)) {
+          host2Key.put(inet4, group);
+        }
+      } else {
+        group = host2Key.size();
+        host2Key.put(inet4, group);
+        host2Key.put(inet6, group);
       }
 
-      inet = new InetSocketAddress(hostV6, port);
-      inetAddress = inet.getAddress();
-      String host2 = inetAddress == null ? inet.getHostString() : inetAddress.getHostAddress();
-      String hostPort2 = host2 + "-" + port;
-      if (host2Key.containsKey(hostPort2)) {
-        return host2Key.get(hostPort2);
-      }
+      Set<InetSocketAddress> inetSet = key2Host.getOrDefault(group, new HashSet<>());
+      inetSet.add(inet4);
+      inetSet.add(inet6);
+      key2Host.put(group, inetSet);
 
-      int value = host2Key.size();
-      host2Key.put(hostPort1, String.valueOf(value));
-      host2Key.put(hostPort2, String.valueOf(value));
-      return String.valueOf(value);
+      return String.valueOf(group);
     } else {
       //impossible
       return null;
     }
+  }
+
+  public static InetSocketAddress matchDifferentIpStack(InetSocketAddress inetSocketAddress) {
+    InetSocketAddress match = null;
+    if (!host2Key.containsKey(inetSocketAddress)) {
+      return null;
+    }
+    int group = host2Key.get(inetSocketAddress);
+    if (!key2Host.containsKey(group)) {
+      return null;
+    }
+    Set<InetSocketAddress> inetSet = key2Host.get(group);
+    for (InetSocketAddress inet : inetSet) {
+      if (!inet.equals(inetSocketAddress)) {
+        match = inet;
+        break;
+      }
+    }
+    return match;
   }
 }

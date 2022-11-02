@@ -6,7 +6,6 @@ import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.message.MessageType;
 import org.tron.p2p.protos.Discover;
 import org.tron.p2p.protos.Discover.Endpoint;
-import org.tron.p2p.utils.ByteArray;
 import org.tron.p2p.utils.NetUtil;
 
 public class FindNodeMessage extends KadMessage {

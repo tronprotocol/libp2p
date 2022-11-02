@@ -3,6 +3,7 @@ package org.tron.p2p.connection.business.pool;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,6 +29,7 @@ import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
+import org.tron.p2p.discover.protocol.kad.KadService;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.utils.CollectionUtils;
 
@@ -81,12 +83,21 @@ public class ConnPoolService extends P2pEventHandler {
 
     //collect already used nodes in channelManager
     Set<InetAddress> addressInUse = new HashSet<>();
+    Set<InetSocketAddress> inetInUse = new HashSet<>();
     Set<String> nodesInUse = new HashSet<>();
     ChannelManager.getChannels().values().forEach(channel -> {
       if (StringUtils.isNotEmpty(channel.getNodeId())) {
         nodesInUse.add(channel.getNodeId());
       }
       addressInUse.add(channel.getInetAddress());
+      inetInUse.add(channel.getInetSocketAddress());
+      //add node's other IP stack's inetAddress
+      InetSocketAddress other = KadService.matchDifferentIpStack(channel.getInetSocketAddress());
+      if (other != null) {
+        //log.info("exist:{}, other:{}", channel.getInetSocketAddress(), other);
+        addressInUse.add(other.getAddress());
+        inetInUse.add(other);
+      }
     });
 
     p2pConfig.getActiveNodes().forEach(address -> {
@@ -106,7 +117,7 @@ public class ConnPoolService extends P2pEventHandler {
     if (lackSize > 0) {
       nodesInUse.add(Hex.toHexString(p2pConfig.getNodeID()));
       List<Node> connectableNodes = NodeManager.getConnectableNodes();
-      List<Node> newNodes = getNodes(nodesInUse, connectableNodes, lackSize);
+      List<Node> newNodes = getNodes(nodesInUse, inetInUse, connectableNodes, lackSize);
       connectNodes.addAll(newNodes);
     }
 
@@ -125,7 +136,8 @@ public class ConnPoolService extends P2pEventHandler {
     });
   }
 
-  public List<Node> getNodes(Set<String> nodesInUse, List<Node> connectableNodes, int limit) {
+  public List<Node> getNodes(Set<String> nodesInUse, Set<InetSocketAddress> inetInUse,
+      List<Node> connectableNodes, int limit) {
     List<Node> filtered = new ArrayList<>();
     long now = System.currentTimeMillis();
     for (Node node : connectableNodes) {
@@ -136,6 +148,9 @@ public class ConnPoolService extends P2pEventHandler {
         continue;
       }
       if (node.isIpV4Compatible()) {
+        if (inetInUse.contains(node.getInetSocketAddressV4())) {
+          continue;
+        }
         if (node.getHostV4().equals(p2pConfig.getIp()) && node.getPort() == p2pConfig.getPort()) {
           continue;
         }
@@ -143,6 +158,9 @@ public class ConnPoolService extends P2pEventHandler {
           continue;
         }
       } else if (node.isIpV6Compatible()) {
+        if (inetInUse.contains(node.getInetSocketAddressV6())) {
+          continue;
+        }
         if (node.getHostV6().equals(p2pConfig.getIpv6()) && node.getPort() == p2pConfig.getPort()) {
           continue;
         }
