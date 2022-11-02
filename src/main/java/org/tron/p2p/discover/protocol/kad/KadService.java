@@ -53,7 +53,6 @@ public class KadService implements DiscoverService {
   private DiscoverTask discoverTask;
 
   private static Map<InetSocketAddress, Integer> host2Key = new ConcurrentHashMap<>();
-  private static Map<Integer, Set<InetSocketAddress>> key2Host = new ConcurrentHashMap<>();
 
   public void init() {
     for (InetSocketAddress address : Parameter.p2pConfig.getSeedNodes()) {
@@ -228,9 +227,6 @@ public class KadService implements DiscoverService {
       } else {
         int group = host2Key.size();
         host2Key.put(inet, group);
-        Set<InetSocketAddress> inetSet = key2Host.getOrDefault(group, new HashSet<>());
-        inetSet.add(inet);
-        key2Host.put(group, inetSet);
         return String.valueOf(group);
       }
     } else if (StringUtils.isNotEmpty(hostV4) && StringUtils.isNotEmpty(hostV6)) {
@@ -254,35 +250,10 @@ public class KadService implements DiscoverService {
         host2Key.put(inet4, group);
         host2Key.put(inet6, group);
       }
-
-      Set<InetSocketAddress> inetSet = key2Host.getOrDefault(group, new HashSet<>());
-      inetSet.add(inet4);
-      inetSet.add(inet6);
-      key2Host.put(group, inetSet);
-
       return String.valueOf(group);
     } else {
       //impossible
       return null;
     }
-  }
-
-  public static InetSocketAddress matchDifferentIpStack(InetSocketAddress inetSocketAddress) {
-    InetSocketAddress match = null;
-    if (!host2Key.containsKey(inetSocketAddress)) {
-      return null;
-    }
-    int group = host2Key.get(inetSocketAddress);
-    if (!key2Host.containsKey(group)) {
-      return null;
-    }
-    Set<InetSocketAddress> inetSet = key2Host.get(group);
-    for (InetSocketAddress inet : inetSet) {
-      if (!inet.equals(inetSocketAddress)) {
-        match = inet;
-        break;
-      }
-    }
-    return match;
   }
 }
