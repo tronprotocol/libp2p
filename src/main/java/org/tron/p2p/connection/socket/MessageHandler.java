@@ -9,6 +9,7 @@ import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
+import org.tron.p2p.connection.business.handshake.HandshakeService;
 
 @Slf4j(topic = "net")
 public class MessageHandler extends ByteToMessageDecoder {
@@ -33,7 +34,8 @@ public class MessageHandler extends ByteToMessageDecoder {
       return;
     }
     if (channel.isActive()) {
-      Parameter.handlerList.forEach(h -> h.onConnect(channel));
+      ChannelManager.getHandshakeService().startHandshake(channel);
+//      Parameter.handlerList.forEach(h -> h.onConnect(channel));
     }
   }
 
