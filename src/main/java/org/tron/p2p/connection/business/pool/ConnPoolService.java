@@ -3,6 +3,7 @@ package org.tron.p2p.connection.business.pool;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -106,7 +107,7 @@ public class ConnPoolService extends P2pEventHandler {
     if (lackSize > 0) {
       nodesInUse.add(Hex.toHexString(p2pConfig.getNodeID()));
       List<Node> connectableNodes = NodeManager.getConnectableNodes();
-      List<Node> newNodes = getNodes(nodesInUse, connectableNodes, lackSize);
+      List<Node> newNodes = getNodes(nodesInUse, connectNodes, connectableNodes, lackSize);
       connectNodes.addAll(newNodes);
     }
 
@@ -118,8 +119,13 @@ public class ConnPoolService extends P2pEventHandler {
     });
   }
 
-  public List<Node> getNodes(Set<String> nodesInUse, List<Node> connectableNodes, int limit) {
+  public List<Node> getNodes(Set<String> nodesInUse, List<Node> connectNodes,
+      List<Node> connectableNodes, int limit) {
     List<Node> filtered = new ArrayList<>();
+    Set<InetSocketAddress> connectAddress = new HashSet<>();
+    for (Node n : connectNodes) {
+      connectAddress.add(new InetSocketAddress(n.getHost(), n.getPort()));
+    }
     long now = System.currentTimeMillis();
     for (Node node : connectableNodes) {
       InetAddress inetAddress = node.getInetSocketAddress().getAddress();
@@ -129,7 +135,8 @@ public class ConnPoolService extends P2pEventHandler {
           || (ChannelManager.getConnectionNum(inetAddress)
           >= p2pConfig.getMaxConnectionsWithSameIp())
           || (node.getId() != null && nodesInUse.contains(node.getHexId()))
-          || (peerClientCache.getIfPresent(inetAddress) != null)) {
+          || (peerClientCache.getIfPresent(inetAddress) != null)
+          || connectAddress.contains(node.getInetSocketAddress())) {
         continue;
       }
       // sometimes error occurs if update_time changes when sort, so we copy it
