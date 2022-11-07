@@ -83,6 +83,7 @@ public class ConnPoolService extends P2pEventHandler {
 
     //collect already used nodes in channelManager
     Set<InetAddress> addressInUse = new HashSet<>();
+    Set<InetSocketAddress> inetInUse = new HashSet<>();
     Set<String> nodesInUse = new HashSet<>();
     ChannelManager.getChannels().values().forEach(channel -> {
       if (StringUtils.isNotEmpty(channel.getNodeId())) {
@@ -93,9 +94,12 @@ public class ConnPoolService extends P2pEventHandler {
 
     p2pConfig.getActiveNodes().forEach(address -> {
       if (!addressInUse.contains(address.getAddress())) {
-        addressInUse.add(address.getAddress());
         Node node = new Node(address); //use a random NodeId for config activeNodes
-        connectNodes.add(node);
+        if (node.isIpStackCompatible()) {
+          addressInUse.add(address.getAddress());
+          inetInUse.add(address);
+          connectNodes.add(node);
+        }
       }
     });
 
@@ -108,7 +112,7 @@ public class ConnPoolService extends P2pEventHandler {
     if (lackSize > 0) {
       nodesInUse.add(Hex.toHexString(p2pConfig.getNodeID()));
       List<Node> connectableNodes = NodeManager.getConnectableNodes();
-      List<Node> newNodes = getNodes(nodesInUse, connectableNodes, lackSize);
+      List<Node> newNodes = getNodes(nodesInUse, inetInUse, connectableNodes, lackSize);
       connectNodes.addAll(newNodes);
     }
 
@@ -127,14 +131,24 @@ public class ConnPoolService extends P2pEventHandler {
     });
   }
 
-  public List<Node> getNodes(Set<String> nodesInUse, List<Node> connectableNodes, int limit) {
+  public List<Node> getNodes(Set<String> nodesInUse, Set<InetSocketAddress> inetInUse,
+      List<Node> connectableNodes, int limit) {
     List<Node> filtered = new ArrayList<>();
+
     long now = System.currentTimeMillis();
     for (Node node : connectableNodes) {
       if (node.getId() != null && nodesInUse.contains(node.getHexId())) {
         continue;
       }
       if (!node.isIpStackCompatible()) {
+        continue;
+      }
+      if (StringUtils.isNotEmpty(node.getHostV4()) && inetInUse.contains(
+          node.getInetSocketAddressV4())) {
+        continue;
+      }
+      if (StringUtils.isNotEmpty(node.getHostV6()) && inetInUse.contains(
+          node.getInetSocketAddressV6())) {
         continue;
       }
       if (node.isIpV4Compatible()) {

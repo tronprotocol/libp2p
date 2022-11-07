@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.util.encoders.Hex;
 import org.tron.p2p.P2pEventHandler;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
@@ -179,6 +180,12 @@ public class ChannelManager {
 
   public static synchronized void updateNodeId(Channel channel, String nodeId) {
     channel.setNodeId(nodeId);
+    if (nodeId.equals(Hex.toHexString(Parameter.p2pConfig.getNodeID()))) {
+      log.warn("Channel {} is myself", channel.getInetSocketAddress());
+      channel.close();
+      return;
+    }
+
     List<Channel> list = new ArrayList<>();
     channels.values().forEach(c -> {
       if (nodeId.equals(c.getNodeId())) {

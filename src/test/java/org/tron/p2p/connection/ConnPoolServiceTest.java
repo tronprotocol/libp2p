@@ -46,7 +46,7 @@ public class ConnPoolServiceTest {
     connectableNodes.add(localNode);
 
     ConnPoolService connPoolService = new ConnPoolService();
-    List<Node> nodes = connPoolService.getNodes(new HashSet<>(), connectableNodes, 1);
+    List<Node> nodes = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes, 1);
 
     Assert.assertEquals(0, nodes.size());
   }
@@ -71,12 +71,12 @@ public class ConnPoolServiceTest {
     connectableNodes.add(node2);
 
     ConnPoolService connPoolService = new ConnPoolService();
-    List<Node> nodes = connPoolService.getNodes(new HashSet<>(), connectableNodes, 2);
+    List<Node> nodes = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes, 2);
     Assert.assertEquals(2, nodes.size());
     Assert.assertTrue(nodes.get(0).getUpdateTime() > nodes.get(1).getUpdateTime());
 
     int limit = 1;
-    List<Node> nodes2 = connPoolService.getNodes(new HashSet<>(), connectableNodes, limit);
+    List<Node> nodes2 = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes, limit);
     Assert.assertEquals(limit, nodes2.size());
   }
 
@@ -91,11 +91,11 @@ public class ConnPoolServiceTest {
     connectableNodes.add(node);
 
     ConnPoolService connPoolService = new ConnPoolService();
-    List<Node> nodes = connPoolService.getNodes(new HashSet<>(), connectableNodes, 1);
+    List<Node> nodes = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes, 1);
     Assert.assertEquals(0, nodes.size());
     Thread.sleep(banTime);
 
-    nodes = connPoolService.getNodes(new HashSet<>(), connectableNodes, 1);
+    nodes = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes, 1);
     Assert.assertEquals(1, nodes.size());
   }
 
@@ -110,7 +110,7 @@ public class ConnPoolServiceTest {
     Set<String> nodesInUse = new HashSet<>();
     nodesInUse.add(node.getHexId());
     ConnPoolService connPoolService = new ConnPoolService();
-    List<Node> nodes = connPoolService.getNodes(nodesInUse, connectableNodes, 1);
+    List<Node> nodes = connPoolService.getNodes(nodesInUse, new HashSet<>(), connectableNodes, 1);
     Assert.assertEquals(0, nodes.size());
   }
 
