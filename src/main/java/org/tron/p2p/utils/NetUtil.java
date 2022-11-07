@@ -3,14 +3,9 @@ package org.tron.p2p.utils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.Inet6Address;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.Enumeration;
 import java.util.Random;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
@@ -78,11 +73,11 @@ public class NetUtil {
     return id;
   }
 
-  public static String getExternalIp() {
+  private static String getExternalIp(String url) {
     BufferedReader in = null;
     String ip = null;
     try {
-      URLConnection urlConnection = new URL(Constant.AMAZONAWS_URL).openConnection();
+      URLConnection urlConnection = new URL(url).openConnection();
       urlConnection.setConnectTimeout(3000);
       urlConnection.setReadTimeout(3000);
       in = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
@@ -97,7 +92,8 @@ public class NetUtil {
       }
       return ip;
     } catch (IOException e) {
-      log.warn("Fail to get ip v4, {}", e.getMessage());
+      log.warn("Fail to get ip {}, {}", Constant.AMAZONAWS_URL.equals(url) ? "v4" : "v6",
+          e.getMessage());
       return ip;
     } finally {
       if (in != null) {
@@ -109,44 +105,12 @@ public class NetUtil {
     }
   }
 
-  public static String getLocalIPv6Address() {
-    Enumeration<NetworkInterface> networkInterfaces;
-    try {
-      networkInterfaces = NetworkInterface.getNetworkInterfaces();
-    } catch (SocketException e) {
-      return null;
-    }
-
-    Inet6Address inet6Address = null;
-    while (networkInterfaces.hasMoreElements()) {
-      Enumeration<InetAddress> inetAds = networkInterfaces.nextElement().getInetAddresses();
-      while (inetAds.hasMoreElements()) {
-        InetAddress inetAddress = inetAds.nextElement();
-        if (inetAddress instanceof Inet6Address && !isReservedAddr(inetAddress)) {
-          inet6Address = (Inet6Address) inetAddress;
-          break;
-        }
-      }
-      if (inet6Address != null) {
-        break;
-      }
-    }
-    String ipAddr = null;
-    if (inet6Address != null) {
-      ipAddr = inet6Address.getHostAddress();
-      int index = ipAddr.indexOf('%');
-      if (index > 0) {
-        ipAddr = ipAddr.substring(0, index);
-      }
-      //use standard format
-      ipAddr = new InetSocketAddress(ipAddr, 10000).getAddress().getHostAddress();
-    }
-    return ipAddr;
+  public static String getExternalIpV4() {
+    return getExternalIp(Constant.AMAZONAWS_URL);
   }
 
-  private static boolean isReservedAddr(InetAddress inetAddr) {
-    return inetAddr.isAnyLocalAddress() || inetAddr.isLinkLocalAddress()
-        || inetAddr.isLoopbackAddress();
+  public static String getExternalIpV6() {
+    return getExternalIp(Constant.IDENT_URL);
   }
 
 }

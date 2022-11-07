@@ -13,8 +13,8 @@ public class P2pConfig {
   private List<InetSocketAddress> activeNodes = new ArrayList<>();
   private List<InetAddress> trustNodes = new ArrayList<>();
   private byte[] nodeID = NetUtil.getNodeId();
-  private String ip = NetUtil.getExternalIp();
-  private String ipv6 = NetUtil.getLocalIPv6Address();
+  private String ip = NetUtil.getExternalIpV4();
+  private String ipv6 = NetUtil.getExternalIpV6();
   private int port = 18888;
   private int version = 1;
   private int minConnections = 8;

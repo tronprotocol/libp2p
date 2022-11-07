@@ -54,7 +54,7 @@ public class NetUtilTest {
 
   @Test
   public void testExternalIp() {
-    String ip = NetUtil.getExternalIp();
+    String ip = NetUtil.getExternalIpV4();
     Assert.assertFalse(ip.startsWith("10."));
     Assert.assertFalse(ip.startsWith("192.168."));
     Assert.assertFalse(ip.startsWith("172.16."));
