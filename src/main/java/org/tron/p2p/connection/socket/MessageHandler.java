@@ -34,8 +34,6 @@ public class MessageHandler extends ByteToMessageDecoder {
       return;
     }
     if (channel.isActive()) {
-      //channel.setFinishHandshake(true);
-      //Parameter.handlerList.forEach(h -> h.onConnect(channel));
       handshakeService.startHandshake(channel);
     }
   }
