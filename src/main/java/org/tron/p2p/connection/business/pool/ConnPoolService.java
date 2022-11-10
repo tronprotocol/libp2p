@@ -78,11 +78,11 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   private void addNode(Set<InetSocketAddress> inetSet, Node node) {
-    if (node.getInetSocketV4() != null) {
-      inetSet.add(node.getInetSocketV4());
+    if (node.getInetSocketAddressV4() != null) {
+      inetSet.add(node.getInetSocketAddressV4());
     }
-    if (node.getInetSocketV6() != null) {
-      inetSet.add(node.getInetSocketV6());
+    if (node.getInetSocketAddressV6() != null) {
+      inetSet.add(node.getInetSocketAddressV6());
     }
   }
 
@@ -98,7 +98,7 @@ public class ConnPoolService extends P2pEventHandler {
         nodesInUse.add(channel.getNodeId());
       }
       addressInUse.add(channel.getInetAddress());
-      inetInUse.add(channel.getInetSocketAddress());
+      addNode(inetInUse, channel.getNode());
     });
 
     p2pConfig.getActiveNodes().forEach(address -> {
@@ -111,7 +111,8 @@ public class ConnPoolService extends P2pEventHandler {
         }
       }
     });
-    addNode(inetInUse, NodeManager.getHomeNode());
+    addNode(inetInUse, new Node(Parameter.p2pConfig.getNodeID(), Parameter.p2pConfig.getIp(),
+        Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort()));
 
     //calculate lackSize exclude config activeNodes
     int size = Math.max(p2pConfig.getMinConnections() - activePeers.size(),
@@ -129,13 +130,8 @@ public class ConnPoolService extends P2pEventHandler {
     //log.info("Lack size:{}, connectNodes size:{}", size, connectNodes.size());
     //establish tcp connection with chose nodes by peerClient
     connectNodes.forEach(n -> {
-      if (n.isIpV4Compatible()) {
-        peerClient.connectAsync(n, false, false);
-        peerClientCache.put(n.getInetSocketV4().getAddress(), System.currentTimeMillis());
-      } else {
-        peerClient.connectAsync(n, true, false);
-        peerClientCache.put(n.getInetSocketV6().getAddress(), System.currentTimeMillis());
-      }
+      peerClient.connectAsync(n, false);
+      peerClientCache.put(n.getPreferInetSocketAddress().getAddress(), System.currentTimeMillis());
     });
   }
 
@@ -145,13 +141,16 @@ public class ConnPoolService extends P2pEventHandler {
 
     long now = System.currentTimeMillis();
     for (Node node : connectableNodes) {
-      if ((node.getId() != null && nodesInUse.contains(node.getHexId()))
-          || !node.isIpStackCompatible()
-          || (node.getInetSocketV4() != null && inetInUse.contains(node.getInetSocketV4()))
-          || (node.getInetSocketV6() != null && inetInUse.contains(node.getInetSocketV6()))
-          || (node.isIpV4Compatible() && filter(node.getInetSocketV4().getAddress(), now))
-          || (node.isIpV6Compatible() && filter(node.getInetSocketV6().getAddress(), now))
-      ) {
+      InetSocketAddress inetSocketAddress = node.getPreferInetSocketAddress();
+
+      InetAddress inetAddress = node.getPreferInetSocketAddress().getAddress();
+      Long forbiddenTime = ChannelManager.getBannedNodes().getIfPresent(inetAddress);
+      if ((forbiddenTime != null && now <= forbiddenTime)
+          || (ChannelManager.getConnectionNum(inetAddress)
+          >= p2pConfig.getMaxConnectionsWithSameIp())
+          || (node.getId() != null && nodesInUse.contains(node.getHexId()))
+          || (peerClientCache.getIfPresent(inetAddress) != null)
+          || inetInUse.contains(inetSocketAddress)) {
         continue;
       }
       // sometimes error occurs if update_time changes when sort, so we copy it
@@ -161,14 +160,6 @@ public class ConnPoolService extends P2pEventHandler {
     //order by updateTime desc.
     filtered.sort(Comparator.comparingLong(node -> -node.getUpdateTime()));
     return CollectionUtils.truncate(filtered, limit);
-  }
-
-  private boolean filter(InetAddress inetAddress, long now) {
-    Long forbiddenTime = ChannelManager.getBannedNodes().getIfPresent(inetAddress);
-    return (forbiddenTime != null && now <= forbiddenTime)
-        || (ChannelManager.getConnectionNum(inetAddress)
-        >= p2pConfig.getMaxConnectionsWithSameIp())
-        || (peerClientCache.getIfPresent(inetAddress) != null);
   }
 
   private void check() {

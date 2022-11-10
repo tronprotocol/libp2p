@@ -100,6 +100,16 @@ public class Node implements Serializable, Cloneable {
     return supportV6() && StringUtils.isNotEmpty(Parameter.p2pConfig.getIpv6());
   }
 
+  public InetSocketAddress getPreferInetSocketAddress() {
+    if (isIpV4Compatible()) {
+      return getInetSocketAddressV4();
+    } else if (isIpV6Compatible()) {
+      return getInetSocketAddressV6();
+    } else {
+      return null;
+    }
+  }
+
   public String getHexId() {
     return Hex.toHexString(id);
   }
@@ -192,11 +202,11 @@ public class Node implements Serializable, Cloneable {
     return Id == null ? "<null>" : Id.substring(0, 8);
   }
 
-  public InetSocketAddress getInetSocketV4() {
+  public InetSocketAddress getInetSocketAddressV4() {
     return StringUtils.isNotEmpty(hostV4) ? new InetSocketAddress(hostV4, port) : null;
   }
 
-  public InetSocketAddress getInetSocketV6() {
+  public InetSocketAddress getInetSocketAddressV6() {
     return StringUtils.isNotEmpty(hostV6) ? new InetSocketAddress(hostV6, port) : null;
   }
 

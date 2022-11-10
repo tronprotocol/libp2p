@@ -101,9 +101,9 @@ public class NodeHandler {
     state = newState;
   }
 
-  public void handlePing(PingMessage msg, boolean useV4) {
+  public void handlePing(PingMessage msg) {
     if (!kadService.getTable().getNode().equals(node)) {
-      sendPong(useV4);
+      sendPong();
     }
     node.setP2pVersion(msg.getVersion());
     if (!node.isConnectible(Parameter.p2pConfig.getVersion())) {
@@ -138,9 +138,9 @@ public class NodeHandler {
     }
   }
 
-  public void handleFindNode(FindNodeMessage msg, boolean useV4) {
+  public void handleFindNode(FindNodeMessage msg) {
     List<Node> closest = kadService.getTable().getClosestNodes(msg.getTargetId());
-    sendNeighbours(closest, msg.getTimestamp(), useV4);
+    sendNeighbours(closest, msg.getTimestamp());
   }
 
   public void handleTimedOut() {
@@ -157,11 +157,11 @@ public class NodeHandler {
   }
 
   public void sendPing() {
-//    log.info("sendPing ipv4:{}, ipv6:{}", node.getInetSocketV4(),
-//        node.getInetSocketV6());
+//    log.info("sendPing ipv4:{}, ipv6:{}", node.getInetSocketAddressV4(),
+//        node.getInetSocketAddressV6());
     PingMessage msg = new PingMessage(kadService.getPublicHomeNode(), getNode());
     waitForPong = true;
-    sendMessage(msg, node.isIpV4Compatible());
+    sendMessage(msg);
 
     if (kadService.getPongTimer().isShutdown()) {
       return;
@@ -178,26 +178,24 @@ public class NodeHandler {
     }, KadService.getPingTimeout(), TimeUnit.MILLISECONDS);
   }
 
-  public void sendPong(boolean useV4) {
+  public void sendPong() {
     Message pong = new PongMessage(kadService.getPublicHomeNode());
-    sendMessage(pong, useV4);
+    sendMessage(pong);
   }
 
   public void sendFindNode(byte[] target) {
     waitForNeighbors = true;
     FindNodeMessage msg = new FindNodeMessage(kadService.getPublicHomeNode(), target);
-    sendMessage(msg, node.isIpV4Compatible());
+    sendMessage(msg);
   }
 
-  public void sendNeighbours(List<Node> neighbours, long sequence, boolean useV4) {
+  public void sendNeighbours(List<Node> neighbours, long sequence) {
     Message msg = new NeighborsMessage(kadService.getPublicHomeNode(), neighbours, sequence);
-    sendMessage(msg, useV4);
+    sendMessage(msg);
   }
 
-  private void sendMessage(Message msg, boolean useV4) {
-    InetSocketAddress inetSocketAddress =
-        useV4 ? node.getInetSocketV4() : node.getInetSocketV6();
-    kadService.sendOutbound(new UdpEvent(msg, inetSocketAddress));
+  private void sendMessage(Message msg) {
+    kadService.sendOutbound(new UdpEvent(msg, node.getPreferInetSocketAddress()));
   }
 
   @Override

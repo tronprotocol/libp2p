@@ -23,6 +23,7 @@ import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.socket.MessageHandler;
 import org.tron.p2p.connection.socket.P2pProtobufVarint32FrameDecoder;
+import org.tron.p2p.discover.Node;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.stats.TrafficStats;
 import org.tron.p2p.utils.ByteArray;
@@ -32,6 +33,9 @@ public class Channel {
 
   public volatile boolean waitForPong = false;
   public volatile long pingSent = System.currentTimeMillis();;
+  @Getter
+  @Setter
+  private Node node;
 
   private ChannelHandlerContext ctx;
   @Getter

@@ -125,7 +125,6 @@ public class KadService implements DiscoverService {
     InetSocketAddress sender = udpEvent.getAddress();
     Node n = new Node(m.getFrom().getId(), m.getFrom().getHostV4(), m.getFrom().getHostV6(),
         sender.getPort(), m.getFrom().getPort());
-    boolean useV4 = sender.getAddress() instanceof Inet4Address;
 
     NodeHandler nodeHandler = getNodeHandler(n);
     nodeHandler.getNode().setId(n.getId());
@@ -133,13 +132,13 @@ public class KadService implements DiscoverService {
 
     switch (m.getType()) {
       case KAD_PING:
-        nodeHandler.handlePing((PingMessage) m, useV4);
+        nodeHandler.handlePing((PingMessage) m);
         break;
       case KAD_PONG:
         nodeHandler.handlePong((PongMessage) m);
         break;
       case KAD_FIND_NODE:
-        nodeHandler.handleFindNode((FindNodeMessage) m, useV4);
+        nodeHandler.handleFindNode((FindNodeMessage) m);
         break;
       case KAD_NEIGHBORS:
         nodeHandler.handleNeighbours((NeighborsMessage) m);
@@ -159,8 +158,8 @@ public class KadService implements DiscoverService {
       ret.getNode().updateHostV6(n.getHostV6());
     }
 
-    InetSocketAddress inet4 = ret.getNode().getInetSocketV4();
-    InetSocketAddress inet6 = ret.getNode().getInetSocketV6();
+    InetSocketAddress inet4 = ret.getNode().getInetSocketAddressV4();
+    InetSocketAddress inet6 = ret.getNode().getInetSocketAddressV6();
     if (inet4 != null && nodeHandlerMap.get(inet4) == null) {
       nodeHandlerMap.put(inet4, ret);
     }
@@ -215,8 +214,8 @@ public class KadService implements DiscoverService {
   // first node with v4 & v6, then node with v4
   // first node with v4 & v6, then node with v6
   private NodeHandler getNodeHandlerFromMap(Node node) {
-    InetSocketAddress inet4 = node.getInetSocketV4();
-    InetSocketAddress inet6 = node.getInetSocketV6();
+    InetSocketAddress inet4 = node.getInetSocketAddressV4();
+    InetSocketAddress inet6 = node.getInetSocketAddressV6();
 
     NodeHandler nodeHandler = null;
     if (inet4 != null) {

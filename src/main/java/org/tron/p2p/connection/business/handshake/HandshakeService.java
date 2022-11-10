@@ -30,6 +30,7 @@ public class HandshakeService implements MessageProcess {
     }
 
     channel.setFinishHandshake(true);
+    channel.setNode(msg.getFrom());
 
     ChannelManager.updateNodeId(channel, msg.getFrom().getHexId());
     if (channel.isDisconnect()) {

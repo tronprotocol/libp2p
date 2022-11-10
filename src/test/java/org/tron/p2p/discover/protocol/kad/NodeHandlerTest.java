@@ -50,7 +50,7 @@ public class NodeHandlerTest {
     Assert.assertEquals(NodeHandler.State.DEAD, replaceHandler.getState());
 
     PingMessage msg = new PingMessage(currNode, kadService.getPublicHomeNode());
-    currHandler.handlePing(msg, true);
+    currHandler.handlePing(msg);
     Assert.assertEquals(NodeHandler.State.DISCOVERED, currHandler.getState());
     PongMessage msg1 = new PongMessage(currNode);
     currHandler.handlePong(msg1);
