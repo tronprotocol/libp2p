@@ -157,8 +157,8 @@ public class NodeHandler {
   }
 
   public void sendPing() {
-//    log.info("sendPing ipv4:{}, ipv6:{}", node.getInetSocketAddressV4(),
-//        node.getInetSocketAddressV6());
+//    log.info("sendPing ipv4:{}, ipv6:{}", node.getInetSocketV4(),
+//        node.getInetSocketV6());
     PingMessage msg = new PingMessage(kadService.getPublicHomeNode(), getNode());
     waitForPong = true;
     sendMessage(msg, node.isIpV4Compatible());
@@ -196,7 +196,7 @@ public class NodeHandler {
 
   private void sendMessage(Message msg, boolean useV4) {
     InetSocketAddress inetSocketAddress =
-        useV4 ? node.getInetSocketAddressV4() : node.getInetSocketAddressV6();
+        useV4 ? node.getInetSocketV4() : node.getInetSocketV6();
     kadService.sendOutbound(new UdpEvent(msg, inetSocketAddress));
   }
 

@@ -51,8 +51,8 @@ public class PeerClient {
         .addListener((ChannelFutureListener) future -> {
           if (!future.isSuccess()) {
             log.warn("Connect to peer {} fail, cause:{}",
-                useIpv6 ? node.getInetSocketAddressV6().getAddress()
-                    : node.getInetSocketAddressV4().getAddress(),
+                useIpv6 ? node.getInetSocketV6().getAddress()
+                    : node.getInetSocketV4().getAddress(),
                 future.cause().getMessage());
             future.channel().close();
           }

@@ -4,8 +4,10 @@ import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -14,7 +16,6 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.DiscoverService;
 import org.tron.p2p.discover.Node;
@@ -39,7 +40,7 @@ public class KadService implements DiscoverService {
 
   private volatile boolean inited = false;
 
-  private final Map<String, NodeHandler> nodeHandlerMap = new ConcurrentHashMap<>();
+  private final Map<InetSocketAddress, NodeHandler> nodeHandlerMap = new ConcurrentHashMap<>();
 
   private Consumer<UdpEvent> messageSender;
 
@@ -48,9 +49,6 @@ public class KadService implements DiscoverService {
 
   private ScheduledExecutorService pongTimer;
   private DiscoverTask discoverTask;
-
-  private final Map<InetSocketAddress, String> ipv4Node = new ConcurrentHashMap<>();
-  private final Map<InetSocketAddress, String> ipv6Node = new ConcurrentHashMap<>();
 
   public void init() {
     for (InetSocketAddress address : Parameter.p2pConfig.getSeedNodes()) {
@@ -97,11 +95,11 @@ public class KadService implements DiscoverService {
   }
 
   public List<Node> getAllNodes() {
-    List<Node> nodeList = new ArrayList<>();
+    Set<Node> nodeList = new HashSet<>();
     for (NodeHandler nodeHandler : nodeHandlerMap.values()) {
       nodeList.add(nodeHandler.getNode());
     }
-    return nodeList;
+    return new ArrayList<>(nodeList);
   }
 
   @Override
@@ -152,8 +150,7 @@ public class KadService implements DiscoverService {
   }
 
   public NodeHandler getNodeHandler(Node n) {
-    String key = getKey(n);
-    NodeHandler ret = nodeHandlerMap.get(key);
+    NodeHandler ret = getNodeHandlerFromMap(n);
     if (ret == null) {
       trimTable();
       ret = new NodeHandler(n, this);
@@ -161,7 +158,16 @@ public class KadService implements DiscoverService {
       ret.getNode().updateHostV4(n.getHostV4());
       ret.getNode().updateHostV6(n.getHostV6());
     }
-    nodeHandlerMap.put(key, ret);
+
+    InetSocketAddress inet4 = ret.getNode().getInetSocketV4();
+    InetSocketAddress inet6 = ret.getNode().getInetSocketV6();
+    if (inet4 != null && nodeHandlerMap.get(inet4) == null) {
+      nodeHandlerMap.put(inet4, ret);
+    }
+    if (inet6 != null && nodeHandlerMap.get(inet6) == null) {
+      nodeHandlerMap.put(inet6, ret);
+    }
+
     return ret;
   }
 
@@ -203,49 +209,22 @@ public class KadService implements DiscoverService {
     }
   }
 
-  private String getKey(Node n) {
-    return getKey(n.getHostV4(), n.getHostV6(), n.getPort(), n.getHexId());
-  }
-
   // if hostV4:port or hostV6:port exist, we consider they are the same node. orders may like this:
   // first node with v4, then node with v4 & v6
   // first node with v6, then node with v4 & v6
   // first node with v4 & v6, then node with v4
   // first node with v4 & v6, then node with v6
-  private String getKey(String hostV4, String hostV6, int port, String nodeId) {
+  private NodeHandler getNodeHandlerFromMap(Node node) {
+    InetSocketAddress inet4 = node.getInetSocketV4();
+    InetSocketAddress inet6 = node.getInetSocketV6();
 
-    if (StringUtils.isNotEmpty(hostV4) && StringUtils.isEmpty(hostV6)) {
-      InetSocketAddress inet4 = new InetSocketAddress(hostV4, port);
-      if (!ipv4Node.containsKey(inet4)) {
-        ipv4Node.put(inet4, nodeId);
-      }
-      return ipv4Node.get(inet4);
-    } else if (StringUtils.isEmpty(hostV4) && StringUtils.isNotEmpty(hostV6)) {
-      InetSocketAddress inet6 = new InetSocketAddress(hostV6, port);
-      if (!ipv6Node.containsKey(inet6)) {
-        ipv6Node.put(inet6, nodeId);
-      }
-      return ipv6Node.get(inet6);
-    } else if (StringUtils.isNotEmpty(hostV4) && StringUtils.isNotEmpty(hostV6)) {
-      InetSocketAddress inet4 = new InetSocketAddress(hostV4, port);
-      InetSocketAddress inet6 = new InetSocketAddress(hostV6, port);
-
-      String key;
-      if (ipv4Node.containsKey(inet4)) {
-        key = ipv4Node.get(inet4);
-        ipv6Node.put(inet6, key);
-      } else if (ipv6Node.containsKey(inet6)) {
-        key = ipv6Node.get(inet6);
-        ipv4Node.put(inet4, key);
-      } else {
-        key = nodeId;
-        ipv4Node.put(inet4, key);
-        ipv6Node.put(inet6, key);
-      }
-      return key;
-    } else {
-      //impossible
-      return null;
+    NodeHandler nodeHandler = null;
+    if (inet4 != null) {
+      nodeHandler = nodeHandlerMap.get(inet4);
     }
+    if (nodeHandler == null && inet6 != null) {
+      nodeHandler = nodeHandlerMap.get(inet6);
+    }
+    return nodeHandler;
   }
 }

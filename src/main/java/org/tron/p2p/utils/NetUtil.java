@@ -78,8 +78,6 @@ public class NetUtil {
     String ip = null;
     try {
       URLConnection urlConnection = new URL(url).openConnection();
-      urlConnection.setConnectTimeout(3000);
-      urlConnection.setReadTimeout(3000);
       in = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
       ip = in.readLine();
       if (ip == null || ip.trim().isEmpty()) {

@@ -29,6 +29,10 @@ public class NodeManager {
     return discoverService.getConnectableNodes();
   }
 
+  public static Node getHomeNode() {
+    return discoverService.getPublicHomeNode();
+  }
+
   public static List<Node> getTableNodes() {
     return discoverService.getTableNodes();
   }

@@ -1,7 +1,6 @@
 package org.tron.p2p.discover.message.kad;
 
 import com.google.protobuf.ByteString;
-import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.message.Message;
@@ -24,12 +23,10 @@ public abstract class KadMessage extends Message {
         .setPort(node.getPort())
         .setNodeId(ByteString.copyFrom(node.getId()));
     if (StringUtils.isNotEmpty(node.getHostV4())) {
-      builder.setAddress(ByteString.copyFrom(
-          Objects.requireNonNull(ByteArray.fromString(node.getHostV4()))));
+      builder.setAddress(ByteString.copyFrom(ByteArray.fromString(node.getHostV4())));
     }
     if (StringUtils.isNotEmpty(node.getHostV6())) {
-      builder.setAddressIpv6(ByteString.copyFrom(
-          Objects.requireNonNull(ByteArray.fromString(node.getHostV6()))));
+      builder.setAddressIpv6(ByteString.copyFrom(ByteArray.fromString(node.getHostV6())));
     }
     return builder.build();
   }

@@ -1,7 +1,6 @@
 package org.tron.p2p.connection.message.handshake;
 
 import com.google.protobuf.ByteString;
-import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
@@ -29,11 +28,11 @@ public class HelloMessage extends Message {
         .setPort(Parameter.p2pConfig.getPort());
     if (StringUtils.isNotEmpty(Parameter.p2pConfig.getIp())) {
       builder.setAddress(ByteString.copyFrom(
-          Objects.requireNonNull(ByteArray.fromString(Parameter.p2pConfig.getIp()))));
+          ByteArray.fromString(Parameter.p2pConfig.getIp())));
     }
     if (StringUtils.isNotEmpty(Parameter.p2pConfig.getIpv6())) {
       builder.setAddressIpv6(ByteString.copyFrom(
-          Objects.requireNonNull(ByteArray.fromString(Parameter.p2pConfig.getIpv6()))));
+          ByteArray.fromString(Parameter.p2pConfig.getIpv6())));
     }
     Discover.Endpoint endpoint = builder.build();
     this.helloMessage = Connect.HelloMessage.newBuilder()

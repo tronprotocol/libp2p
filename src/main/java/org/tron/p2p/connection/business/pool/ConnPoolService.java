@@ -29,7 +29,6 @@ import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
-import org.tron.p2p.discover.protocol.kad.KadService;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.utils.CollectionUtils;
 
@@ -78,6 +77,15 @@ public class ConnPoolService extends P2pEventHandler {
     }
   }
 
+  private void addNode(Set<InetSocketAddress> inetSet, Node node) {
+    if (node.getInetSocketV4() != null) {
+      inetSet.add(node.getInetSocketV4());
+    }
+    if (node.getInetSocketV6() != null) {
+      inetSet.add(node.getInetSocketV6());
+    }
+  }
+
   private void connect() {
     List<Node> connectNodes = new ArrayList<>();
 
@@ -90,6 +98,7 @@ public class ConnPoolService extends P2pEventHandler {
         nodesInUse.add(channel.getNodeId());
       }
       addressInUse.add(channel.getInetAddress());
+      inetInUse.add(channel.getInetSocketAddress());
     });
 
     p2pConfig.getActiveNodes().forEach(address -> {
@@ -102,6 +111,7 @@ public class ConnPoolService extends P2pEventHandler {
         }
       }
     });
+    addNode(inetInUse, NodeManager.getHomeNode());
 
     //calculate lackSize exclude config activeNodes
     int size = Math.max(p2pConfig.getMinConnections() - activePeers.size(),
@@ -121,12 +131,10 @@ public class ConnPoolService extends P2pEventHandler {
     connectNodes.forEach(n -> {
       if (n.isIpV4Compatible()) {
         peerClient.connectAsync(n, false, false);
-        peerClientCache.put(n.getInetSocketAddressV4().getAddress(), System.currentTimeMillis());
-      } else if (n.isIpV6Compatible()) {
-        peerClient.connectAsync(n, true, false);
-        peerClientCache.put(n.getInetSocketAddressV6().getAddress(), System.currentTimeMillis());
+        peerClientCache.put(n.getInetSocketV4().getAddress(), System.currentTimeMillis());
       } else {
-        log.error("Not compatible IP Stack");
+        peerClient.connectAsync(n, true, false);
+        peerClientCache.put(n.getInetSocketV6().getAddress(), System.currentTimeMillis());
       }
     });
   }
@@ -137,34 +145,14 @@ public class ConnPoolService extends P2pEventHandler {
 
     long now = System.currentTimeMillis();
     for (Node node : connectableNodes) {
-      if (node.getId() != null && nodesInUse.contains(node.getHexId())) {
+      if ((node.getId() != null && nodesInUse.contains(node.getHexId()))
+          || !node.isIpStackCompatible()
+          || (node.getInetSocketV4() != null && inetInUse.contains(node.getInetSocketV4()))
+          || (node.getInetSocketV6() != null && inetInUse.contains(node.getInetSocketV6()))
+          || (node.isIpV4Compatible() && filter(node.getInetSocketV4().getAddress(), now))
+          || (node.isIpV6Compatible() && filter(node.getInetSocketV6().getAddress(), now))
+      ) {
         continue;
-      }
-      if (!node.isIpStackCompatible()) {
-        continue;
-      }
-      if (StringUtils.isNotEmpty(node.getHostV4()) && inetInUse.contains(
-          node.getInetSocketAddressV4())) {
-        continue;
-      }
-      if (StringUtils.isNotEmpty(node.getHostV6()) && inetInUse.contains(
-          node.getInetSocketAddressV6())) {
-        continue;
-      }
-      if (node.isIpV4Compatible()) {
-        if (node.getHostV4().equals(p2pConfig.getIp()) && node.getPort() == p2pConfig.getPort()) {
-          continue;
-        }
-        if (filter(node.getInetSocketAddressV4().getAddress(), now)) {
-          continue;
-        }
-      } else if (node.isIpV6Compatible()) {
-        if (node.getHostV6().equals(p2pConfig.getIpv6()) && node.getPort() == p2pConfig.getPort()) {
-          continue;
-        }
-        if (filter(node.getInetSocketAddressV6().getAddress(), now)) {
-          continue;
-        }
       }
       // sometimes error occurs if update_time changes when sort, so we copy it
       filtered.add((Node) node.clone());
