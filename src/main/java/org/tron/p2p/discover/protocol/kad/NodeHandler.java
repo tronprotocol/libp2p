@@ -157,8 +157,6 @@ public class NodeHandler {
   }
 
   public void sendPing() {
-//    log.info("sendPing ipv4:{}, ipv6:{}", node.getInetSocketAddressV4(),
-//        node.getInetSocketAddressV6());
     PingMessage msg = new PingMessage(kadService.getPublicHomeNode(), getNode());
     waitForPong = true;
     sendMessage(msg);
