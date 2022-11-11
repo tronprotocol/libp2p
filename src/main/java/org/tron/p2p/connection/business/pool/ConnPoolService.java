@@ -78,11 +78,13 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   private void addNode(Set<InetSocketAddress> inetSet, Node node) {
-    if (node.getInetSocketAddressV4() != null) {
-      inetSet.add(node.getInetSocketAddressV4());
-    }
-    if (node.getInetSocketAddressV6() != null) {
-      inetSet.add(node.getInetSocketAddressV6());
+    if (node != null) {
+      if (node.getInetSocketAddressV4() != null) {
+        inetSet.add(node.getInetSocketAddressV4());
+      }
+      if (node.getInetSocketAddressV6() != null) {
+        inetSet.add(node.getInetSocketAddressV6());
+      }
     }
   }
 
