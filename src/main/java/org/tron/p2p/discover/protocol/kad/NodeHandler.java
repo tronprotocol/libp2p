@@ -125,9 +125,9 @@ public class NodeHandler {
     }
   }
 
-  public void handleNeighbours(NeighborsMessage msg) {
+  public void handleNeighbours(NeighborsMessage msg, InetSocketAddress sender) {
     if (!waitForNeighbors) {
-      log.warn("Receive neighbors from {} without send find nodes", node.getHostKey());
+      log.warn("Receive neighbors from {} without send find nodes", sender);
       return;
     }
     waitForNeighbors = false;

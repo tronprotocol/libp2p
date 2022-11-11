@@ -3,6 +3,7 @@ package org.tron.p2p.discover;
 import java.io.Serializable;
 import java.net.Inet4Address;
 import java.net.InetSocketAddress;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -17,8 +18,10 @@ public class Node implements Serializable, Cloneable {
 
   private byte[] id;
 
+  @Getter
   private String hostV4;
 
+  @Getter
   private String hostV6;
 
   private int port;
@@ -93,11 +96,11 @@ public class Node implements Serializable, Cloneable {
   }
 
   public boolean isIpV4Compatible() {
-    return supportV4() && StringUtils.isNotEmpty(Parameter.p2pConfig.getIp());
+    return StringUtils.isNotEmpty(hostV4) && StringUtils.isNotEmpty(Parameter.p2pConfig.getIp());
   }
 
   public boolean isIpV6Compatible() {
-    return supportV6() && StringUtils.isNotEmpty(Parameter.p2pConfig.getIpv6());
+    return StringUtils.isNotEmpty(hostV6) && StringUtils.isNotEmpty(Parameter.p2pConfig.getIpv6());
   }
 
   public InetSocketAddress getPreferInetSocketAddress() {
@@ -124,14 +127,6 @@ public class Node implements Serializable, Cloneable {
 
   public void setId(byte[] id) {
     this.id = id;
-  }
-
-  public String getHostV4() {
-    return hostV4;
-  }
-
-  public String getHostV6() {
-    return hostV6;
   }
 
   //node that exists in kad table has whole hostV4 and hostV6 if it support v4 and v6
@@ -208,14 +203,6 @@ public class Node implements Serializable, Cloneable {
 
   public InetSocketAddress getInetSocketAddressV6() {
     return StringUtils.isNotEmpty(hostV6) ? new InetSocketAddress(hostV6, port) : null;
-  }
-
-  private boolean supportV4() {
-    return StringUtils.isNotEmpty(hostV4);
-  }
-
-  private boolean supportV6() {
-    return StringUtils.isNotEmpty(hostV6);
   }
 
   @Override

@@ -141,7 +141,7 @@ public class KadService implements DiscoverService {
         nodeHandler.handleFindNode((FindNodeMessage) m);
         break;
       case KAD_NEIGHBORS:
-        nodeHandler.handleNeighbours((NeighborsMessage) m);
+        nodeHandler.handleNeighbours((NeighborsMessage) m, sender);
         break;
       default:
         break;
