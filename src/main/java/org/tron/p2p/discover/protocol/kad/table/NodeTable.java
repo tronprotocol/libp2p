@@ -94,12 +94,12 @@ public class NodeTable {
   public synchronized List<Node> getClosestNodes(byte[] targetId) {
     List<NodeEntry> closestEntries = getAllNodes();
     List<Node> closestNodes = new ArrayList<>();
-    Collections.sort(closestEntries, new DistanceComparator(targetId));
-    if (closestEntries.size() > KademliaOptions.BUCKET_SIZE) {
-      closestEntries = closestEntries.subList(0, KademliaOptions.BUCKET_SIZE);
-    }
     for (NodeEntry e : closestEntries) {
-      closestNodes.add(e.getNode());
+      closestNodes.add((Node) e.getNode().clone());
+    }
+    Collections.sort(closestNodes, new DistanceComparator(targetId));
+    if (closestNodes.size() > KademliaOptions.BUCKET_SIZE) {
+      closestNodes = closestNodes.subList(0, KademliaOptions.BUCKET_SIZE);
     }
     return closestNodes;
   }
