@@ -44,13 +44,13 @@ public class NodeTest {
     Parameter.p2pConfig.setIpv6(null);
 
     Node node1 = new Node(NetUtil.getNodeId(), "127.0.0.1", null, 10002);
-    Assert.assertTrue(node1.getPreferInetSocketAddress() != null);
+    Assert.assertNotNull(node1.getPreferInetSocketAddress());
 
     Node node2 = new Node(NetUtil.getNodeId(), null, "fe80:0:0:0:204:61ff:fe9d:f156", 10002);
-    Assert.assertTrue(node2.getPreferInetSocketAddress() == null);
+    Assert.assertNull(node2.getPreferInetSocketAddress());
 
     Node node3 = new Node(NetUtil.getNodeId(), "127.0.0.1", "fe80:0:0:0:204:61ff:fe9d:f156", 10002);
-    Assert.assertTrue(node3.getPreferInetSocketAddress() != null);
+    Assert.assertNotNull(node3.getPreferInetSocketAddress());
   }
 
   @Test
@@ -59,13 +59,13 @@ public class NodeTest {
     Parameter.p2pConfig.setIpv6("fe80:0:0:0:204:61ff:fe9d:f157");
 
     Node node1 = new Node(NetUtil.getNodeId(), "127.0.0.1", null, 10002);
-    Assert.assertTrue(node1.getPreferInetSocketAddress() == null);
+    Assert.assertNull(node1.getPreferInetSocketAddress());
 
     Node node2 = new Node(NetUtil.getNodeId(), null, "fe80:0:0:0:204:61ff:fe9d:f156", 10002);
-    Assert.assertTrue(node2.getPreferInetSocketAddress() != null);
+    Assert.assertNotNull(node2.getPreferInetSocketAddress());
 
     Node node3 = new Node(NetUtil.getNodeId(), "127.0.0.1", "fe80:0:0:0:204:61ff:fe9d:f156", 10002);
-    Assert.assertTrue(node3.getPreferInetSocketAddress() != null);
+    Assert.assertNotNull(node3.getPreferInetSocketAddress());
   }
 
   @Test
@@ -74,15 +74,15 @@ public class NodeTest {
     Parameter.p2pConfig.setIpv6("fe80:0:0:0:204:61ff:fe9d:f157");
 
     Node node1 = new Node(NetUtil.getNodeId(), "127.0.0.1", null, 10002);
-    Assert.assertTrue(node1.getPreferInetSocketAddress() != null);
+    Assert.assertNotNull(node1.getPreferInetSocketAddress());
 
     Node node2 = new Node(NetUtil.getNodeId(), null, "fe80:0:0:0:204:61ff:fe9d:f156", 10002);
-    Assert.assertTrue(node2.getPreferInetSocketAddress() != null);
+    Assert.assertNotNull(node2.getPreferInetSocketAddress());
 
     Node node3 = new Node(NetUtil.getNodeId(), "127.0.0.1", "fe80:0:0:0:204:61ff:fe9d:f156", 10002);
-    Assert.assertTrue(node3.getPreferInetSocketAddress() != null);
+    Assert.assertNotNull(node3.getPreferInetSocketAddress());
 
     Node node4 = new Node(NetUtil.getNodeId(), null, null, 10002);
-    Assert.assertTrue(node4.getPreferInetSocketAddress() == null);
+    Assert.assertNull(node4.getPreferInetSocketAddress());
   }
 }
