@@ -44,19 +44,13 @@ public class NodeTest {
     Parameter.p2pConfig.setIpv6(null);
 
     Node node1 = new Node(NetUtil.getNodeId(), "127.0.0.1", null, 10002);
-    Assert.assertTrue(node1.isIpV4Compatible());
-    Assert.assertFalse(node1.isIpV6Compatible());
-    Assert.assertTrue(node1.isIpStackCompatible());
+    Assert.assertTrue(node1.getPreferInetSocketAddress() != null);
 
     Node node2 = new Node(NetUtil.getNodeId(), null, "fe80:0:0:0:204:61ff:fe9d:f156", 10002);
-    Assert.assertFalse(node2.isIpV4Compatible());
-    Assert.assertFalse(node2.isIpV6Compatible());
-    Assert.assertFalse(node2.isIpStackCompatible());
+    Assert.assertTrue(node2.getPreferInetSocketAddress() == null);
 
     Node node3 = new Node(NetUtil.getNodeId(), "127.0.0.1", "fe80:0:0:0:204:61ff:fe9d:f156", 10002);
-    Assert.assertTrue(node3.isIpV4Compatible());
-    Assert.assertFalse(node3.isIpV6Compatible());
-    Assert.assertTrue(node3.isIpStackCompatible());
+    Assert.assertTrue(node3.getPreferInetSocketAddress() != null);
   }
 
   @Test
@@ -65,19 +59,13 @@ public class NodeTest {
     Parameter.p2pConfig.setIpv6("fe80:0:0:0:204:61ff:fe9d:f157");
 
     Node node1 = new Node(NetUtil.getNodeId(), "127.0.0.1", null, 10002);
-    Assert.assertFalse(node1.isIpV4Compatible());
-    Assert.assertFalse(node1.isIpV6Compatible());
-    Assert.assertFalse(node1.isIpStackCompatible());
+    Assert.assertTrue(node1.getPreferInetSocketAddress() == null);
 
     Node node2 = new Node(NetUtil.getNodeId(), null, "fe80:0:0:0:204:61ff:fe9d:f156", 10002);
-    Assert.assertFalse(node2.isIpV4Compatible());
-    Assert.assertTrue(node2.isIpV6Compatible());
-    Assert.assertTrue(node2.isIpStackCompatible());
+    Assert.assertTrue(node2.getPreferInetSocketAddress() != null);
 
     Node node3 = new Node(NetUtil.getNodeId(), "127.0.0.1", "fe80:0:0:0:204:61ff:fe9d:f156", 10002);
-    Assert.assertFalse(node3.isIpV4Compatible());
-    Assert.assertTrue(node3.isIpV6Compatible());
-    Assert.assertTrue(node3.isIpStackCompatible());
+    Assert.assertTrue(node3.getPreferInetSocketAddress() != null);
   }
 
   @Test
@@ -86,23 +74,15 @@ public class NodeTest {
     Parameter.p2pConfig.setIpv6("fe80:0:0:0:204:61ff:fe9d:f157");
 
     Node node1 = new Node(NetUtil.getNodeId(), "127.0.0.1", null, 10002);
-    Assert.assertTrue(node1.isIpV4Compatible());
-    Assert.assertFalse(node1.isIpV6Compatible());
-    Assert.assertTrue(node1.isIpStackCompatible());
+    Assert.assertTrue(node1.getPreferInetSocketAddress() != null);
 
     Node node2 = new Node(NetUtil.getNodeId(), null, "fe80:0:0:0:204:61ff:fe9d:f156", 10002);
-    Assert.assertFalse(node2.isIpV4Compatible());
-    Assert.assertTrue(node2.isIpV6Compatible());
-    Assert.assertTrue(node2.isIpStackCompatible());
+    Assert.assertTrue(node2.getPreferInetSocketAddress() != null);
 
     Node node3 = new Node(NetUtil.getNodeId(), "127.0.0.1", "fe80:0:0:0:204:61ff:fe9d:f156", 10002);
-    Assert.assertTrue(node3.isIpV4Compatible());
-    Assert.assertTrue(node3.isIpV6Compatible());
-    Assert.assertTrue(node3.isIpStackCompatible());
+    Assert.assertTrue(node3.getPreferInetSocketAddress() != null);
 
     Node node4 = new Node(NetUtil.getNodeId(), null, null, 10002);
-    Assert.assertFalse(node4.isIpV4Compatible());
-    Assert.assertFalse(node4.isIpV6Compatible());
-    Assert.assertFalse(node4.isIpStackCompatible());
+    Assert.assertTrue(node4.getPreferInetSocketAddress() == null);
   }
 }

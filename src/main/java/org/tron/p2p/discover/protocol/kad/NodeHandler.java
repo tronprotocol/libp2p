@@ -29,7 +29,7 @@ public class NodeHandler {
     this.node = node;
     this.kadService = kadService;
     // send ping only if IP stack is compatible
-    if (node.isIpStackCompatible()) {
+    if (node.getPreferInetSocketAddress() != null) {
       changeState(State.DISCOVERED);
     }
   }

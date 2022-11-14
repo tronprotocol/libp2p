@@ -1,13 +1,10 @@
 package org.tron.p2p.discover.protocol.kad;
 
-import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -86,7 +83,7 @@ public class KadService implements DiscoverService {
   public List<Node> getConnectableNodes() {
     return getAllNodes().stream()
         .filter(node -> node.isConnectible(Parameter.p2pConfig.getVersion()))
-        .filter(Node::isIpStackCompatible)
+        .filter(node -> node.getPreferInetSocketAddress() != null)
         .collect(Collectors.toList());
   }
 
@@ -95,11 +92,11 @@ public class KadService implements DiscoverService {
   }
 
   public List<Node> getAllNodes() {
-    Set<Node> nodeList = new HashSet<>();
+    List<Node> nodeList = new ArrayList<>();
     for (NodeHandler nodeHandler : nodeHandlerMap.values()) {
       nodeList.add(nodeHandler.getNode());
     }
-    return new ArrayList<>(nodeList);
+    return nodeList;
   }
 
   @Override
@@ -162,20 +159,13 @@ public class KadService implements DiscoverService {
     if (ret == null) {
       trimTable();
       ret = new NodeHandler(n, this);
+      if (n.getPreferInetSocketAddress() != null) {
+        nodeHandlerMap.put(n.getPreferInetSocketAddress(), ret);
+      }
     } else {
       ret.getNode().updateHostV4(n.getHostV4());
       ret.getNode().updateHostV6(n.getHostV6());
     }
-
-    inet4 = ret.getNode().getInetSocketAddressV4();
-    inet6 = ret.getNode().getInetSocketAddressV6();
-    if (inet4 != null && nodeHandlerMap.get(inet4) == null) {
-      nodeHandlerMap.put(inet4, ret);
-    }
-    if (inet6 != null && nodeHandlerMap.get(inet6) == null) {
-      nodeHandlerMap.put(inet6, ret);
-    }
-
     return ret;
   }
 

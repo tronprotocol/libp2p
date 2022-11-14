@@ -91,22 +91,11 @@ public class Node implements Serializable, Cloneable {
     return port == bindPort && p2pVersion == argsP2PVersion;
   }
 
-  public boolean isIpStackCompatible() {
-    return isIpV4Compatible() || isIpV6Compatible();
-  }
-
-  public boolean isIpV4Compatible() {
-    return StringUtils.isNotEmpty(hostV4) && StringUtils.isNotEmpty(Parameter.p2pConfig.getIp());
-  }
-
-  public boolean isIpV6Compatible() {
-    return StringUtils.isNotEmpty(hostV6) && StringUtils.isNotEmpty(Parameter.p2pConfig.getIpv6());
-  }
-
   public InetSocketAddress getPreferInetSocketAddress() {
-    if (isIpV4Compatible()) {
+    if (StringUtils.isNotEmpty(hostV4) && StringUtils.isNotEmpty(Parameter.p2pConfig.getIp())) {
       return getInetSocketAddressV4();
-    } else if (isIpV6Compatible()) {
+    } else if (StringUtils.isNotEmpty(hostV6) && StringUtils.isNotEmpty(
+        Parameter.p2pConfig.getIpv6())) {
       return getInetSocketAddressV6();
     } else {
       return null;
@@ -129,17 +118,8 @@ public class Node implements Serializable, Cloneable {
     this.id = id;
   }
 
-  //node that exists in kad table has whole hostV4 and hostV6 if it support v4 and v6
   public String getHostKey() {
-    StringBuilder sb = new StringBuilder();
-    if (StringUtils.isNotEmpty(hostV4)) {
-      sb.append(hostV4);
-    }
-    sb.append("-");
-    if (StringUtils.isNotEmpty(hostV6)) {
-      sb.append(hostV6);
-    }
-    return sb.toString();
+    return getPreferInetSocketAddress().getAddress().getHostAddress();
   }
 
   public int getPort() {

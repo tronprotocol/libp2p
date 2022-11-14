@@ -106,7 +106,7 @@ public class ConnPoolService extends P2pEventHandler {
     p2pConfig.getActiveNodes().forEach(address -> {
       if (!addressInUse.contains(address.getAddress())) {
         Node node = new Node(address); //use a random NodeId for config activeNodes
-        if (node.isIpStackCompatible()) {
+        if (node.getPreferInetSocketAddress() != null) {
           addressInUse.add(address.getAddress());
           inetInUse.add(address);
           connectNodes.add(node);
