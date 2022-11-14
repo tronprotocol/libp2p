@@ -149,7 +149,16 @@ public class KadService implements DiscoverService {
   }
 
   public NodeHandler getNodeHandler(Node n) {
-    NodeHandler ret = getNodeHandlerFromMap(n);
+    NodeHandler ret = null;
+    InetSocketAddress inet4 = n.getInetSocketAddressV4();
+    InetSocketAddress inet6 = n.getInetSocketAddressV6();
+    if (inet4 != null) {
+      ret = nodeHandlerMap.get(inet4);
+    }
+    if (ret == null && inet6 != null) {
+      ret = nodeHandlerMap.get(inet6);
+    }
+
     if (ret == null) {
       trimTable();
       ret = new NodeHandler(n, this);
@@ -158,8 +167,8 @@ public class KadService implements DiscoverService {
       ret.getNode().updateHostV6(n.getHostV6());
     }
 
-    InetSocketAddress inet4 = ret.getNode().getInetSocketAddressV4();
-    InetSocketAddress inet6 = ret.getNode().getInetSocketAddressV6();
+    inet4 = ret.getNode().getInetSocketAddressV4();
+    inet6 = ret.getNode().getInetSocketAddressV6();
     if (inet4 != null && nodeHandlerMap.get(inet4) == null) {
       nodeHandlerMap.put(inet4, ret);
     }
@@ -206,24 +215,5 @@ public class KadService implements DiscoverService {
         }
       }
     }
-  }
-
-  // if hostV4:port or hostV6:port exist, we consider they are the same node. orders may like this:
-  // first node with v4, then node with v4 & v6
-  // first node with v6, then node with v4 & v6
-  // first node with v4 & v6, then node with v4
-  // first node with v4 & v6, then node with v6
-  private NodeHandler getNodeHandlerFromMap(Node node) {
-    InetSocketAddress inet4 = node.getInetSocketAddressV4();
-    InetSocketAddress inet6 = node.getInetSocketAddressV6();
-
-    NodeHandler nodeHandler = null;
-    if (inet4 != null) {
-      nodeHandler = nodeHandlerMap.get(inet4);
-    }
-    if (nodeHandler == null && inet6 != null) {
-      nodeHandler = nodeHandlerMap.get(inet6);
-    }
-    return nodeHandler;
   }
 }
