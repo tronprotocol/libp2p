@@ -30,11 +30,11 @@ public class NodeTable {
   }
 
   public synchronized Node addNode(Node n) {
-    if (n.getHost().equals(node.getHost())) {
+    if (n.getHostKey().equals(node.getHostKey())) {
       return null;
     }
 
-    NodeEntry entry = nodes.get(n.getHost());
+    NodeEntry entry = nodes.get(n.getHostKey());
     if (entry != null) {
       entry.touch();
       return null;
@@ -45,24 +45,24 @@ public class NodeTable {
     if (lastSeen != null) {
       return lastSeen.getNode();
     }
-    nodes.put(n.getHost(), e);
+    nodes.put(n.getHostKey(), e);
     return null;
   }
 
   public synchronized void dropNode(Node n) {
-    NodeEntry entry = nodes.get(n.getHost());
+    NodeEntry entry = nodes.get(n.getHostKey());
     if (entry != null) {
-      nodes.remove(n.getHost());
+      nodes.remove(n.getHostKey());
       buckets[getBucketId(entry)].dropNode(entry);
     }
   }
 
   public synchronized boolean contains(Node n) {
-    return nodes.containsKey(n.getHost());
+    return nodes.containsKey(n.getHostKey());
   }
 
   public synchronized void touchNode(Node n) {
-    NodeEntry entry = nodes.get(n.getHost());
+    NodeEntry entry = nodes.get(n.getHostKey());
     if (entry != null) {
       entry.touch();
     }
@@ -80,7 +80,7 @@ public class NodeTable {
 
   public int getBucketId(NodeEntry e) {
     int id = e.getDistance() - 1;
-    return id < 0 ? 0 : id;
+    return Math.max(id, 0);
   }
 
   public synchronized int getNodesCount() {

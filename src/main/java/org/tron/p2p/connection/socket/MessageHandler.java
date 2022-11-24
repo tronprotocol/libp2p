@@ -5,7 +5,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
-import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
@@ -33,8 +32,7 @@ public class MessageHandler extends ByteToMessageDecoder {
       return;
     }
     if (channel.isActive()) {
-      channel.setFinishHandshake(true);
-      Parameter.handlerList.forEach(h -> h.onConnect(channel));
+      ChannelManager.getHandshakeService().startHandshake(channel);
     }
   }
 

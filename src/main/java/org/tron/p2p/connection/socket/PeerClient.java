@@ -45,11 +45,12 @@ public class PeerClient {
   }
 
   public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
-    return connectAsync(node.getHost(), node.getPort(),
+    return connectAsync(node.getPreferInetSocketAddress().getAddress().getHostAddress(),
+        node.getPort(),
         node.getId() == null ? null : node.getHexId(), discoveryMode)
         .addListener((ChannelFutureListener) future -> {
           if (!future.isSuccess()) {
-            log.warn("Connect to peer {} fail, cause:{}", node.getInetSocketAddress().getAddress(),
+            log.warn("Connect to peer {} fail, cause:{}", node.getPreferInetSocketAddress(),
                 future.cause().getMessage());
             future.channel().close();
           }

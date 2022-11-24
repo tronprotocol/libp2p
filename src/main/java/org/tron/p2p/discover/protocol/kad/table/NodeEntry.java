@@ -10,7 +10,7 @@ public class NodeEntry {
 
   public NodeEntry(byte[] ownerId, Node n) {
     this.node = n;
-    entryId = n.getHost();
+    entryId = n.getHostKey();
     distance = distance(ownerId, n.getId());
     touch();
   }

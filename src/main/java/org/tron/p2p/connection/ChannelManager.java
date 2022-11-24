@@ -124,8 +124,8 @@ public class ChannelManager {
     }
 
     channels.put(channel.getInetSocketAddress(), channel);
-    log.info("Add peer {}, total peers: {}",
-            channel.getInetSocketAddress(), channels.size());
+
+    log.info("Add peer {}, total channels: {}", channel.getInetSocketAddress(), channels.size());
     return DisconnectCode.NORMAL;
   }
 
@@ -198,8 +198,10 @@ public class ChannelManager {
     Channel c1 = list.get(0);
     Channel c2 = list.get(1);
     if (c1.getStartTime() > c2.getStartTime()) {
+      log.info("close channel {}, other channel {} is earlier", c1, c2);
       c1.close();
     } else {
+      log.info("close channel {}, other channel {} is earlier", c2, c1);
       c2.close();
     }
   }

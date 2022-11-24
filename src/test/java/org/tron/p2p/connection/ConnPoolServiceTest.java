@@ -41,14 +41,20 @@ public class ConnPoolServiceTest {
   public void getNodes_chooseHomeNode() {
     InetSocketAddress localAddress = new InetSocketAddress(Parameter.p2pConfig.getIp(),
         Parameter.p2pConfig.getPort());
-    Node localNode = new Node(localAddress);
+    Set<InetSocketAddress> inetInUse = new HashSet<>();
+    inetInUse.add(localAddress);
+
     List<Node> connectableNodes = new ArrayList<>();
-    connectableNodes.add(localNode);
+    connectableNodes.add(NodeManager.getHomeNode());
 
     ConnPoolService connPoolService = new ConnPoolService();
-    List<Node> nodes = connPoolService.getNodes(new HashSet<>(), new ArrayList<>(), connectableNodes, 1);
-
+    List<Node> nodes = connPoolService.getNodes(new HashSet<>(), inetInUse, connectableNodes,
+        1);
     Assert.assertEquals(0, nodes.size());
+
+    nodes = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes,
+        1);
+    Assert.assertEquals(1, nodes.size());
   }
 
   @Test
@@ -71,12 +77,14 @@ public class ConnPoolServiceTest {
     connectableNodes.add(node2);
 
     ConnPoolService connPoolService = new ConnPoolService();
-    List<Node> nodes = connPoolService.getNodes(new HashSet<>(), new ArrayList<>(), connectableNodes, 2);
+    List<Node> nodes = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes,
+        2);
     Assert.assertEquals(2, nodes.size());
     Assert.assertTrue(nodes.get(0).getUpdateTime() > nodes.get(1).getUpdateTime());
 
     int limit = 1;
-    List<Node> nodes2 = connPoolService.getNodes(new HashSet<>(), new ArrayList<>(), connectableNodes, limit);
+    List<Node> nodes2 = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes,
+        limit);
     Assert.assertEquals(limit, nodes2.size());
   }
 
@@ -84,18 +92,19 @@ public class ConnPoolServiceTest {
   public void getNodes_banNode() throws InterruptedException {
     clearChannels();
     InetSocketAddress inetSocketAddress = new InetSocketAddress(localIp, 90);
-    long banTime = 1_000L;
+    long banTime = 500L;
     ChannelManager.banNode(inetSocketAddress.getAddress(), banTime);
     Node node = new Node(inetSocketAddress);
     List<Node> connectableNodes = new ArrayList<>();
     connectableNodes.add(node);
 
     ConnPoolService connPoolService = new ConnPoolService();
-    List<Node> nodes = connPoolService.getNodes(new HashSet<>(), new ArrayList<>(), connectableNodes, 1);
+    List<Node> nodes = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes,
+        1);
     Assert.assertEquals(0, nodes.size());
-    Thread.sleep(banTime);
+    Thread.sleep(2 * banTime);
 
-    nodes = connPoolService.getNodes(new HashSet<>(), new ArrayList<>(), connectableNodes, 1);
+    nodes = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes, 1);
     Assert.assertEquals(1, nodes.size());
   }
 
@@ -110,7 +119,7 @@ public class ConnPoolServiceTest {
     Set<String> nodesInUse = new HashSet<>();
     nodesInUse.add(node.getHexId());
     ConnPoolService connPoolService = new ConnPoolService();
-    List<Node> nodes = connPoolService.getNodes(nodesInUse, new ArrayList<>(), connectableNodes, 1);
+    List<Node> nodes = connPoolService.getNodes(nodesInUse, new HashSet<>(), connectableNodes, 1);
     Assert.assertEquals(0, nodes.size());
   }
 

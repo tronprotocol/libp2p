@@ -77,26 +77,44 @@ public class ConnPoolService extends P2pEventHandler {
     }
   }
 
+  private void addNode(Set<InetSocketAddress> inetSet, Node node) {
+    if (node != null) {
+      if (node.getInetSocketAddressV4() != null) {
+        inetSet.add(node.getInetSocketAddressV4());
+      }
+      if (node.getInetSocketAddressV6() != null) {
+        inetSet.add(node.getInetSocketAddressV6());
+      }
+    }
+  }
+
   private void connect() {
     List<Node> connectNodes = new ArrayList<>();
 
     //collect already used nodes in channelManager
     Set<InetAddress> addressInUse = new HashSet<>();
+    Set<InetSocketAddress> inetInUse = new HashSet<>();
     Set<String> nodesInUse = new HashSet<>();
     ChannelManager.getChannels().values().forEach(channel -> {
       if (StringUtils.isNotEmpty(channel.getNodeId())) {
         nodesInUse.add(channel.getNodeId());
       }
       addressInUse.add(channel.getInetAddress());
+      addNode(inetInUse, channel.getNode());
     });
 
     p2pConfig.getActiveNodes().forEach(address -> {
       if (!addressInUse.contains(address.getAddress())) {
-        addressInUse.add(address.getAddress());
         Node node = new Node(address); //use a random NodeId for config activeNodes
-        connectNodes.add(node);
+        if (node.getPreferInetSocketAddress() != null) {
+          addressInUse.add(address.getAddress());
+          inetInUse.add(address);
+          connectNodes.add(node);
+        }
       }
     });
+    addNode(inetInUse, new Node(Parameter.p2pConfig.getNodeID(), Parameter.p2pConfig.getIp(),
+        Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort()));
 
     //calculate lackSize exclude config activeNodes
     int size = Math.max(p2pConfig.getMinConnections() - activePeers.size(),
@@ -107,36 +125,33 @@ public class ConnPoolService extends P2pEventHandler {
     if (lackSize > 0) {
       nodesInUse.add(Hex.toHexString(p2pConfig.getNodeID()));
       List<Node> connectableNodes = NodeManager.getConnectableNodes();
-      List<Node> newNodes = getNodes(nodesInUse, connectNodes, connectableNodes, lackSize);
+      List<Node> newNodes = getNodes(nodesInUse, inetInUse, connectableNodes, lackSize);
       connectNodes.addAll(newNodes);
     }
 
-    log.debug("Lack size:{}, connectNodes size:{}", size, connectNodes.size());
+    //log.info("Lack size:{}, connectNodes size:{}", size, connectNodes.size());
     //establish tcp connection with chose nodes by peerClient
     connectNodes.forEach(n -> {
       peerClient.connectAsync(n, false);
-      peerClientCache.put(n.getInetSocketAddress().getAddress(), System.currentTimeMillis());
+      peerClientCache.put(n.getPreferInetSocketAddress().getAddress(), System.currentTimeMillis());
     });
   }
 
-  public List<Node> getNodes(Set<String> nodesInUse, List<Node> connectNodes,
+  public List<Node> getNodes(Set<String> nodesInUse, Set<InetSocketAddress> inetInUse,
       List<Node> connectableNodes, int limit) {
     List<Node> filtered = new ArrayList<>();
-    Set<InetSocketAddress> connectAddress = new HashSet<>();
-    for (Node n : connectNodes) {
-      connectAddress.add(new InetSocketAddress(n.getHost(), n.getPort()));
-    }
+
     long now = System.currentTimeMillis();
     for (Node node : connectableNodes) {
-      InetAddress inetAddress = node.getInetSocketAddress().getAddress();
+      InetSocketAddress inetSocketAddress = node.getPreferInetSocketAddress();
+      InetAddress inetAddress = inetSocketAddress.getAddress();
       Long forbiddenTime = ChannelManager.getBannedNodes().getIfPresent(inetAddress);
-      if ((node.getHost().equals(p2pConfig.getIp()) && node.getPort() == p2pConfig.getPort())
-          || (forbiddenTime != null && now <= forbiddenTime)
+      if ((forbiddenTime != null && now <= forbiddenTime)
           || (ChannelManager.getConnectionNum(inetAddress)
           >= p2pConfig.getMaxConnectionsWithSameIp())
           || (node.getId() != null && nodesInUse.contains(node.getHexId()))
           || (peerClientCache.getIfPresent(inetAddress) != null)
-          || connectAddress.contains(node.getInetSocketAddress())) {
+          || inetInUse.contains(inetSocketAddress)) {
         continue;
       }
       // sometimes error occurs if update_time changes when sort, so we copy it

@@ -24,12 +24,13 @@ public class HandshakeService implements MessageProcess {
     HelloMessage msg = (HelloMessage) message;
 
     if (channel.isFinishHandshake()) {
-      channel.close();
       log.warn("Close channel {}, handshake is finished", channel.getInetAddress());
+      channel.close();
       return;
     }
 
     channel.setFinishHandshake(true);
+    channel.setNode(msg.getFrom());
 
     ChannelManager.updateNodeId(channel, msg.getFrom().getHexId());
     if (channel.isDisconnect()) {
