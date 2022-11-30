@@ -109,14 +109,6 @@ public class NodeDetectService implements MessageProcess {
       }
     }
     log.info("##### Detect loadNodes count:{}", count);
-    Node node;
-    if(Parameter.p2pConfig.getPort() == 1000) {
-      node = new Node(new InetSocketAddress("127.0.0.1",  1001) );
-    } else {
-      node = new Node(new InetSocketAddress("127.0.0.1",  1000) );
-    }
-    log.info("### {}", node.getPreferInetSocketAddress());
-    detect(new NodeStat(node));
   }
 
   private void detect(NodeStat stat) {
