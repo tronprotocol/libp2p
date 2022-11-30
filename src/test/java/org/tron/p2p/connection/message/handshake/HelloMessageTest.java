@@ -19,14 +19,14 @@ public class HelloMessageTest {
     Assert.assertTrue(ByteUtils.equals(p2pConfig.getNodeID(), m1.getFrom().getId()));
     Assert.assertEquals(p2pConfig.getPort(), m1.getFrom().getPort());
     Assert.assertEquals(p2pConfig.getIp(), m1.getFrom().getHostV4());
-    Assert.assertEquals(p2pConfig.getVersion(), m1.getVersion());
+    Assert.assertEquals(p2pConfig.getNetworkId(), m1.getNetworkId());
     Assert.assertEquals(MessageType.HANDSHAKE_HELLO, m1.getType());
 
     HelloMessage m2 = new HelloMessage(m1.getData());
     Assert.assertTrue(ByteUtils.equals(p2pConfig.getNodeID(), m2.getFrom().getId()));
     Assert.assertEquals(p2pConfig.getPort(), m2.getFrom().getPort());
     Assert.assertEquals(p2pConfig.getIp(), m2.getFrom().getHostV4());
-    Assert.assertEquals(p2pConfig.getVersion(), m2.getVersion());
+    Assert.assertEquals(p2pConfig.getNetworkId(), m2.getNetworkId());
     Assert.assertEquals(MessageType.HANDSHAKE_HELLO, m2.getType());
   }
 }

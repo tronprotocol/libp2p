@@ -11,6 +11,8 @@ public enum MessageType {
 
   HANDSHAKE_HELLO((byte) 0xfd),
 
+  STATUS((byte) 0xfc),
+
   UNKNOWN((byte) 0x80);
 
   private final byte type;

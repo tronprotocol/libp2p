@@ -20,14 +20,14 @@ public class PongMessage extends KadMessage {
     super(MessageType.KAD_PONG, null);
     Endpoint toEndpoint = getEndpointFromNode(from);
     this.pongMessage = Discover.PongMessage.newBuilder()
-        .setFrom(toEndpoint)
-        .setEcho(Parameter.p2pConfig.getVersion())
-        .setTimestamp(System.currentTimeMillis())
-        .build();
+      .setFrom(toEndpoint)
+      .setEcho(Parameter.p2pConfig.getNetworkId())
+      .setTimestamp(System.currentTimeMillis())
+      .build();
     this.data = this.pongMessage.toByteArray();
   }
 
-  public int getVersion() {
+  public int getNetworkId() {
     return this.pongMessage.getEcho();
   }
 

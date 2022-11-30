@@ -105,8 +105,8 @@ public class NodeHandler {
     if (!kadService.getTable().getNode().equals(node)) {
       sendPong();
     }
-    node.setP2pVersion(msg.getVersion());
-    if (!node.isConnectible(Parameter.p2pConfig.getVersion())) {
+    node.setP2pVersion(msg.getNetworkId());
+    if (!node.isConnectible(Parameter.p2pConfig.getNetworkId())) {
       changeState(State.DEAD);
     } else if (state.equals(State.DEAD)) {
       changeState(State.DISCOVERED);
@@ -116,8 +116,8 @@ public class NodeHandler {
   public void handlePong(PongMessage msg) {
     if (waitForPong) {
       waitForPong = false;
-      node.setP2pVersion(msg.getVersion());
-      if (!node.isConnectible(Parameter.p2pConfig.getVersion())) {
+      node.setP2pVersion(msg.getNetworkId());
+      if (!node.isConnectible(Parameter.p2pConfig.getNetworkId())) {
         changeState(State.DEAD);
       } else {
         changeState(State.ALIVE);
@@ -199,7 +199,7 @@ public class NodeHandler {
   @Override
   public String toString() {
     return "NodeHandler[state: " + state + ", node: " + node.getHostKey() + ":" + node.getPort()
-        + "]";
+      + "]";
   }
 
   public enum State {

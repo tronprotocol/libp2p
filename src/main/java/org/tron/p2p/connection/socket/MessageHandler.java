@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
+import org.tron.p2p.connection.message.detect.StatusMessage;
 
 @Slf4j(topic = "net")
 public class MessageHandler extends ByteToMessageDecoder {
@@ -26,13 +27,12 @@ public class MessageHandler extends ByteToMessageDecoder {
   public void channelActive(ChannelHandlerContext ctx) {
     log.info("Channel active, {}", ctx.channel().remoteAddress());
     channel.setChannelHandlerContext(ctx);
-    DisconnectCode code = ChannelManager.processPeer(channel);
-    if (code != DisconnectCode.NORMAL) {
-      channel.close();
-      return;
-    }
     if (channel.isActive()) {
-      ChannelManager.getHandshakeService().startHandshake(channel);
+      if (channel.isDiscoveryMode()) {
+        channel.send(new StatusMessage());
+      } else {
+        ChannelManager.getHandshakeService().startHandshake(channel);
+      }
     }
   }
 

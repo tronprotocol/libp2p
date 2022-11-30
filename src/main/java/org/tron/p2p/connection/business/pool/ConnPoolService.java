@@ -37,7 +37,7 @@ public class ConnPoolService extends P2pEventHandler {
 
   private final List<Channel> activePeers = Collections.synchronizedList(new ArrayList<>());
   private Cache<InetAddress, Long> peerClientCache = CacheBuilder.newBuilder()
-      .maximumSize(1000).expireAfterWrite(120, TimeUnit.SECONDS).recordStats().build();
+    .maximumSize(1000).expireAfterWrite(120, TimeUnit.SECONDS).recordStats().build();
   @Getter
   private final AtomicInteger passivePeersCount = new AtomicInteger(0);
   @Getter
@@ -95,6 +95,7 @@ public class ConnPoolService extends P2pEventHandler {
     Set<InetAddress> addressInUse = new HashSet<>();
     Set<InetSocketAddress> inetInUse = new HashSet<>();
     Set<String> nodesInUse = new HashSet<>();
+    nodesInUse.add(Hex.toHexString(p2pConfig.getNodeID()));
     ChannelManager.getChannels().values().forEach(channel -> {
       if (StringUtils.isNotEmpty(channel.getNodeId())) {
         nodesInUse.add(channel.getNodeId());
@@ -114,16 +115,28 @@ public class ConnPoolService extends P2pEventHandler {
       }
     });
     addNode(inetInUse, new Node(Parameter.p2pConfig.getNodeID(), Parameter.p2pConfig.getIp(),
-        Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort()));
+      Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort()));
 
     //calculate lackSize exclude config activeNodes
     int size = Math.max(p2pConfig.getMinConnections() - activePeers.size(),
-        p2pConfig.getMinActiveConnections() - activePeersCount.get());
+      p2pConfig.getMinActiveConnections() - activePeersCount.get());
     int lackSize = size - connectNodes.size();
-
-    //choose lackSize nodes from nodeManager that meet special requirement
     if (lackSize > 0) {
-      nodesInUse.add(Hex.toHexString(p2pConfig.getNodeID()));
+      List<Node> connectableNodes = ChannelManager.getNodeDetectService().getConnectableNodes();
+      log.info("##### getConnectableNodes {}, {}", lackSize, connectableNodes.size());
+      for (Node node: connectableNodes) {
+        if (validNode(node, nodesInUse, inetInUse)) {
+          connectableNodes.add(node);
+          nodesInUse.add(node.getHexId());
+          inetInUse.add(node.getPreferInetSocketAddress());
+          if (--lackSize <= 0) {
+            break;
+          }
+        }
+      }
+    }
+
+    if (lackSize > 0) {
       List<Node> connectableNodes = NodeManager.getConnectableNodes();
       List<Node> newNodes = getNodes(nodesInUse, inetInUse, connectableNodes, lackSize);
       connectNodes.addAll(newNodes);
@@ -138,29 +151,33 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   public List<Node> getNodes(Set<String> nodesInUse, Set<InetSocketAddress> inetInUse,
-      List<Node> connectableNodes, int limit) {
+                             List<Node> connectableNodes, int limit) {
     List<Node> filtered = new ArrayList<>();
 
-    long now = System.currentTimeMillis();
     for (Node node : connectableNodes) {
-      InetSocketAddress inetSocketAddress = node.getPreferInetSocketAddress();
-      InetAddress inetAddress = inetSocketAddress.getAddress();
-      Long forbiddenTime = ChannelManager.getBannedNodes().getIfPresent(inetAddress);
-      if ((forbiddenTime != null && now <= forbiddenTime)
-          || (ChannelManager.getConnectionNum(inetAddress)
-          >= p2pConfig.getMaxConnectionsWithSameIp())
-          || (node.getId() != null && nodesInUse.contains(node.getHexId()))
-          || (peerClientCache.getIfPresent(inetAddress) != null)
-          || inetInUse.contains(inetSocketAddress)) {
-        continue;
+      if (validNode(node, nodesInUse, inetInUse)) {
+        filtered.add((Node) node.clone());
       }
-      // sometimes error occurs if update_time changes when sort, so we copy it
-      filtered.add((Node) node.clone());
     }
 
-    //order by updateTime desc.
     filtered.sort(Comparator.comparingLong(node -> -node.getUpdateTime()));
     return CollectionUtils.truncate(filtered, limit);
+  }
+
+  private boolean validNode(Node node, Set<String> nodesInUse, Set<InetSocketAddress> inetInUse) {
+    long now = System.currentTimeMillis();
+    InetSocketAddress inetSocketAddress = node.getPreferInetSocketAddress();
+    InetAddress inetAddress = inetSocketAddress.getAddress();
+    Long forbiddenTime = ChannelManager.getBannedNodes().getIfPresent(inetAddress);
+    if ((forbiddenTime != null && now <= forbiddenTime)
+      || (ChannelManager.getConnectionNum(inetAddress)
+      >= p2pConfig.getMaxConnectionsWithSameIp())
+      || (node.getId() != null && nodesInUse.contains(node.getHexId()))
+      || (peerClientCache.getIfPresent(inetAddress) != null)
+      || inetInUse.contains(inetSocketAddress)) {
+      return false;
+    }
+    return true;
   }
 
   private void check() {
@@ -169,10 +186,10 @@ public class ConnPoolService extends P2pEventHandler {
     }
 
     Collection<Channel> peers = activePeers.stream()
-        .filter(peer -> !peer.isDisconnect())
-        .filter(peer -> !peer.isTrustPeer())
-        .filter(peer -> !peer.isActive())
-        .collect(Collectors.toList());
+      .filter(peer -> !peer.isDisconnect())
+      .filter(peer -> !peer.isTrustPeer())
+      .filter(peer -> !peer.isActive())
+      .collect(Collectors.toList());
 
     // if len(peers) >= 0, disconnect randomly
     if (!peers.isEmpty()) {
@@ -185,8 +202,8 @@ public class ConnPoolService extends P2pEventHandler {
 
   private synchronized void logActivePeers() {
     log.info("Peer stats: channels {}, activePeers {}, active {}, passive {}",
-        ChannelManager.getChannels().size(), activePeers.size(), activePeersCount.get(),
-        passivePeersCount.get());
+      ChannelManager.getChannels().size(), activePeers.size(), activePeersCount.get(),
+      passivePeersCount.get());
   }
 
   @Override

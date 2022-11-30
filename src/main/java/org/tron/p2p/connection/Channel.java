@@ -36,7 +36,7 @@ public class Channel {
   @Getter
   @Setter
   private Node node;
-
+  @Getter
   private ChannelHandlerContext ctx;
   @Getter
   private InetSocketAddress inetSocketAddress;
@@ -61,6 +61,7 @@ public class Channel {
   @Getter
   @Setter
   private String nodeId;
+  @Setter
   @Getter
   private boolean discoveryMode;
   @Getter
@@ -89,11 +90,11 @@ public class Channel {
     }
     SocketAddress address = ctx.channel().remoteAddress();
     if (throwable instanceof ReadTimeoutException
-        || throwable instanceof IOException) {
+      || throwable instanceof IOException) {
       log.warn("Close peer {}, reason: {}", address, throwable.getMessage());
     } else if (baseThrowable instanceof P2pException) {
       log.warn("Close peer {}, type: ({}), info: {}",
-          address, ((P2pException) baseThrowable).getType(), baseThrowable.getMessage());
+        address, ((P2pException) baseThrowable).getType(), baseThrowable.getMessage());
     } else {
       log.error("Close peer {}, exception caught", address, throwable);
     }
@@ -123,20 +124,21 @@ public class Channel {
   }
 
   public void send(Message message) {
+    log.info("##### send message to {}, {}", inetSocketAddress, message);
     send(message.getSendData(), message.getType().getType());
   }
 
   private void send(ByteBuf byteBuf, byte type) {
     if (isDisconnect) {
       log.warn("Send to {} failed as channel has closed, message-type:{} ",
-              ctx.channel().remoteAddress(), type);
+        ctx.channel().remoteAddress(), type);
       return;
     }
     ctx.writeAndFlush(byteBuf).addListener((ChannelFutureListener) future -> {
       if (!future.isSuccess() && !isDisconnect) {
         log.warn("Send to {} failed, message-type:{}, cause:{}",
-                ctx.channel().remoteAddress(), ByteArray.byte2int(type),
-                future.cause().getMessage());
+          ctx.channel().remoteAddress(), ByteArray.byte2int(type),
+          future.cause().getMessage());
       }
     });
     setLastSendTime(System.currentTimeMillis());
@@ -168,6 +170,6 @@ public class Channel {
   @Override
   public String toString() {
     return String.format("%s | %s", inetSocketAddress,
-        StringUtils.isEmpty(nodeId) ? "<null>" : nodeId);
+      StringUtils.isEmpty(nodeId) ? "<null>" : nodeId);
   }
 }

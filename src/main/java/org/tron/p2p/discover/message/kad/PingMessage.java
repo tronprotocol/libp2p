@@ -21,15 +21,15 @@ public class PingMessage extends KadMessage {
     Endpoint fromEndpoint = getEndpointFromNode(from);
     Endpoint toEndpoint = getEndpointFromNode(to);
     this.pingMessage = Discover.PingMessage.newBuilder()
-        .setVersion(Parameter.p2pConfig.getVersion())
-        .setFrom(fromEndpoint)
-        .setTo(toEndpoint)
-        .setTimestamp(System.currentTimeMillis())
-        .build();
+      .setVersion(Parameter.p2pConfig.getNetworkId())
+      .setFrom(fromEndpoint)
+      .setTo(toEndpoint)
+      .setTimestamp(System.currentTimeMillis())
+      .build();
     this.data = this.pingMessage.toByteArray();
   }
 
-  public int getVersion() {
+  public int getNetworkId() {
     return this.pingMessage.getVersion();
   }
 
