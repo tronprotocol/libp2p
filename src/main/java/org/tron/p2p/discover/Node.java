@@ -19,12 +19,12 @@ public class Node implements Serializable, Cloneable {
   private byte[] id;
 
   @Getter
-  private String hostV4;
+  protected String hostV4;
 
   @Getter
-  private String hostV6;
+  protected String hostV6;
 
-  private int port;
+  protected int port;
 
   private int bindPort;
 

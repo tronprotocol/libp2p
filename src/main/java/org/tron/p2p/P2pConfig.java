@@ -23,4 +23,6 @@ public class P2pConfig {
   private int maxConnectionsWithSameIp = 2;
   private boolean discoverEnable = true;
   private boolean disconnectionPolicyEnable = false;
+
+  private List<String> entreeUrls = new ArrayList<>();
 }

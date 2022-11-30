@@ -59,6 +59,10 @@ dependencies {
     compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.24'
     testImplementation group: 'org.projectlombok', name: 'lombok', version: '1.18.24'
     annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.24'
+
+    implementation group: 'dnsjava', name: 'dnsjava', version: '3.5.2'
+    implementation group: 'com.alibaba.fastjson2', name: 'fastjson2', version: '2.0.20'
+    implementation group: 'org.web3j', name: 'crypto', version: '5.0.0'
 }
 
 tasks.matching { it instanceof Test }.all {
