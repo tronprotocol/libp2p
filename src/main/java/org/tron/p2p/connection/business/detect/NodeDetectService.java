@@ -143,8 +143,6 @@ public class NodeDetectService implements MessageProcess {
   public synchronized void processMessage(Channel channel, Message message) {
     StatusMessage statusMessage = (StatusMessage)message;
 
-    log.info("##### Receive status message from {}, {}", channel.getInetAddress(), statusMessage);
-
     if(!channel.isActive()) {
       channel.setDiscoveryMode(true);
       channel.send(new StatusMessage());

@@ -38,7 +38,7 @@ public class PeerServer {
   public void start(int port) {
     EventLoopGroup bossGroup = new NioEventLoopGroup(1);
     EventLoopGroup workerGroup = new NioEventLoopGroup(Parameter.TCP_NETTY_WORK_THREAD_NUM);
-    P2pChannelInitializer p2pChannelInitializer = new P2pChannelInitializer("");
+    P2pChannelInitializer p2pChannelInitializer = new P2pChannelInitializer("", false);
     try {
       ServerBootstrap b = new ServerBootstrap();
 

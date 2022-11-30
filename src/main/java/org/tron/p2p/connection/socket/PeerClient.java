@@ -62,8 +62,7 @@ public class PeerClient {
 
     log.info("Connect to peer {}:{}", host, port);
 
-    P2pChannelInitializer p2pChannelInitializer = new P2pChannelInitializer(remoteId);
-    p2pChannelInitializer.setPeerDiscoveryMode(discoveryMode);
+    P2pChannelInitializer p2pChannelInitializer = new P2pChannelInitializer(remoteId, discoveryMode);
 
     Bootstrap b = new Bootstrap();
     b.group(workerGroup);
