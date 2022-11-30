@@ -1,5 +1,6 @@
 package org.tron.p2p.discover.protocol.kad;
 
+import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -120,12 +121,21 @@ public class KadService implements DiscoverService {
     KadMessage m = (KadMessage) udpEvent.getMessage();
 
     InetSocketAddress sender = udpEvent.getAddress();
-    Node n = new Node(m.getFrom().getId(), m.getFrom().getHostV4(), m.getFrom().getHostV6(),
-      sender.getPort(), m.getFrom().getPort());
+
+    Node n = new Node(sender);
+    if (sender.getAddress() instanceof Inet4Address) {
+      n.updateHostV6(m.getFrom().getHostV6());
+    } else {
+      n.updateHostV4(m.getFrom().getHostV4());
+    }
+    n.setId(m.getFrom().getId());
+    n.setBindPort(m.getFrom().getPort());
 
     NodeHandler nodeHandler = getNodeHandler(n);
     nodeHandler.getNode().setId(n.getId());
     nodeHandler.getNode().touch();
+
+    log.info("###### UDP receive message from {}, {}", sender, m);
 
     switch (m.getType()) {
       case KAD_PING:

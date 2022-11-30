@@ -193,6 +193,7 @@ public class NodeHandler {
   }
 
   private void sendMessage(Message msg) {
+    log.info("#### UDP send message to {}, {}", node.getPreferInetSocketAddress(), msg);
     kadService.sendOutbound(new UdpEvent(msg, node.getPreferInetSocketAddress()));
   }
 

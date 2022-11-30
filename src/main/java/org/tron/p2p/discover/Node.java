@@ -26,6 +26,7 @@ public class Node implements Serializable, Cloneable {
 
   private int port;
 
+  @Setter
   private int bindPort;
 
   @Setter
