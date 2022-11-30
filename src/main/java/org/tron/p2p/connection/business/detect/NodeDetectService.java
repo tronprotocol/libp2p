@@ -39,6 +39,8 @@ public class NodeDetectService implements MessageProcess {
 
   private final long NODE_DETECT_TIME_THRESHOLD = 5 * 60 * 1000;
 
+  private final long NODE_DETECT_TIME_MIN_THRESHOLD = 10 * 1000;
+
   private final long NODE_DETECT_TIMEOUT = 2 * 1000;
 
   private final int MAX_NODE_SLOW_DETECT = 3;
@@ -68,16 +70,21 @@ public class NodeDetectService implements MessageProcess {
   }
 
   public void work() {
-    log.info("##### Detect service work, map-size: {}", nodeStatMap.size());
+    log.info("##### Detect 1 service work, map-size: {}", nodeStatMap.size());
+    trimTable();
+    log.info("##### Detect 2 service work, map-size: {}", nodeStatMap.size());
     if (nodeStatMap.size() < MIN_NODES) {
       loadNodes();
-      return;
     }
 
     List<NodeStat> nodeStats = getSortedNodeStats();
     NodeStat nodeStat = getSortedNodeStats().get(0);
+    if (nodeStat.getLastDetectTime() > System.currentTimeMillis() - NODE_DETECT_TIME_MIN_THRESHOLD) {
+      return;
+    }
+
     int n = MAX_NODE_NORMAL_DETECT;
-    if (nodeStat.getLastDetectTime() < System.currentTimeMillis() - NODE_DETECT_TIME_THRESHOLD) {
+    if (nodeStat.getLastDetectTime() > System.currentTimeMillis() - NODE_DETECT_TIME_THRESHOLD) {
       n = MAX_NODE_SLOW_DETECT;
     }
 
@@ -86,7 +93,15 @@ public class NodeDetectService implements MessageProcess {
     }
   }
 
-
+  public void trimTable() {
+    nodeStatMap.forEach((k, v) -> {
+      if (v.getLastDetectTime() < System.currentTimeMillis() - NODE_DETECT_TIME_THRESHOLD
+        && v.getLastDetectTime() != v.getLastSuccessDetectTime()) {
+        nodeStatMap.remove(k);
+        badNodesCache.put(k.getAddress(), System.currentTimeMillis());
+      }
+    });
+  }
 
   private void loadNodes() {
     int size = nodeStatMap.size();
