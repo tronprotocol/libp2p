@@ -126,7 +126,7 @@ public class ConnPoolService extends P2pEventHandler {
       log.info("##### getConnectableNodes {}, {}", lackSize, connectableNodes.size());
       for (Node node: connectableNodes) {
         if (validNode(node, nodesInUse, inetInUse)) {
-          connectableNodes.add(node);
+          connectNodes.add(node);
           nodesInUse.add(node.getHexId());
           inetInUse.add(node.getPreferInetSocketAddress());
           if (--lackSize <= 0) {

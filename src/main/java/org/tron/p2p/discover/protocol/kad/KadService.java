@@ -135,8 +135,6 @@ public class KadService implements DiscoverService {
     nodeHandler.getNode().setId(n.getId());
     nodeHandler.getNode().touch();
 
-    log.info("###### UDP receive message from {}, {}", sender, m);
-
     switch (m.getType()) {
       case KAD_PING:
         nodeHandler.handlePing((PingMessage) m);
