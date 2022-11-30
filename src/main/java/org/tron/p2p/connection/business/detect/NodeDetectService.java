@@ -71,7 +71,7 @@ public class NodeDetectService implements MessageProcess {
 
   public void work() {
     log.info("##### Detect 1 service work, map-size: {}", nodeStatMap.size());
-    trimTable();
+    trimNodeMap();
     log.info("##### Detect 2 service work, map-size: {}", nodeStatMap.size());
     if (nodeStatMap.size() < MIN_NODES) {
       loadNodes();
@@ -88,15 +88,18 @@ public class NodeDetectService implements MessageProcess {
       n = MAX_NODE_SLOW_DETECT;
     }
 
+    n = Math.min(n, nodeStats.size());
+
     for(int i = 0; i < n; i++) {
       detect(nodeStats.get(i));
     }
   }
 
-  public void trimTable() {
+  public void trimNodeMap() {
     nodeStatMap.forEach((k, v) -> {
       if (v.getLastDetectTime() < System.currentTimeMillis() - NODE_DETECT_TIME_THRESHOLD
         && v.getLastDetectTime() != v.getLastSuccessDetectTime()) {
+        log.info("########## trim node {}", k);
         nodeStatMap.remove(k);
         badNodesCache.put(k.getAddress(), System.currentTimeMillis());
       }
@@ -106,11 +109,9 @@ public class NodeDetectService implements MessageProcess {
   private void loadNodes() {
     int size = nodeStatMap.size();
     int count = 0;
-    for (Node node: NodeManager.getConnectableNodes()) {
+    List<Node> nodes = NodeManager.getConnectableNodes();
+    for (Node node: nodes) {
       InetSocketAddress socketAddress = node.getPreferInetSocketAddress();
-      log.info("##### Detect loadNodes {}, count:{},{},{}", socketAddress,
-        count, nodeStatMap.get(socketAddress),
-        badNodesCache.getIfPresent(socketAddress.getAddress()));
       if (socketAddress != null
         && !nodeStatMap.containsKey(socketAddress)
         && badNodesCache.getIfPresent(socketAddress.getAddress()) == null) {
@@ -123,7 +124,7 @@ public class NodeDetectService implements MessageProcess {
         }
       }
     }
-    log.info("##### Detect loadNodes count:{}", count);
+    log.info("#####  LoadNodes nodes-size:{}, count:{}", nodes.size(), count);
   }
 
   private void detect(NodeStat stat) {
