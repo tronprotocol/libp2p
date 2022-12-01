@@ -19,4 +19,8 @@ public class NodeStat {
     this.node = node;
     this.socketAddress = node.getPreferInetSocketAddress();
   }
+
+  public boolean finishDetect() {
+    return this.lastDetectTime == this.lastSuccessDetectTime;
+  }
 }

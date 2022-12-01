@@ -124,7 +124,6 @@ public class Channel {
   }
 
   public void send(Message message) {
-    log.info("##### send message to {}, {}", inetSocketAddress, message);
     send(message.getSendData(), message.getType().getType());
   }
 

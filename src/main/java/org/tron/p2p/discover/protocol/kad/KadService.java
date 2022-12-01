@@ -122,14 +122,14 @@ public class KadService implements DiscoverService {
 
     InetSocketAddress sender = udpEvent.getAddress();
 
-    Node n = new Node(sender);
+    Node n;
     if (sender.getAddress() instanceof Inet4Address) {
-      n.updateHostV6(m.getFrom().getHostV6());
+      n = new Node(m.getFrom().getId(), sender.getHostString(), m.getFrom().getHostV6(),
+        sender.getPort(), m.getFrom().getPort());
     } else {
-      n.updateHostV4(m.getFrom().getHostV4());
+      n = new Node(m.getFrom().getId(), m.getFrom().getHostV4(), sender.getHostString(),
+        sender.getPort(), m.getFrom().getPort());
     }
-    n.setId(m.getFrom().getId());
-    n.setBindPort(m.getFrom().getPort());
 
     NodeHandler nodeHandler = getNodeHandler(n);
     nodeHandler.getNode().setId(n.getId());

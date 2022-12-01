@@ -60,8 +60,6 @@ public class PeerClient {
   private ChannelFuture connectAsync(String host, int port, String remoteId,
       boolean discoveryMode) {
 
-    log.info("Connect to peer {}:{}", host, port);
-
     P2pChannelInitializer p2pChannelInitializer = new P2pChannelInitializer(remoteId, discoveryMode);
 
     Bootstrap b = new Bootstrap();

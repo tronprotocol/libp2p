@@ -4,7 +4,6 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.business.MessageProcess;
 import org.tron.p2p.connection.message.Message;
@@ -23,13 +22,7 @@ public class NodeDetectService implements MessageProcess {
 
   private PeerClient peerClient;
 
-//  private Queue<NodeStat> queue = new LinkedBlockingDeque<>();
-
   private Map<InetSocketAddress, NodeStat> nodeStatMap = new ConcurrentHashMap<>();
-//
-//  @Getter
-//  private static final Cache<InetSocketAddress, NodeStat> nodesCache = CacheBuilder
-//    .newBuilder().maximumSize(2000).build();
 
   @Getter
   private static final Cache<InetAddress, Long> badNodesCache = CacheBuilder
@@ -37,9 +30,9 @@ public class NodeDetectService implements MessageProcess {
 
   private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
-  private final long NODE_DETECT_TIME_THRESHOLD = 5 * 60 * 1000;
+  private final long NODE_DETECT_THRESHOLD = 5 * 60 * 1000;
 
-  private final long NODE_DETECT_TIME_MIN_THRESHOLD = 10 * 1000;
+  private final long NODE_DETECT_MIN_THRESHOLD = 30 * 1000;
 
   private final long NODE_DETECT_TIMEOUT = 2 * 1000;
 
@@ -60,7 +53,7 @@ public class NodeDetectService implements MessageProcess {
       try {
         work();
       } catch (Exception t) {
-        log.error("Exception in node detect worker, {}", t.getMessage());
+        log.warn("Exception in node detect worker, {}", t.getMessage());
       }
     }, 1, 5, TimeUnit.SECONDS);
   }
@@ -70,21 +63,23 @@ public class NodeDetectService implements MessageProcess {
   }
 
   public void work() {
-    log.info("##### Detect 1 service work, map-size: {}", nodeStatMap.size());
     trimNodeMap();
-    log.info("##### Detect 2 service work, map-size: {}", nodeStatMap.size());
     if (nodeStatMap.size() < MIN_NODES) {
       loadNodes();
     }
 
     List<NodeStat> nodeStats = getSortedNodeStats();
+    if (nodeStats.size() == 0) {
+      return;
+    }
+
     NodeStat nodeStat = getSortedNodeStats().get(0);
-    if (nodeStat.getLastDetectTime() > System.currentTimeMillis() - NODE_DETECT_TIME_MIN_THRESHOLD) {
+    if (nodeStat.getLastDetectTime() > System.currentTimeMillis() - NODE_DETECT_MIN_THRESHOLD) {
       return;
     }
 
     int n = MAX_NODE_NORMAL_DETECT;
-    if (nodeStat.getLastDetectTime() > System.currentTimeMillis() - NODE_DETECT_TIME_THRESHOLD) {
+    if (nodeStat.getLastDetectTime() > System.currentTimeMillis() - NODE_DETECT_THRESHOLD) {
       n = MAX_NODE_SLOW_DETECT;
     }
 
@@ -96,10 +91,9 @@ public class NodeDetectService implements MessageProcess {
   }
 
   public void trimNodeMap() {
+    long now = System.currentTimeMillis();
     nodeStatMap.forEach((k, v) -> {
-      if (v.getLastDetectTime() < System.currentTimeMillis() - NODE_DETECT_TIME_THRESHOLD
-        && v.getLastDetectTime() != v.getLastSuccessDetectTime()) {
-        log.info("########## trim node {}", k);
+      if (!v.finishDetect() && v.getLastDetectTime() < now - NODE_DETECT_TIMEOUT) {
         nodeStatMap.remove(k);
         badNodesCache.put(k.getAddress(), System.currentTimeMillis());
       }
@@ -113,8 +107,8 @@ public class NodeDetectService implements MessageProcess {
     for (Node node: nodes) {
       InetSocketAddress socketAddress = node.getPreferInetSocketAddress();
       if (socketAddress != null
-        && !nodeStatMap.containsKey(socketAddress)
-        && badNodesCache.getIfPresent(socketAddress.getAddress()) == null) {
+          && !nodeStatMap.containsKey(socketAddress)
+          && badNodesCache.getIfPresent(socketAddress.getAddress()) == null) {
         NodeStat nodeStat = new NodeStat(node);
         nodeStatMap.put(socketAddress, nodeStat);
         detect(nodeStat);
@@ -124,12 +118,10 @@ public class NodeDetectService implements MessageProcess {
         }
       }
     }
-    log.info("#####  LoadNodes nodes-size:{}, count:{}", nodes.size(), count);
   }
 
   private void detect(NodeStat stat) {
     try {
-      log.info("##### Detect node:{}", stat.getNode());
       stat.setTotalCount(stat.getTotalCount() + 1);
       setLastDetectTime(stat);
       peerClient.connectAsync(stat.getNode(), true);
@@ -153,14 +145,12 @@ public class NodeDetectService implements MessageProcess {
     InetSocketAddress socketAddress = channel.getInetSocketAddress();
     NodeStat nodeStat = nodeStatMap.get(socketAddress);
     if (nodeStat == null) {
-      log.warn("##### Receive status message from {} with on obj", channel.getInetAddress());
       return;
     }
 
     long cost = System.currentTimeMillis() - nodeStat.getLastDetectTime();
     if(cost  > NODE_DETECT_TIMEOUT
       || statusMessage.getRemainConnections() == 0) {
-      log.warn("##### Receive status message from {} cost {}ms", channel.getInetAddress(), cost);
       badNodesCache.put(socketAddress.getAddress(), cost);
       nodeStatMap.remove(socketAddress);
     }
@@ -172,8 +162,6 @@ public class NodeDetectService implements MessageProcess {
   }
 
   public void notifyDisconnect(Channel channel) {
-
-    log.info("##### Detect channel close:{}", channel.getInetSocketAddress());
 
     if(!channel.isActive()) {
       return;
@@ -190,7 +178,6 @@ public class NodeDetectService implements MessageProcess {
     }
 
     if(nodeStat.getLastDetectTime() != nodeStat.getLastSuccessDetectTime()) {
-      log.info("##### Different time {}", channel.getInetSocketAddress());
       badNodesCache.put(socketAddress.getAddress(), System.currentTimeMillis());
       nodeStatMap.remove(socketAddress);
     }

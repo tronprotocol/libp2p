@@ -123,7 +123,6 @@ public class ConnPoolService extends P2pEventHandler {
     int lackSize = size - connectNodes.size();
     if (lackSize > 0) {
       List<Node> connectableNodes = ChannelManager.getNodeDetectService().getConnectableNodes();
-      log.info("##### getConnectableNodes {}, {}", lackSize, connectableNodes.size());
       for (Node node: connectableNodes) {
         if (validNode(node, nodesInUse, inetInUse)) {
           connectNodes.add(node);
@@ -145,6 +144,7 @@ public class ConnPoolService extends P2pEventHandler {
     //log.info("Lack size:{}, connectNodes size:{}", size, connectNodes.size());
     //establish tcp connection with chose nodes by peerClient
     connectNodes.forEach(n -> {
+      log.info("Connect to peer {}", n.getPreferInetSocketAddress());
       peerClient.connectAsync(n, false);
       peerClientCache.put(n.getPreferInetSocketAddress().getAddress(), System.currentTimeMillis());
     });
