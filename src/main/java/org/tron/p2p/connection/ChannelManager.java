@@ -159,6 +159,8 @@ public class ChannelManager {
 
     Message message = Message.parse(data);
 
+    log.debug("Receive message from {}, {}", channel.getInetSocketAddress(), message);
+
     switch (message.getType()) {
       case KEEP_ALIVE_PING:
       case KEEP_ALIVE_PONG:

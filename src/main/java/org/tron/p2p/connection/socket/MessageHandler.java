@@ -25,7 +25,7 @@ public class MessageHandler extends ByteToMessageDecoder {
 
   @Override
   public void channelActive(ChannelHandlerContext ctx) {
-    log.info("Channel active, {}", ctx.channel().remoteAddress());
+    log.debug("Channel active, {}", ctx.channel().remoteAddress());
     channel.setChannelHandlerContext(ctx);
     if (channel.isActive()) {
       if (channel.isDiscoveryMode()) {
