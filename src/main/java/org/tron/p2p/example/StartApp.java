@@ -27,6 +27,8 @@ import org.tron.p2p.base.Parameter;
 public class StartApp {
 
   public static void main(String[] args) {
+    Parameter.version = 1;
+
     P2pService p2pService = new P2pService();
     Parameter.p2pConfig = new P2pConfig();
 
