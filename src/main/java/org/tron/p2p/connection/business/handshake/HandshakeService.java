@@ -22,7 +22,7 @@ public class HandshakeService implements MessageProcess {
     HelloMessage msg = (HelloMessage) message;
 
     if (channel.isFinishHandshake()) {
-      log.warn("Close channel {}, handshake is finished", channel.getInetAddress());
+      log.warn("Close channel {}, handshake is finished", channel.getInetSocketAddress());
       channel.close();
       return;
     }
@@ -45,7 +45,7 @@ public class HandshakeService implements MessageProcess {
       if (msg.getCode() != DisconnectCode.NORMAL.getValue()
         || msg.getNetworkId() != networkId) {
         log.info("Handshake failed {}, code: {}, version: {}",
-          channel.getInetAddress(),
+          channel.getInetSocketAddress(),
           msg.getCode(),
           msg.getNetworkId());
         channel.close();
@@ -54,7 +54,7 @@ public class HandshakeService implements MessageProcess {
     } else {
       if (msg.getNetworkId() != networkId) {
         log.info("Peer {} different p2p version, peer->{}, me->{}",
-          channel.getInetAddress(), msg.getNetworkId(), networkId);
+          channel.getInetSocketAddress(), msg.getNetworkId(), networkId);
         sendHelloMsg(channel, DisconnectCode.DIFFERENT_VERSION);
         channel.close();
         return;

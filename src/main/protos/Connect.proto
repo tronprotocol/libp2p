@@ -29,7 +29,7 @@ message StatusMessage {
 message CompressMessage {
   enum CompressType {
     uncompress = 0;
-    compress_snappy = 1;
+    snappy = 1;
   }
 
   CompressType type = 1;

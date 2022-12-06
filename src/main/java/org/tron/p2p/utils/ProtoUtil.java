@@ -13,7 +13,7 @@ public class ProtoUtil {
 
     byte[] compressData = Snappy.compress(data);
     if (compressData.length < bytes.length) {
-      type = Connect.CompressMessage.CompressType.compress_snappy;
+      type = Connect.CompressMessage.CompressType.snappy;
       bytes = compressData;
     }
 
