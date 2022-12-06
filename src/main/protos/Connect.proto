@@ -25,3 +25,13 @@ message StatusMessage {
   int32 currentConnections = 5;
   int64 timestamp = 6;
 }
+
+message CompressMessage {
+  enum CompressType {
+    uncompress = 0;
+    compress_snappy = 1;
+  }
+
+  CompressType type = 1;
+  bytes data = 2;
+}

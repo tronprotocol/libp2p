@@ -1,5 +1,6 @@
 package org.tron.p2p.connection;
 
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -32,7 +33,7 @@ public class SocketTest {
 
   private boolean sendMessage(io.netty.channel.Channel nettyChannel, Message message) {
     AtomicBoolean sendSuccess = new AtomicBoolean(false);
-    nettyChannel.writeAndFlush(message.getSendData())
+    nettyChannel.writeAndFlush(Unpooled.wrappedBuffer(message.getSendData()))
         .addListener((ChannelFutureListener) future -> {
           if (future.isSuccess()) {
             sendSuccess.set(true);

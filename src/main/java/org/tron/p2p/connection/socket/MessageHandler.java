@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
+import org.tron.p2p.connection.business.upgrade.UpgradeController;
 import org.tron.p2p.connection.message.detect.StatusMessage;
 
 @Slf4j(topic = "net")
@@ -41,6 +42,9 @@ public class MessageHandler extends ByteToMessageDecoder {
     byte[] data = new byte[buffer.readableBytes()];
     buffer.readBytes(data);
     try {
+      if (channel.isFinishHandshake()) {
+        data = UpgradeController.decodeReceiveData(channel.getVersion(), data);
+      }
       ChannelManager.processMessage(channel, data);
     } catch (Exception e) {
       channel.processException(e);

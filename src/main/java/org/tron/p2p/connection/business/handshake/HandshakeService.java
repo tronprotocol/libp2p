@@ -27,8 +27,7 @@ public class HandshakeService implements MessageProcess {
       return;
     }
 
-    channel.setFinishHandshake(true);
-    channel.setNode(msg.getFrom());
+    channel.setHelloMessage(msg);
 
     DisconnectCode code = ChannelManager.processPeer(channel);
     if (code != DisconnectCode.NORMAL) {
@@ -62,7 +61,7 @@ public class HandshakeService implements MessageProcess {
       }
       sendHelloMsg(channel, DisconnectCode.NORMAL);
     }
-
+    channel.setFinishHandshake(true);
     channel.updateLatency(System.currentTimeMillis() - channel.getStartTime());
     Parameter.handlerList.forEach(h -> h.onConnect(channel));
   }

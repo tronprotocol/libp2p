@@ -20,22 +20,30 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.base.Parameter;
+import org.tron.p2p.connection.business.upgrade.UpgradeController;
 import org.tron.p2p.connection.message.Message;
+import org.tron.p2p.connection.message.handshake.HelloMessage;
 import org.tron.p2p.connection.socket.MessageHandler;
 import org.tron.p2p.connection.socket.P2pProtobufVarint32FrameDecoder;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.stats.TrafficStats;
 import org.tron.p2p.utils.ByteArray;
+import org.tron.p2p.utils.ProtoUtil;
+import org.xerial.snappy.Snappy;
 
 @Slf4j(topic = "net")
 public class Channel {
 
   public volatile boolean waitForPong = false;
-  public volatile long pingSent = System.currentTimeMillis();;
+  public volatile long pingSent = System.currentTimeMillis();
+
   @Getter
-  @Setter
+  private HelloMessage helloMessage;
+  @Getter
   private Node node;
+  @Getter
+  private int version;
   @Getter
   private ChannelHandlerContext ctx;
   @Getter
@@ -101,6 +109,12 @@ public class Channel {
     close();
   }
 
+  public void setHelloMessage(HelloMessage helloMessage) {
+    this.helloMessage = helloMessage;
+    this.node = helloMessage.getFrom();
+    this.version = helloMessage.getVersion();
+  }
+
   public void setChannelHandlerContext(ChannelHandlerContext ctx) {
     this.ctx = ctx;
     this.inetSocketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
@@ -119,29 +133,41 @@ public class Channel {
     close(Parameter.DEFAULT_BAN_TIME);
   }
 
-  public void send(byte[] data) {
-    send(Unpooled.wrappedBuffer(data), data[0]);
-  }
+//  public void send(byte[] data) {
+//    send(data, data[0]);
+//  }
 
   public void send(Message message) {
     log.debug("Send message to {}, {}", inetSocketAddress, message);
-    send(message.getSendData(), message.getType().getType());
+    send(message.getSendData());
   }
 
-  private void send(ByteBuf byteBuf, byte type) {
-    if (isDisconnect) {
-      log.warn("Send to {} failed as channel has closed, message-type:{} ",
-        ctx.channel().remoteAddress(), type);
-      return;
-    }
-    ctx.writeAndFlush(byteBuf).addListener((ChannelFutureListener) future -> {
-      if (!future.isSuccess() && !isDisconnect) {
-        log.warn("Send to {} failed, message-type:{}, cause:{}",
-          ctx.channel().remoteAddress(), ByteArray.byte2int(type),
-          future.cause().getMessage());
+  public void send(byte[] data) {
+    try {
+      byte type = data[0];
+      if (isDisconnect) {
+        log.warn("Send to {} failed as channel has closed, message-type:{} ",
+                ctx.channel().remoteAddress(), type);
+        return;
       }
-    });
-    setLastSendTime(System.currentTimeMillis());
+
+      if (finishHandshake) {
+        data = UpgradeController.codeSendData(version, data);
+      }
+
+      ByteBuf byteBuf = Unpooled.wrappedBuffer(data);
+      ctx.writeAndFlush(byteBuf).addListener((ChannelFutureListener) future -> {
+        if (!future.isSuccess() && !isDisconnect) {
+          log.warn("Send to {} failed, message-type:{}, cause:{}",
+                  ctx.channel().remoteAddress(), ByteArray.byte2int(type),
+                  future.cause().getMessage());
+        }
+      });
+      setLastSendTime(System.currentTimeMillis());
+    } catch (Exception e) {
+      log.warn("Send message to {} failed, {}", inetSocketAddress, e.getMessage());
+      ctx.channel();
+    }
   }
 
   public void updateLatency(long latency) {
@@ -172,4 +198,5 @@ public class Channel {
     return String.format("%s | %s", inetSocketAddress,
       StringUtils.isEmpty(nodeId) ? "<null>" : nodeId);
   }
+
 }
