@@ -1,27 +1,49 @@
 package org.tron.p2p.dns.tree;
 
 
-import org.bouncycastle.util.encoders.Base32;
+import java.math.BigInteger;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.tron.p2p.utils.ByteArray;
 
+@Slf4j(topic = "net")
 public class LinkEntry implements Entry {
 
+  @Getter
+  private String represent;
+  @Getter
   private String domain;
-  private byte[] compressPublicKey;
+  @Getter
+  private String unCompressPublicKey; //hex string
 
-  public LinkEntry(String domain, byte[] compressPublicKey) {
+  public LinkEntry(String represent, String domain, String unCompressPublicKey) {
+    this.represent = represent;
     this.domain = domain;
-    this.compressPublicKey = compressPublicKey;
+    this.unCompressPublicKey = unCompressPublicKey;
   }
 
-  @Override
-  public LinkEntry parseEntry(String e) {
+  public LinkEntry(String domain, String unCompressPublicKey) {
+    byte[] pubKey = ByteArray.fromHexString(unCompressPublicKey);
+    this.represent = Algorithm.compressPubKey(new BigInteger(pubKey)) + "@" + domain;
+    this.domain = domain;
+    this.unCompressPublicKey = unCompressPublicKey;
+  }
+
+  public static LinkEntry parseEntry(String e) {
     String[] items = e.substring(linkPrefix.length()).split("@");
-    String compressedPublicKey = items[0];
-    return new LinkEntry(items[1], Base32.decode(compressedPublicKey));
+    String base32PublicKey = items[0];
+    try {
+      byte[] data = Algorithm.decode32(base32PublicKey);
+      String unCompressPublicKey = Algorithm.decompressPubKey(ByteArray.toHexString(data));
+      return new LinkEntry(e, items[1], unCompressPublicKey);
+    } catch (Exception exception) {
+      log.error("ParseEntry error.", exception);
+      return null;
+    }
   }
 
   @Override
   public String toString() {
-    return null;
+    return represent;
   }
 }

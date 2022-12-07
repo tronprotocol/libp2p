@@ -4,7 +4,12 @@ package org.tron.p2p.dns.tree;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.SignatureException;
+import java.util.Arrays;
 import java.util.Base64;
+import org.bouncycastle.asn1.x9.X9ECParameters;
+import org.bouncycastle.crypto.ec.CustomNamedCurves;
+import org.bouncycastle.crypto.params.ECDomainParameters;
+import org.bouncycastle.math.ec.ECPoint;
 import org.bouncycastle.util.encoders.Base32;
 import org.tron.p2p.utils.ByteArray;
 import org.web3j.crypto.ECKeyPair;
@@ -24,7 +29,22 @@ public class Algorithm {
     return pubKeyYPrefix + pubKeyX;
   }
 
-  private static ECKeyPair generateKeyPair(String privateKey) {
+  public static String decompressPubKey(String hexPubKey) {
+    X9ECParameters CURVE_PARAMS = CustomNamedCurves.getByName("secp256k1");
+    ECDomainParameters CURVE =
+        new ECDomainParameters(
+            CURVE_PARAMS.getCurve(),
+            CURVE_PARAMS.getG(),
+            CURVE_PARAMS.getN(),
+            CURVE_PARAMS.getH());
+    byte[] pubKey = ByteArray.fromHexString(hexPubKey);
+    ECPoint ecPoint = CURVE.getCurve().decodePoint(pubKey);
+    byte[] encoded = ecPoint.getEncoded(false);
+    BigInteger n = new BigInteger(1, Arrays.copyOfRange(encoded, 1, encoded.length));
+    return ByteArray.toHexString(n.toByteArray());
+  }
+
+  public static ECKeyPair generateKeyPair(String privateKey) {
     BigInteger privKey = new BigInteger(privateKey, 16);
     BigInteger pubKey = Sign.publicKeyFromPrivate(privKey);
     ECKeyPair keyPair = new ECKeyPair(privKey, pubKey);
@@ -44,7 +64,7 @@ public class Algorithm {
     return data;
   }
 
-  private static BigInteger recoverPublicKey(String msg, byte[] sig) throws SignatureException {
+  public static BigInteger recoverPublicKey(String msg, byte[] sig) throws SignatureException {
     int recId = sig[64];
     if (recId < 27) {
       recId += 27;
@@ -55,6 +75,9 @@ public class Algorithm {
     return pubKeyRecovered;
   }
 
+  /**
+   * @param publicKey uncompress hex publicKey
+   */
   public static boolean verifySignature(String publicKey, String msg, byte[] sig)
       throws SignatureException {
     BigInteger pubKey = new BigInteger(publicKey, 16);
@@ -62,6 +85,7 @@ public class Algorithm {
     return pubKey.equals(pubKeyRecovered);
   }
 
+  //we only use fix width hash
   public static boolean isValidHash(String base32Hash) {
     if (base32Hash == null || base32Hash.length() != truncateLength || base32Hash.contains("\r")
         || base32Hash.contains("\n")) {
@@ -79,6 +103,10 @@ public class Algorithm {
     return true;
   }
 
+  public static String encode64(byte[] content) {
+    return new String(Base64.getUrlEncoder().encode(content), StandardCharsets.UTF_8);
+  }
+
   // An Encoding is a radix 64 encoding/decoding scheme, defined by a
   // 64-character alphabet. The most common encoding is the "base64"
   // encoding defined in RFC 4648 and used in MIME (RFC 2045) and PEM
@@ -88,59 +116,28 @@ public class Algorithm {
     return Base64.getUrlDecoder().decode(base64Content);
   }
 
-  public static String encode64(byte[] content) {
-    return new String(Base64.getUrlEncoder().encode(content), StandardCharsets.UTF_8);
-  }
-
-  private static String encode32(byte[] content) {
+  public static String encode32(byte[] content) {
     return new String(Base32.encode(content), StandardCharsets.UTF_8);
   }
 
+  /**
+   * first get the hash of string, then get first 16 letter, last encode it with base32
+   */
   public static String encode32AndTruncate(String content) {
-    return encode32(ByteArray.subArray(Hash.sha3(content.getBytes()), 0, 16)).substring(0,
-        truncateLength);
+    return encode32(ByteArray.subArray(Hash.sha3(content.getBytes()), 0, 16))
+        .substring(0, truncateLength);
   }
 
-  public static void main(String[] args) throws SignatureException {
-    //test case 1
-    String privateKey = "b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291";
-    String publicKey = ByteArray.toHexString(
-        generateKeyPair(privateKey).getPublicKey().toByteArray());
-    String puKeyCompress = compressPubKey(generateKeyPair(privateKey).getPublicKey());
-    System.out.println(publicKey);
-    System.out.println(puKeyCompress);
-    String msg = "Message for signing";
-    byte[] sig = sigData(msg, privateKey);
-    System.out.println(verifySignature(publicKey, msg, sig));
-    System.out.println();
-
-    //test case 2
-    String content = "enrtree://AM5FCQLWIZX2QFPNJAP7VUERCCRNGRHWZG3YYHIUV7BVDQ5FDPRT2@morenodes.example.org";
-    System.out.println(encode32AndTruncate(content));
-    content = "enrtree-branch:2XS2367YHAXJFGLZHVAWLQD4ZY,H4FHT4B454P6UXFD7JCYQ5PWDY,MHTDO6TMUBRIA2XWG5LUDACK24";
-    System.out.println(encode32AndTruncate(content));
-    content = "enr:-HW4QOFzoVLaFJnNhbgMoDXPnOvcdVuj7pDpqRvh6BRDO68aVi5ZcjB3vzQRZH2IcLBGHzo8uUN3snqmgTiE56CH3AMBgmlkgnY0iXNlY3AyNTZrMaECC2_24YYkYHEgdzxlSNKQEnHhuNAbNlMlWJxrJxbAFvA";
-    System.out.println(encode32AndTruncate(content));
-    content = "enr:-HW4QAggRauloj2SDLtIHN1XBkvhFZ1vtf1raYQp9TBW2RD5EEawDzbtSmlXUfnaHcvwOizhVYLtr7e6vw7NAf6mTuoCgmlkgnY0iXNlY3AyNTZrMaECjrXI8TLNXU0f8cthpAMxEshUyQlK-AM0PW2wfrnacNI";
-    System.out.println(encode32AndTruncate(content));
-    content = "enr:-HW4QLAYqmrwllBEnzWWs7I5Ev2IAs7x_dZlbYdRdMUx5EyKHDXp7AV5CkuPGUPdvbv1_Ms1CPfhcGCvSElSosZmyoqAgmlkgnY0iXNlY3AyNTZrMaECriawHKWdDRk2xeZkrOXBQ0dfMFLHY4eENZwdufn1S1o";
-    System.out.println(encode32AndTruncate(content));
-    System.out.println();
-
-    //test case 3
-    System.out.println(isValidHash("C7HRFPF3BLGF3YR4DY5KX3SMBE======"));
-    System.out.println(isValidHash("C7HRFPF3BLGF3YR4DY5KX3SMBE"));
-    System.out.println();
-
-    //test case 4
-    String rootmsg = "enrtree-root:v1 e=VXJIDGQECCIIYNY3GZEJSFSG6U l=FDXN3SN67NA5DKA4J2GOK7BVQI seq=3447";
-    byte[] sigdata = decode64(
-        "1eFfi7ggzTbtAldC1pfXPn5A3mZQwEdk0-ZwCKGhZbQn2E6zWodG7v06kFu8gjiCe6FvJo04BYvgKHtPJ5pX5wE");
-    System.out.println(ByteArray.toHexString(sigdata));
-    System.out.println(sigdata.length);
-    puKeyCompress = compressPubKey(recoverPublicKey(rootmsg, sigdata));
-    System.out.println(puKeyCompress);
-    //AKA3AM6LPBYEUDMVNU3BSVQJ5AD45Y7YPOHJLEF6W26QOE4VTUDPE===
-    System.out.println(encode32(ByteArray.fromHexString(puKeyCompress)));
+  /**
+   * if content's length is not multiple of 8, we padding it
+   */
+  public static byte[] decode32(String content) {
+    int left = content.length() % 8;
+    if (left > 0) {
+      for (int i = 0; i < 8 - left; i++) {
+        content = content + padding;
+      }
+    }
+    return Base32.decode(content);
   }
 }

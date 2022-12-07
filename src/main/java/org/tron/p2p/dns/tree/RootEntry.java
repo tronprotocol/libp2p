@@ -2,15 +2,28 @@ package org.tron.p2p.dns.tree;
 
 
 import java.security.SignatureException;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.web3j.crypto.Hash;
 
-public class RootEntry {
+public class RootEntry implements Entry {
 
+  @Getter
   private String eRoot;
+  @Getter
   private String lRoot;
+  @Getter
   private int seq;
+  @Getter
+  @Setter
   private byte[] signature;
+
+  public RootEntry(String eRoot, String lRoot, int seq) {
+    this.eRoot = eRoot;
+    this.lRoot = lRoot;
+    this.seq = seq;
+  }
 
   public RootEntry(String eRoot, String lRoot, int seq, byte[] signature) {
     this.eRoot = eRoot;
@@ -19,22 +32,20 @@ public class RootEntry {
     this.signature = signature;
   }
 
-  public RootEntry parseEntry(String e, String publicKey) {
+  public static RootEntry parseEntry(String e, String publicKey) throws SignatureException {
+    System.out.println("url:" + e);
     String[] items = e.split("\\s+");
     String eroot = items[1].split("=")[1];
     String lroot = items[2].split("=")[1];
     String sequence = items[3].split("=")[1];
     String sig = items[4].split("=")[1];
 
-    String data = String.format("%s e=%s l=%s seq=%d", Entry.rootPrefix, eroot, lroot, sequence);
+    String data = String.format("%s e=%s l=%s seq=%s", rootPrefix, eroot, lroot, sequence);
     byte[] signature = Algorithm.decode64(sig);
-
-    boolean verify;
-    try {
-      verify = Algorithm.verifySignature(publicKey, data, signature);
-    } catch (SignatureException ex) {
-      return null;
+    if (signature.length != 65) {
+      throw new SignatureException("invalid base64 signature: " + sig);
     }
+    boolean verify = Algorithm.verifySignature(publicKey, data, signature);
     if (!verify) {
       return null;
     }
@@ -52,6 +63,6 @@ public class RootEntry {
 
   @Override
   public String toString() {
-    return null;
+    return String.format("%s e=%s l=%s seq=%d", Entry.rootPrefix, eRoot, lRoot, seq);
   }
 }

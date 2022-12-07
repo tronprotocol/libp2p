@@ -1,6 +1,12 @@
 package org.tron.p2p.dns.sync;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 
@@ -9,13 +15,58 @@ public class LinkCache {
   Map<String, Set<String>> backrefs;
   boolean changed;
 
-  public boolean isReferenced(String url) {
-    return false;
+  public LinkCache() {
+    backrefs = new HashMap<>();
+    changed = false;
+  }
+
+  public boolean isReferenced(String urlScheme) {
+    return backrefs.containsKey(urlScheme) && backrefs.get(urlScheme).size() > 0;
   }
 
   public void addLink(String from, String to) {
+    if (backrefs.containsKey(to)) {
+      Set<String> refs = backrefs.get(to);
+      if (!refs.contains(from)) {
+        changed = true;
+      }
+      refs.add(from);
+    } else {
+      Set<String> refs = new HashSet<>();
+      refs.add(from);
+      backrefs.put(to, refs);
+      changed = true;
+    }
   }
 
-  public void resetLinks(String from, Set<String> keep) {
+  //clears all links of the given tree.
+  public void resetLinks(String from, final Set<String> keep) {
+    List<String> stk = new ArrayList<>();
+    stk.add(from);
+
+    while (stk.size() > 0) {
+      int size = stk.size();
+      String item = stk.get(size - 1);
+      stk = stk.subList(0, size - 1);
+
+      Iterator<Entry<String, Set<String>>> it = backrefs.entrySet().iterator();
+      while (it.hasNext()) {
+        Entry<String, Set<String>> entry = it.next();
+        String r = entry.getKey();
+        Set<String> refs = entry.getValue();
+        if (keep.contains(r)) {
+          continue;
+        }
+        if (!refs.contains(item)) {
+          continue;
+        }
+        this.changed = true;
+        refs.remove(item);
+        if (refs.size() == 0) {
+          it.remove();
+          stk.add(r);
+        }
+      }
+    }
   }
 }

@@ -1,10 +1,15 @@
 package org.tron.p2p.dns.sync;
 
 
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.Map;
-import java.util.Queue;
+import org.tron.p2p.dns.tree.BranchEntry;
 import org.tron.p2p.dns.tree.Entry;
 import org.tron.p2p.dns.tree.LinkEntry;
+import org.tron.p2p.dns.tree.NodesEntry;
+import org.tron.p2p.exception.ENRInLinkTreeException;
+import org.tron.p2p.exception.LinkInENRTreeException;
 
 public class SubtreeSync {
 
@@ -12,21 +17,51 @@ public class SubtreeSync {
   public LinkEntry linkEntry;
 
   public String root;
-  public Queue<String> missing;
-  public boolean link;
-  public int leaves = 0;
 
-  public SubtreeSync(Client c, LinkEntry linkEntry, boolean link) {
+  public boolean link;
+  public int leaves;
+
+  public LinkedList<String> missing;
+
+  public SubtreeSync(Client c, LinkEntry linkEntry, String root, boolean link) {
+    this.client = c;
+    this.linkEntry = linkEntry;
+    this.root = root;
+    this.link = link;
+    this.leaves = 0;
+    missing = new LinkedList<>();
+    missing.add(root);
   }
 
   public boolean done() {
-    return false;
+    return missing.isEmpty();
   }
 
-  public void resolveAll(Map<String, Entry> dest) {
+  public void resolveAll(Map<String, Entry> dest) throws Exception {
+    while (!done()) {
+      String hash = missing.peek();
+      Entry entry = resolveNext(hash);
+      dest.put(hash, entry);
+      missing.poll();
+    }
   }
 
-  public Entry resolveNext(String hash) {
-    return null;
+  public Entry resolveNext(String hash) throws Exception {
+    Entry entry = client.resolveEntry(linkEntry.getDomain(), hash);
+    if (entry instanceof NodesEntry) {
+      if (link) {
+        throw new ENRInLinkTreeException();
+      }
+      leaves++;
+    } else if (entry instanceof LinkEntry) {
+      if (!link) {
+        throw new LinkInENRTreeException();
+      }
+      leaves++;
+    } else if (entry instanceof BranchEntry) {
+      BranchEntry branchEntry = (BranchEntry) entry;
+      missing.addAll(Arrays.asList(branchEntry.getChildren()));
+    }
+    return entry;
   }
 }
