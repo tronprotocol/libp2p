@@ -34,3 +34,7 @@ message Neighbours {
   repeated Endpoint neighbours = 2;
   int64 timestamp = 3;
 }
+
+message EndPoints {
+  repeated Endpoint nodes = 1;
+}

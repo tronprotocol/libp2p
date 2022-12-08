@@ -1,6 +1,8 @@
 package org.tron.p2p.dns.tree;
 
 
+import com.google.protobuf.InvalidProtocolBufferException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -8,16 +10,17 @@ import java.util.List;
 import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.dns.DnsNode;
 
+@Slf4j(topic = "net")
 public class Tree {
 
   public static final int hashAbbrevSize = 1 + 16 * 13 / 8; // Size of an encoded hash (plus comma)
   public static final int maxChildren = 370 / hashAbbrevSize; // 13 children
   public static final int minHashLength = 12;
-
-  private static final int groupSize = 5;
+  public static final int mergeSize = 5;
 
   @Getter
   @Setter
@@ -85,13 +88,18 @@ public class Tree {
     return tree;
   }
 
-  private static List<String> sortByIP(List<DnsNode> nodes) {
+  public static List<String> merge(List<DnsNode> nodes) {
     Collections.sort(nodes);
-    List<String> newNodes = new ArrayList<>();
-    for (DnsNode dnsNode : nodes) {
-      newNodes.add(dnsNode.toJson().toJSONString());
+    List<String> enrs = new ArrayList<>();
+    while (nodes.size() >= mergeSize) {
+      List<DnsNode> sub = nodes.subList(0, mergeSize);
+      enrs.add(DnsNode.compress(sub));
+      nodes = nodes.subList(mergeSize, nodes.size());
     }
-    return newNodes;
+    if (nodes.size() > 0) {
+      enrs.add(DnsNode.compress(nodes));
+    }
+    return enrs;
   }
 
   //use for test
@@ -157,7 +165,13 @@ public class Tree {
     List<DnsNode> nodes = new ArrayList<>();
     for (String represent : nodesEntryList) {
       String jonStr = represent.substring(Entry.enrPrefix.length());
-      List<DnsNode> subNodes = DnsNode.decompress(jonStr);
+      List<DnsNode> subNodes;
+      try {
+        subNodes = DnsNode.decompress(jonStr);
+      } catch (InvalidProtocolBufferException | UnknownHostException e) {
+        log.error("", e);
+        continue;
+      }
       if (subNodes != null) {
         nodes.addAll(subNodes);
       }

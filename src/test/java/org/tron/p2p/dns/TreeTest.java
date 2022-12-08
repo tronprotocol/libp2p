@@ -1,6 +1,8 @@
 package org.tron.p2p.dns;
 
 
+import com.google.protobuf.InvalidProtocolBufferException;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Assert;
@@ -9,6 +11,47 @@ import org.tron.p2p.dns.tree.Algorithm;
 import org.tron.p2p.dns.tree.Tree;
 
 public class TreeTest {
+
+  @Test
+  public void testMerge() throws UnknownHostException {
+    DnsNode[] nodes = new DnsNode[] {
+        new DnsNode(null, "192.168.0.1", null, 10000),
+        new DnsNode(null, "192.168.0.2", null, 10000),
+        new DnsNode(null, "192.168.0.3", null, 10000),
+        new DnsNode(null, "192.168.0.4", null, 10000),
+        new DnsNode(null, "192.168.0.5", null, 10000),
+        new DnsNode(null, "192.168.0.6", null, 10001),
+        new DnsNode(null, "192.168.0.6", null, 10002),
+        new DnsNode(null, "192.168.0.6", null, 10003),
+        new DnsNode(null, "192.168.0.6", null, 10004),
+        new DnsNode(null, "192.168.0.6", null, 10005),
+        new DnsNode(null, "192.168.0.10", "fe80::0001", 10005),
+        new DnsNode(null, "192.168.0.10", "fe80::0002", 10005),
+        new DnsNode(null, null, "fe80::0001", 10000),
+        new DnsNode(null, null, "fe80::0002", 10000),
+        new DnsNode(null, null, "fe80::0002", 10001),
+    };
+    List<DnsNode> nodeList = Arrays.asList(nodes);
+
+    List<String> enrs = Tree.merge(nodeList);
+    int total = 0;
+    for (int i = 0; i < enrs.size(); i++) {
+      //System.out.println(enrs.get(i));
+      List<DnsNode> subList = null;
+      try {
+        subList = DnsNode.decompress(enrs.get(i));
+      } catch (InvalidProtocolBufferException e) {
+        Assert.fail();
+      }
+      if (i < enrs.size() - 1) {
+        Assert.assertEquals(Tree.mergeSize, subList.size());
+      } else {
+        Assert.assertTrue(subList.size() <= Tree.mergeSize);
+      }
+      total += subList.size();
+    }
+    Assert.assertEquals(nodeList.size(), total);
+  }
 
   @Test
   public void testTreeBuild() {
