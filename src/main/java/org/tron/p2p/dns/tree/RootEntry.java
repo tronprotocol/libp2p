@@ -4,9 +4,11 @@ package org.tron.p2p.dns.tree;
 import java.security.SignatureException;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.web3j.crypto.Hash;
 
+@Slf4j(topic = "net")
 public class RootEntry implements Entry {
 
   @Getter
@@ -33,7 +35,7 @@ public class RootEntry implements Entry {
   }
 
   public static RootEntry parseEntry(String e, String publicKey) throws SignatureException {
-    System.out.println("url:" + e);
+    log.info("Root url:[{}], public key:{}", e, publicKey);
     String[] items = e.split("\\s+");
     String eroot = items[1].split("=")[1];
     String lroot = items[2].split("=")[1];

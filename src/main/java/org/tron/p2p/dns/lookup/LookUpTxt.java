@@ -18,7 +18,7 @@ public class LookUpTxt {
   //only get first Record
   public static TXTRecord lookUpTxt(String name) throws TextParseException {
     TXTRecord txt = null;
-    log.info("name:" + name);
+    log.info("LookUp name: {}", name);
     Record[] records = new Lookup(name, Type.TXT).run();
     for (int i = 0; i < records.length; i++) {
       txt = (TXTRecord) records[i];
@@ -36,6 +36,7 @@ public class LookUpTxt {
 
   public static void main(String[] args) throws TextParseException {
     lookUpTxt("all.mainnet.ethdisco.net");
-    System.out.println(joinTXTRecord(lookUpTxt("5OY3KM2ZLKEEKOKFBNKLZSZADY", "les.mainnet.ethdisco.net")));
+    System.out.println(
+        joinTXTRecord(lookUpTxt("5OY3KM2ZLKEEKOKFBNKLZSZADY", "les.mainnet.ethdisco.net")));
   }
 }

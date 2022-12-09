@@ -4,13 +4,16 @@ package org.tron.p2p.dns.sync;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.dns.tree.BranchEntry;
 import org.tron.p2p.dns.tree.Entry;
 import org.tron.p2p.dns.tree.LinkEntry;
 import org.tron.p2p.dns.tree.NodesEntry;
 import org.tron.p2p.exception.ENRInLinkTreeException;
+import org.tron.p2p.exception.HashMissMatchException;
 import org.tron.p2p.exception.LinkInENRTreeException;
 
+@Slf4j(topic = "net")
 public class SubtreeSync {
 
   public Client client;
@@ -46,7 +49,8 @@ public class SubtreeSync {
     }
   }
 
-  public Entry resolveNext(String hash) throws Exception {
+  public Entry resolveNext(String hash)
+      throws ENRInLinkTreeException, LinkInENRTreeException, HashMissMatchException {
     Entry entry = client.resolveEntry(linkEntry.getDomain(), hash);
     if (entry instanceof NodesEntry) {
       if (link) {

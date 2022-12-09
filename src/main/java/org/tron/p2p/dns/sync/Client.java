@@ -18,7 +18,6 @@ import org.tron.p2p.dns.tree.NodesEntry;
 import org.tron.p2p.dns.tree.RootEntry;
 import org.tron.p2p.dns.tree.Tree;
 import org.tron.p2p.exception.HashMissMatchException;
-import org.tron.p2p.exception.NoEntryException;
 import org.tron.p2p.exception.NoRootException;
 import org.tron.p2p.utils.ByteArray;
 import org.xbill.DNS.TXTRecord;
@@ -51,21 +50,15 @@ public class Client {
     return null;
   }
 
-  public RootEntry resolveRoot(LinkEntry linkEntry) throws NoRootException {
-    TXTRecord txtRecord;
-    try {
-      txtRecord = LookUpTxt.lookUpTxt(linkEntry.getDomain());
-    } catch (TextParseException e) {
-      log.error("lookUpTxt domain:{} failed", linkEntry.getDomain());
-      return null;
-    }
+  public RootEntry resolveRoot(LinkEntry linkEntry) throws NoRootException, TextParseException {
+    TXTRecord txtRecord = LookUpTxt.lookUpTxt(linkEntry.getDomain());
     RootEntry entry = null;
     for (String txt : txtRecord.getStrings()) {
       if (txt.startsWith(Entry.rootPrefix)) {
         try {
           entry = RootEntry.parseEntry(txt, linkEntry.getUnCompressPublicKey());
         } catch (SignatureException e) {
-          throw new NoRootException(e.getMessage());
+          throw new NoRootException(e);
         }
         break;
       }

@@ -10,4 +10,8 @@ public class NoRootException extends Exception {
   public NoRootException(String message) {
     super(message);
   }
+
+  public NoRootException(Throwable throwable) {
+    super(throwable);
+  }
 }

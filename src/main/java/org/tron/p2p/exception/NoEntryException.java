@@ -10,4 +10,8 @@ public class NoEntryException extends Exception {
   public NoEntryException(String message) {
     super(message);
   }
+
+  public NoEntryException(Throwable throwable) {
+    super(throwable);
+  }
 }

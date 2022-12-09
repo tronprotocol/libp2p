@@ -6,12 +6,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.dns.DnsNode;
 import org.tron.p2p.dns.tree.Entry;
 import org.tron.p2p.dns.tree.LinkEntry;
 import org.tron.p2p.dns.tree.NodesEntry;
 import org.tron.p2p.dns.tree.RootEntry;
+import org.tron.p2p.exception.NoRootException;
+import org.xbill.DNS.TextParseException;
 
+@Slf4j(topic = "net")
 public class ClientTree {
 
   private final int rootRecheckFailCount = 5;
@@ -115,7 +119,7 @@ public class ClientTree {
 
 
   // updateRoot ensures that the given tree has an up-to-date root.
-  private void updateRoot() throws Exception {
+  private void updateRoot() throws NoRootException, TextParseException {
     slowdownRootUpdate();
     lastValidateTime = System.currentTimeMillis();
     RootEntry rootEntry = client.resolveRoot(linkEntry);
@@ -146,11 +150,19 @@ public class ClientTree {
     return lastValidateTime + Parameter.recheckInterval * 60 * 1000L;
   }
 
-  private void slowdownRootUpdate() throws InterruptedException {
+  private void slowdownRootUpdate() {
     if (rootFailCount > 20) {
-      Thread.sleep(10 * 1000L);
+      try {
+        Thread.sleep(10 * 1000L);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
     } else if (rootFailCount > 5) {
-      Thread.sleep(5 * 1000L);
+      try {
+        Thread.sleep(5 * 1000L);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 
