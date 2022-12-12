@@ -25,3 +25,24 @@ message StatusMessage {
   int32 currentConnections = 5;
   int64 timestamp = 6;
 }
+
+message DnsDomain {
+  bytes pub_key = 1;
+  bytes url = 2;
+}
+
+message DnsNode {
+  enum Type {
+    NODE = 0;
+    DOMAIN = 1;
+    BRANCH = 2;
+  }
+
+  int32 type = 1;
+  repeated bytes values = 2;
+}
+
+message DnsRoot {
+  bytes sign = 1;
+  DnsNode dns_node = 2;
+}
