@@ -7,6 +7,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.google.gson.JsonNull;
+import com.google.gson.JsonParser;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -24,6 +27,8 @@ import org.tron.p2p.base.Parameter;
 public class StartApp {
 
   public static void main(String[] args) {
+    Parameter.version = 1;
+
     P2pService p2pService = new P2pService();
     Parameter.p2pConfig = new P2pConfig();
 
@@ -36,10 +41,12 @@ public class StartApp {
 
     if (cli.hasOption("s")) {
       Parameter.p2pConfig.setSeedNodes(parse(cli.getOptionValue("s")));
+      log.info("Seed nodes {}", Parameter.p2pConfig.getSeedNodes());
     }
 
     if (cli.hasOption("a")) {
       Parameter.p2pConfig.setActiveNodes(parse(cli.getOptionValue("a")));
+      log.info("Active nodes {}", Parameter.p2pConfig.getActiveNodes());
     }
 
     if (cli.hasOption("t")) {
@@ -47,6 +54,7 @@ public class StartApp {
       List<InetAddress> trustNodes = new ArrayList<>();
       trustNodes.add(address.getAddress());
       Parameter.p2pConfig.setTrustNodes(trustNodes);
+      log.info("Trust nodes {}", Parameter.p2pConfig.getTrustNodes());
     }
 
     if (cli.hasOption("M")) {
@@ -59,7 +67,7 @@ public class StartApp {
 
     if (Parameter.p2pConfig.getMinConnections() > Parameter.p2pConfig.getMaxConnections()) {
       log.error("Check maxConnections({}) >= minConnections({}) failed",
-          Parameter.p2pConfig.getMaxConnections(), Parameter.p2pConfig.getMinConnections());
+        Parameter.p2pConfig.getMaxConnections(), Parameter.p2pConfig.getMinConnections());
       System.exit(0);
     }
 
@@ -77,7 +85,7 @@ public class StartApp {
     }
 
     if (cli.hasOption("v")) {
-      Parameter.p2pConfig.setVersion(Integer.parseInt(cli.getOptionValue("v")));
+      Parameter.p2pConfig.setNetworkId(Integer.parseInt(cli.getOptionValue("v")));
     }
     if (StringUtils.isNotEmpty(Parameter.p2pConfig.getIpv6())) {
       log.info("Local ipv6: {}", Parameter.p2pConfig.getIpv6());
@@ -95,7 +103,7 @@ public class StartApp {
 
   private static CommandLine parseCli(String[] args) throws ParseException {
     Option opt1 = new Option("s", "seed-nodes", true,
-        "seed node(s), required, ip:port[,ip:port[...]]");
+      "seed node(s), required, ip:port[,ip:port[...]]");
     opt1.setRequired(false);
     Option opt2 = new Option("t", "trust-ips", true, "trust ip(s), ip[,ip[...]]");
     opt2.setRequired(false);

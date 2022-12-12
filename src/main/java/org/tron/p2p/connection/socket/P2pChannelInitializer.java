@@ -16,8 +16,9 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
 
   private boolean peerDiscoveryMode = false;
 
-  public P2pChannelInitializer(String remoteId) {
+  public P2pChannelInitializer(String remoteId, boolean peerDiscoveryMode) {
     this.remoteId = remoteId;
+    this.peerDiscoveryMode = peerDiscoveryMode;
   }
 
   @Override
@@ -33,8 +34,10 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
 
       // be aware of channel closing
       ch.closeFuture().addListener((ChannelFutureListener) future -> {
-        log.info("Close channel:{}", channel.getInetSocketAddress());
-        if (!peerDiscoveryMode) {
+        if (channel.isDiscoveryMode()) {
+          ChannelManager.getNodeDetectService().notifyDisconnect(channel);
+        } else {
+          log.info("Close channel:{}", channel.getInetSocketAddress());
           ChannelManager.notifyDisconnect(channel);
         }
       });
@@ -44,7 +47,4 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
     }
   }
 
-  public void setPeerDiscoveryMode(boolean peerDiscoveryMode) {
-    this.peerDiscoveryMode = peerDiscoveryMode;
-  }
 }

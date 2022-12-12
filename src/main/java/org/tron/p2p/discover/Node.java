@@ -26,6 +26,7 @@ public class Node implements Serializable, Cloneable {
 
   private int port;
 
+  @Setter
   private int bindPort;
 
   @Setter
@@ -148,7 +149,7 @@ public class Node implements Serializable, Cloneable {
   @Override
   public String toString() {
     return "Node{" + " hostV4='" + hostV4 + '\'' + ", hostV6='" + hostV6 + '\'' + ", port=" + port
-        + ", id=" + Hex.toHexString(id) + '}';
+      + ", id=" + Hex.toHexString(id) + '}';
   }
 
   @Override
