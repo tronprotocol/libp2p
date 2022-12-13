@@ -9,6 +9,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.tron.p2p.dns.tree.Algorithm;
 import org.tron.p2p.dns.tree.Tree;
+import org.tron.p2p.exception.DnsException;
 
 public class TreeTest {
 
@@ -121,7 +122,11 @@ public class TreeTest {
     Tree.sortByString(linkList);
 
     Tree tree = new Tree();
-    tree = tree.makeTree(seq, enrList, linkList);
+    try {
+      tree = tree.makeTree(seq, enrList, linkList, null);
+    } catch (DnsException e) {
+      Assert.fail();
+    }
 
     /*
                                     b r a n c h 4

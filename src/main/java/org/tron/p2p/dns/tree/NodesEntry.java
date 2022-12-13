@@ -8,7 +8,8 @@ import java.util.List;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.dns.DnsNode;
-import org.tron.p2p.exception.InvalidEnrException;
+import org.tron.p2p.exception.DnsException;
+import org.tron.p2p.exception.DnsException.TypeEnum;
 
 @Slf4j(topic = "net")
 public class NodesEntry implements Entry {
@@ -28,13 +29,13 @@ public class NodesEntry implements Entry {
   }
 
   //for tron
-  public static NodesEntry parseEntry1(String e) throws InvalidEnrException {
+  public static NodesEntry parseEntry1(String e) throws DnsException {
     String content = e.substring(enrPrefix.length());
     List<DnsNode> nodeList;
     try {
       nodeList = DnsNode.decompress(content);
     } catch (InvalidProtocolBufferException | UnknownHostException ex) {
-      throw new InvalidEnrException(ex);
+      throw new DnsException(TypeEnum.INVALID_ENR, ex);
     }
     return new NodesEntry(e, nodeList);
   }

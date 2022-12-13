@@ -9,9 +9,9 @@ import org.tron.p2p.dns.tree.BranchEntry;
 import org.tron.p2p.dns.tree.Entry;
 import org.tron.p2p.dns.tree.LinkEntry;
 import org.tron.p2p.dns.tree.NodesEntry;
-import org.tron.p2p.exception.ENRInLinkTreeException;
-import org.tron.p2p.exception.HashMissMatchException;
-import org.tron.p2p.exception.LinkInENRTreeException;
+import org.tron.p2p.exception.DnsException;
+import org.tron.p2p.exception.DnsException.TypeEnum;
+import org.xbill.DNS.TextParseException;
 
 @Slf4j(topic = "net")
 public class SubtreeSync {
@@ -49,17 +49,16 @@ public class SubtreeSync {
     }
   }
 
-  public Entry resolveNext(String hash)
-      throws ENRInLinkTreeException, LinkInENRTreeException, HashMissMatchException {
+  public Entry resolveNext(String hash) throws DnsException, TextParseException {
     Entry entry = client.resolveEntry(linkEntry.getDomain(), hash);
     if (entry instanceof NodesEntry) {
       if (link) {
-        throw new ENRInLinkTreeException();
+        throw new DnsException(TypeEnum.ENR_IN_LINK_TREE, "");
       }
       leaves++;
     } else if (entry instanceof LinkEntry) {
       if (!link) {
-        throw new LinkInENRTreeException();
+        throw new DnsException(TypeEnum.LINK_IN_ENR_TREE, "");
       }
       leaves++;
     } else if (entry instanceof BranchEntry) {

@@ -8,6 +8,7 @@ import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
+import org.tron.p2p.dns.DnsManager;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.stats.P2pStats;
 import org.tron.p2p.stats.StatsManager;
@@ -21,12 +22,14 @@ public class P2pService {
     Parameter.p2pConfig = p2pConfig;
     NodeManager.init();
     ChannelManager.init();
+    DnsManager.init();
     log.info("P2p service started");
   }
 
   public void close() {
     NodeManager.close();
     ChannelManager.close();
+    DnsManager.close();
     log.info("P2p service closed");
   }
 

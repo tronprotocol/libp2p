@@ -17,8 +17,8 @@ import org.tron.p2p.dns.tree.LinkEntry;
 import org.tron.p2p.dns.tree.NodesEntry;
 import org.tron.p2p.dns.tree.RootEntry;
 import org.tron.p2p.dns.tree.Tree;
-import org.tron.p2p.exception.HashMissMatchException;
-import org.tron.p2p.exception.NoRootException;
+import org.tron.p2p.exception.DnsException;
+import org.tron.p2p.exception.DnsException.TypeEnum;
 import org.tron.p2p.utils.ByteArray;
 import org.xbill.DNS.TXTRecord;
 import org.xbill.DNS.TextParseException;
@@ -50,24 +50,19 @@ public class Client {
     return null;
   }
 
-  public RootEntry resolveRoot(LinkEntry linkEntry) throws NoRootException, TextParseException {
+  public RootEntry resolveRoot(LinkEntry linkEntry)
+      throws TextParseException, DnsException, SignatureException {
     TXTRecord txtRecord = LookUpTxt.lookUpTxt(linkEntry.getDomain());
-    RootEntry entry = null;
     for (String txt : txtRecord.getStrings()) {
       if (txt.startsWith(Entry.rootPrefix)) {
-        try {
-          entry = RootEntry.parseEntry(txt, linkEntry.getUnCompressPublicKey());
-        } catch (SignatureException e) {
-          throw new NoRootException(e);
-        }
-        break;
+        return RootEntry.parseEntry(txt, linkEntry.getUnCompressPublicKey());
       }
     }
-    return entry;
+    throw new DnsException(TypeEnum.NO_ROOT_FOUND, "domain: " + linkEntry.getDomain());
   }
 
   // resolveEntry retrieves an entry from the cache or fetches it from the network if it isn't cached.
-  public Entry resolveEntry(String domain, String hash) throws HashMissMatchException {
+  public Entry resolveEntry(String domain, String hash) throws DnsException, TextParseException {
     Entry entry = cache.getIfPresent(hash);
     if (entry != null) {
       return entry;
@@ -76,21 +71,15 @@ public class Client {
     return entry;
   }
 
-  private Entry doResolveEntry(String domain, String hash) throws HashMissMatchException {
+  private Entry doResolveEntry(String domain, String hash) throws DnsException, TextParseException {
     try {
       ByteArray.toHexString(Algorithm.decode32(hash));
     } catch (Exception e) {
-      log.error("invalid base32 hash: {}", hash);
-      return null;
+      throw new DnsException(TypeEnum.OTHER_ERROR, "invalid base32 hash: " + hash);
     }
-    TXTRecord txtRecord;
-    try {
-      txtRecord = LookUpTxt.lookUpTxt(hash, domain);
-    } catch (TextParseException e) {
-      log.error("lookUpTxt hash:{} domain:{} failed", hash, domain);
-      return null;
-    }
+    TXTRecord txtRecord = LookUpTxt.lookUpTxt(hash, domain);
     String txt = LookUpTxt.joinTXTRecord(txtRecord);
+
     Entry entry = null;
     if (txt.startsWith(Entry.branchPrefix)) {
       entry = BranchEntry.parseEntry(txt);
@@ -100,18 +89,21 @@ public class Client {
       entry = NodesEntry.parseEntry(txt);
     }
 
-    if (entry != null) {
-      String wantHash = Algorithm.encode32AndTruncate(entry.toString());
-      if (!wantHash.equals(hash)) {
-        throw new HashMissMatchException(
-            String.format("hash mismatch, want: [%s], really: [%s], content: [%s]", wantHash, hash,
-                entry));
-      }
+    if (entry == null) {
+      throw new DnsException(TypeEnum.NO_ENTRY_FOUND,
+          String.format("hash:%s, domain:%s, txt:%s", hash, domain, txt));
+    }
+
+    String wantHash = Algorithm.encode32AndTruncate(entry.toString());
+    if (!wantHash.equals(hash)) {
+      throw new DnsException(TypeEnum.HASH_MISS_MATCH,
+          String.format("hash mismatch, want: [%s], really: [%s], content: [%s]", wantHash, hash,
+              entry));
     }
     return entry;
   }
 
-  public RandomIterator newIterator(List<String> urlSchemes) {
+  public RandomIterator newIterator(List<String> urlSchemes) throws DnsException {
     RandomIterator randomIterator = new RandomIterator(this);
     for (String urlScheme : urlSchemes) {
       randomIterator.addTree(urlScheme);

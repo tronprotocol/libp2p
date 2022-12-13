@@ -1,6 +1,7 @@
 package org.tron.p2p.dns.sync;
 
 
+import java.security.SignatureException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -12,7 +13,7 @@ import org.tron.p2p.dns.tree.Entry;
 import org.tron.p2p.dns.tree.LinkEntry;
 import org.tron.p2p.dns.tree.NodesEntry;
 import org.tron.p2p.dns.tree.RootEntry;
-import org.tron.p2p.exception.NoRootException;
+import org.tron.p2p.exception.DnsException;
 import org.xbill.DNS.TextParseException;
 
 @Slf4j(topic = "net")
@@ -54,7 +55,8 @@ public class ClientTree {
     enrs.resolveAll(entries);
   }
 
-  public DnsNode syncRandom() throws Exception {
+  public DnsNode syncRandom()
+      throws DnsException, SignatureException, InterruptedException, TextParseException {
     if (rootUpdateDue()) {
       updateRoot();
     }
@@ -82,7 +84,7 @@ public class ClientTree {
 
   // gcLinks removes outdated links from the global link cache. GC runs once when the link sync finishes.
   public void gcLinks() {
-    if (!links.done() || root.getLRoot() == linkGCRoot) {
+    if (!links.done() || root.getLRoot().equals(linkGCRoot)) {
       return;
     }
     linkCache.resetLinks(linkEntry.getRepresent(), curLinks);
@@ -90,7 +92,7 @@ public class ClientTree {
   }
 
   // traversal next link of missing
-  public void syncNextLink() throws Exception {
+  public void syncNextLink() throws DnsException, TextParseException {
     String hash = links.missing.peek();
     Entry entry = links.resolveNext(hash);
     links.missing.poll();
@@ -103,7 +105,7 @@ public class ClientTree {
   }
 
   // the second random and the third random
-  private DnsNode syncNextRandomNode() throws Exception {
+  private DnsNode syncNextRandomNode() throws DnsException, TextParseException {
     int pos = random.nextInt(enrs.missing.size());
     String hash = enrs.missing.get(pos);
     Entry entry = enrs.resolveNext(hash);
@@ -119,7 +121,8 @@ public class ClientTree {
 
 
   // updateRoot ensures that the given tree has an up-to-date root.
-  private void updateRoot() throws NoRootException, TextParseException {
+  private void updateRoot()
+      throws TextParseException, DnsException, SignatureException, InterruptedException {
     slowdownRootUpdate();
     lastValidateTime = System.currentTimeMillis();
     RootEntry rootEntry = client.resolveRoot(linkEntry);
@@ -150,19 +153,11 @@ public class ClientTree {
     return lastValidateTime + Parameter.recheckInterval * 60 * 1000L;
   }
 
-  private void slowdownRootUpdate() {
+  private void slowdownRootUpdate() throws InterruptedException {
     if (rootFailCount > 20) {
-      try {
-        Thread.sleep(10 * 1000L);
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
+      Thread.sleep(10 * 1000L);
     } else if (rootFailCount > 5) {
-      try {
-        Thread.sleep(5 * 1000L);
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
+      Thread.sleep(5 * 1000L);
     }
   }
 

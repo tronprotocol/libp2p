@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.dns.DnsNode;
 import org.tron.p2p.dns.tree.LinkEntry;
+import org.tron.p2p.exception.DnsException;
 
 
 @Slf4j(topic = "net")
@@ -62,11 +63,9 @@ public class RandomIterator implements Iterator<DnsNode> {
     return false;
   }
 
-  public void addTree(String url) {
+  public void addTree(String url) throws DnsException {
     LinkEntry linkEntry = LinkEntry.parseEntry(url);
-    if (linkEntry != null) {
-      linkCache.addLink("", linkEntry.getRepresent());
-    }
+    linkCache.addLink("", linkEntry.getRepresent());
   }
 
   //the first random
@@ -102,7 +101,7 @@ public class RandomIterator implements Iterator<DnsNode> {
         disabledList.add(ct);
       }
     }
-    return syncAbleList.size() > 0;
+    return !syncAbleList.isEmpty();
   }
 
   private void waitForRootUpdates(List<ClientTree> waitTrees) {
@@ -136,7 +135,13 @@ public class RandomIterator implements Iterator<DnsNode> {
       Entry<String, Set<String>> entry = it2.next();
       String urlScheme = entry.getKey();
       if (!trees.containsKey(urlScheme)) {
-        LinkEntry linkEntry = LinkEntry.parseEntry(urlScheme);
+        LinkEntry linkEntry;
+        try {
+          linkEntry = LinkEntry.parseEntry(urlScheme);
+        } catch (DnsException e) {
+          log.error("", e);
+          continue;
+        }
         trees.put(urlScheme, new ClientTree(client, linkCache, linkEntry));
       }
     }

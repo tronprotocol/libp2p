@@ -9,6 +9,7 @@ import org.tron.p2p.utils.NetUtil;
 
 @Data
 public class P2pConfig {
+
   private List<InetSocketAddress> seedNodes = new ArrayList<>();
   private List<InetSocketAddress> activeNodes = new ArrayList<>();
   private List<InetAddress> trustNodes = new ArrayList<>();
@@ -24,5 +25,9 @@ public class P2pConfig {
   private boolean discoverEnable = true;
   private boolean disconnectionPolicyEnable = false;
 
+  //dns read config
   private List<String> entreeUrls = new ArrayList<>();
+  //dns write config
+  private String dnsPrivate = null;
+  private List<String> knownLinks = new ArrayList<>();
 }

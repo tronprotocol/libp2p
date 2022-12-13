@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.tron.p2p.exception.DnsException;
+import org.tron.p2p.exception.DnsException.TypeEnum;
+import org.tron.p2p.utils.ByteArray;
 import org.web3j.crypto.Hash;
 
 @Slf4j(topic = "net")
@@ -34,9 +37,17 @@ public class RootEntry implements Entry {
     this.signature = signature;
   }
 
-  public static RootEntry parseEntry(String e, String publicKey) throws SignatureException {
+  public static RootEntry parseEntry(String e, String publicKey)
+      throws SignatureException, DnsException {
     log.info("Root url:[{}], public key:{}", e, publicKey);
     String[] items = e.split("\\s+");
+    if (items.length != 5
+        || items[1].split("=").length != 2
+        || items[2].split("=").length != 2
+        || items[3].split("=").length != 2
+        || items[4].split("=").length != 2) {
+      throw new DnsException(TypeEnum.INVALID_ROOT_SYNTAX, "data:[" + e + "]");
+    }
     String eroot = items[1].split("=")[1];
     String lroot = items[2].split("=")[1];
     String sequence = items[3].split("=")[1];
@@ -45,12 +56,19 @@ public class RootEntry implements Entry {
     String data = String.format("%s e=%s l=%s seq=%s", rootPrefix, eroot, lroot, sequence);
     byte[] signature = Algorithm.decode64(sig);
     if (signature.length != 65) {
-      throw new SignatureException("invalid base64 signature: " + sig);
+      throw new DnsException(TypeEnum.INVALID_SIGNATURE,
+          String.format("signature's length(%d) != 65, signature: %s", signature.length,
+              ByteArray.toHexString(signature)));
     }
     boolean verify = Algorithm.verifySignature(publicKey, data, signature);
     if (!verify) {
-      return null;
+      throw new DnsException(TypeEnum.INVALID_SIGNATURE,
+          "verify signature failed, data:[" + e + "], publicKey:" + publicKey);
     }
+    if (!Algorithm.isValidHash(eroot) || !Algorithm.isValidHash(lroot)) {
+      throw new DnsException(TypeEnum.INVALID_CHILD, "eroot:" + eroot + " lroot:" + lroot);
+    }
+
     if (Algorithm.isValidHash(eroot) && Algorithm.isValidHash(lroot) && StringUtils.isNumeric(
         sequence)) {
       return new RootEntry(eroot, lroot, Integer.parseInt(sequence), signature);

@@ -13,6 +13,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.dns.DnsNode;
+import org.tron.p2p.exception.DnsException;
 
 @Slf4j(topic = "net")
 public class Tree {
@@ -62,7 +63,8 @@ public class Tree {
     return build(subtrees);
   }
 
-  public Tree makeTree(int seq, List<String> nodes, List<String> links) {
+  public Tree makeTree(int seq, List<String> nodes, List<String> links, String privateKey)
+      throws DnsException {
     List<Entry> nodesEntryList = new ArrayList<>();
     for (int i = 0; i < nodes.size(); i++) {
       nodesEntryList.add(NodesEntry.parseEntry(nodes.get(i)));
@@ -85,6 +87,11 @@ public class Tree {
 
     tree.setRootEntry(new RootEntry(eRootStr, lRootStr, seq));
     // we will sign the tree later
+    if (StringUtils.isNotEmpty(privateKey)) {
+      byte[] sig = Algorithm.sigData(tree.rootEntry.toString(), privateKey);
+      tree.rootEntry.setSignature(sig);
+    }
+
     return tree;
   }
 
@@ -179,9 +186,9 @@ public class Tree {
     return nodes;
   }
 
-  private LinkEntry sign(String privateKey, String publicKry, String domain) {
+  private LinkEntry sign(String privateKey, String publicKey, String domain) {
     byte[] signature = Algorithm.sigData(rootEntry.toString(), privateKey);
     rootEntry.setSignature(signature);
-    return new LinkEntry(domain, publicKry);
+    return new LinkEntry(domain, publicKey);
   }
 }
