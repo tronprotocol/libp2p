@@ -47,6 +47,8 @@ message DnsNode {
 }
 
 message DnsRoot {
-  bytes sign = 1;
-  DnsNode dns_node = 2;
+  int32 v = 1;
+  int32 seq = 2;
+  bytes sign = 3;
+  DnsNode dns_node = 4;
 }

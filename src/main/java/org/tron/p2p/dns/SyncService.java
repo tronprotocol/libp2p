@@ -56,7 +56,7 @@ public class SyncService {
 
   public void work() throws IOException {
     Discover.DnsRoot root = Client.queryDnsRoot(Parameter.p2pConfig.getDnsDomain());
-    if (root == null || (root.equals(dnsRoot) && finishSync)) {
+    if (root == null || (dnsRoot != null && dnsRoot.getSeq() == root.getSeq() && finishSync)) {
       return;
     }
     this.dnsRoot = root;
