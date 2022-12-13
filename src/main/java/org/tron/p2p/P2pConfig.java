@@ -5,6 +5,8 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
+import org.tron.p2p.protos.Connect;
+import org.tron.p2p.protos.Discover;
 import org.tron.p2p.utils.NetUtil;
 
 @Data
@@ -23,4 +25,6 @@ public class P2pConfig {
   private int maxConnectionsWithSameIp = 2;
   private boolean discoverEnable = true;
   private boolean disconnectionPolicyEnable = false;
+  private byte[] dnsPriKey;
+  private Discover.DnsDomain dnsDomain;
 }

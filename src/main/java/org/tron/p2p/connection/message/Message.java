@@ -27,8 +27,8 @@ public abstract class Message {
     return this.data;
   }
 
-  public ByteBuf getSendData() {
-    return Unpooled.wrappedBuffer(ArrayUtils.add(this.data, 0, type.getType()));
+  public byte[] getSendData() {
+    return ArrayUtils.add(this.data, 0, type.getType());
   }
 
   public abstract boolean valid();

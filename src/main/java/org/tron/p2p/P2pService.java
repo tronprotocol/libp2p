@@ -58,4 +58,7 @@ public class P2pService {
     ChannelManager.updateNodeId(channel, nodeId);
   }
 
+  public int getVersion() {
+    return Parameter.version;
+  }
 }
