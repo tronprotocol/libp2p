@@ -35,3 +35,4 @@ message CompressMessage {
   CompressType type = 1;
   bytes data = 2;
 }
+

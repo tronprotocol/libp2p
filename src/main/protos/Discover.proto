@@ -34,3 +34,21 @@ message Neighbours {
   repeated Endpoint neighbours = 2;
   int64 timestamp = 3;
 }
+
+message DnsDomain {
+  bytes pub_key = 1;
+  bytes url = 2;
+}
+
+message DnsNode {
+  repeated bytes keys = 1;
+  repeated Endpoint nodes = 2;
+  repeated DnsDomain domains = 3;
+}
+
+message DnsRoot {
+  int32 v = 1;
+  int32 seq = 2;
+  bytes sign = 3;
+  DnsNode dns_node = 4;
+}
