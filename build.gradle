@@ -46,6 +46,7 @@ buildscript {
 dependencies {
     testImplementation group: 'junit', name: 'junit', version: '4.12'
 
+    implementation group: 'xerces', name: 'xercesImpl', version: '2.11.0'
     implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.9'
     implementation group: 'ch.qos.logback', name: 'logback-core', version: '1.2.3'
     implementation group: 'com.google.protobuf', name: 'protobuf-java', version: protobufVersion
@@ -63,6 +64,7 @@ dependencies {
     implementation group: 'dnsjava', name: 'dnsjava', version: '3.5.2'
     implementation group: 'org.web3j', name: 'crypto', version: '5.0.0'
     implementation group: 'software.amazon.awssdk', name: 'route53', version: '2.18.41'
+    implementation group: 'com.aliyun', name: 'alidns20150109', version: '3.0.1'
 }
 
 tasks.matching { it instanceof Test }.all {

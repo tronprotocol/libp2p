@@ -42,7 +42,8 @@ public class DnsException extends Exception {
     INVALID_SIGNATURE(11, "invalid base64 signature"),
     INVALID_ROOT_SYNTAX(12, "invalid root syntax"),
     INVALID_SCHEME_URL(13, "invalid scheme url"),
-    OTHER_ERROR(14, "other error");
+    DEPLOY_DOMAIN_FAILED(14, "failed to deploy domain"),
+    OTHER_ERROR(15, "other error");
 
     private Integer value;
     private String desc;

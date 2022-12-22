@@ -5,6 +5,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
+import org.tron.p2p.dns.update.DnsType;
 import org.tron.p2p.utils.NetUtil;
 
 @Data
@@ -27,7 +28,22 @@ public class P2pConfig {
 
   //dns read config
   private List<String> entreeUrls = new ArrayList<>();
-  //dns write config
+
+  //dns publish config
+  private boolean dnsPublishEnable = false;
   private String dnsPrivate = null;
   private List<String> knownLinks = new ArrayList<>();
+  private String dnsDomain = null;
+  private DnsType dnsType = null;
+
+  //aliyun
+  private String aliAccessKeyId = null;
+  private String aliAccessKeySecret = null;
+  private String aliDnsEndpoint = null;
+
+  //aws
+  private String awsAccessKeyId = null;
+  private String awsAccessKeySecret = null;
+  private String awsHostZoneId = null;
+  private String awsRegion = null;
 }

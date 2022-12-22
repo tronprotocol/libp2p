@@ -31,18 +31,15 @@ import software.amazon.awssdk.services.route53.model.ResourceRecord;
 import software.amazon.awssdk.services.route53.model.ResourceRecordSet;
 
 @Slf4j(topic = "net")
-public class DnsRoute53Publish {
+public class AwsClient implements Publish {
 
-  public static final int rootTTL = 30 * 60;
-  public static final int treeNodeTTL = 4 * 7 * 24 * 60 * 60;
   public static final int route53ChangeSizeLimit = 32000;
   public static final int route53ChangeCountLimit = 1000;
   public static final int maxRetryLimit = 60;
-
   private Route53Client route53Client;
   private String zoneId;
 
-  public DnsRoute53Publish(final String accessKey, final String accessKeySecret,
+  public AwsClient(final String accessKey, final String accessKeySecret,
       final String zoneId, final Region region) {
     if (StringUtils.isEmpty(accessKey) || StringUtils.isEmpty(accessKeySecret)) {
       throw new RuntimeException("Need Route53 Access Key ID and secret to proceed");
@@ -93,6 +90,7 @@ public class DnsRoute53Publish {
   }
 
   // uploads the given tree to Route53.
+  @Override
   public void deploy(String domain, Tree tree) {
     checkZone(domain);
 
@@ -108,7 +106,8 @@ public class DnsRoute53Publish {
   }
 
   // removes all TXT records of the given domain.
-  public void deleteDomain(String rootDomain) {
+  @Override
+  public boolean deleteDomain(String rootDomain) {
     checkZone(rootDomain);
 
     Map<String, RecordSet> existing = collectRecords(rootDomain);
@@ -118,9 +117,11 @@ public class DnsRoute53Publish {
 
     String comment = String.format("delete entree of %s", rootDomain);
     submitChanges(changes, comment);
+    return true;
   }
 
   // collects all TXT records below the given name.
+  @Override
   public Map<String, RecordSet> collectRecords(String rootDomain) {
     Map<String, RecordSet> existing = new HashMap<>();
     ListResourceRecordSetsRequest.Builder request = ListResourceRecordSetsRequest.builder();
@@ -396,5 +397,16 @@ public class DnsRoute53Publish {
     String subNoSuffix = StringUtils.stripEnd(sub, ".");
     String rootNoSuffix = StringUtils.stripEnd(root, ".");
     return subNoSuffix.endsWith(rootNoSuffix);
+  }
+
+  public static class RecordSet {
+
+    String[] values;
+    long ttl;
+
+    public RecordSet(String[] values, long ttl) {
+      this.values = values;
+      this.ttl = ttl;
+    }
   }
 }
