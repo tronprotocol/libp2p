@@ -247,7 +247,7 @@ public class AliClient {
   public static void main(String[] args) {
     try {
       AliClient client = new AliClient("alidns.aliyuncs.com",
-          "LTAI5tAkf2SEKSXT45W7T8tq", "Uv4dBPFDf8nkyxwADYThg53AnDS68K");
+          "", "");
 
       //String oldRecId = client.getRecId("dnsdisc.com", "test1");
 //
