@@ -1,6 +1,7 @@
 package org.tron.p2p.dns.sync;
 
 
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Map;
@@ -49,7 +50,8 @@ public class SubtreeSync {
     }
   }
 
-  public Entry resolveNext(String hash) throws DnsException, TextParseException {
+  public Entry resolveNext(String hash)
+      throws DnsException, TextParseException, UnknownHostException {
     Entry entry = client.resolveEntry(linkEntry.getDomain(), hash);
     if (entry instanceof NodesEntry) {
       if (link) {

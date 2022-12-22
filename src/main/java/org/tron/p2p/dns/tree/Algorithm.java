@@ -77,6 +77,7 @@ public class Algorithm {
 
   /**
    * @param publicKey uncompress hex publicKey
+   * @param msg to be hashed message
    */
   public static boolean verifySignature(String publicKey, String msg, byte[] sig)
       throws SignatureException {

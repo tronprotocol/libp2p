@@ -53,14 +53,17 @@ public class RootEntry implements Entry {
     String sequence = items[3].split("=")[1];
     String sig = items[4].split("=")[1];
 
-    String data = String.format("%s e=%s l=%s seq=%s", rootPrefix, eroot, lroot, sequence);
+    if (!StringUtils.isNumeric(sequence)) {
+      throw new DnsException(TypeEnum.OTHER_ERROR, "invalid seq");
+    }
+    RootEntry rootEntry = new RootEntry(eroot, lroot, Integer.parseInt(sequence));
     byte[] signature = Algorithm.decode64(sig);
     if (signature.length != 65) {
       throw new DnsException(TypeEnum.INVALID_SIGNATURE,
           String.format("signature's length(%d) != 65, signature: %s", signature.length,
               ByteArray.toHexString(signature)));
     }
-    boolean verify = Algorithm.verifySignature(publicKey, data, signature);
+    boolean verify = Algorithm.verifySignature(publicKey, rootEntry.toString(), signature);
     if (!verify) {
       throw new DnsException(TypeEnum.INVALID_SIGNATURE,
           "verify signature failed, data:[" + e + "], publicKey:" + publicKey);
@@ -71,18 +74,18 @@ public class RootEntry implements Entry {
 
     if (Algorithm.isValidHash(eroot) && Algorithm.isValidHash(lroot) && StringUtils.isNumeric(
         sequence)) {
-      return new RootEntry(eroot, lroot, Integer.parseInt(sequence), signature);
+      rootEntry.setSignature(signature);
+      return rootEntry;
     }
     return null;
-  }
-
-  public byte[] sigHash() {
-    String data = String.format("%s e=%s l=%s seq=%d", Entry.rootPrefix, eRoot, lRoot, seq);
-    return Hash.sha3(data.getBytes());
   }
 
   @Override
   public String toString() {
     return String.format("%s e=%s l=%s seq=%d", Entry.rootPrefix, eRoot, lRoot, seq);
+  }
+
+  public String toFormat() {
+    return String.format("%s sig=%s", toString(), Algorithm.encode64(signature));
   }
 }

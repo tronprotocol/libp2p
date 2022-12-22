@@ -50,7 +50,7 @@ public class RandomIterator implements Iterator<DnsNode> {
         dnsNode = clientTree.syncRandom();
       } catch (Exception e) {
         log.info("Error in DNS random node sync, tree:{}, exception:{}",
-            clientTree.linkEntry.getDomain(), e);
+            clientTree.getLinkEntry().getDomain(), e);
         continue;
       }
       cur = dnsNode;

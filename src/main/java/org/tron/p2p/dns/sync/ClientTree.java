@@ -1,12 +1,14 @@
 package org.tron.p2p.dns.sync;
 
 
+import java.net.UnknownHostException;
 import java.security.SignatureException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.dns.DnsNode;
 import org.tron.p2p.dns.tree.Entry;
@@ -19,25 +21,27 @@ import org.xbill.DNS.TextParseException;
 @Slf4j(topic = "net")
 public class ClientTree {
 
-  private final int rootRecheckFailCount = 5;
+  private static final int rootRecheckFailCount = 5;
   // used for construct
-  public Client client;
+  private Client client;
+  @Getter
   public LinkEntry linkEntry;
-  public LinkCache linkCache;
+  private LinkCache linkCache;
 
   // used for check
-  public long lastValidateTime;
-  public int leafFailCount = 0;
-  public int rootFailCount = 0;
+  private long lastValidateTime;
+  private int leafFailCount = 0;
+  private int rootFailCount = 0;
 
   // used for sync
-  public RootEntry root;
-  public SubtreeSync enrs;
-  public SubtreeSync links;
+  @Getter
+  private RootEntry root;
+  private SubtreeSync enrs;
+  private SubtreeSync links;
 
   //all links in this tree
-  public Set<String> curLinks;
-  public String linkGCRoot;
+  private Set<String> curLinks;
+  private String linkGCRoot;
 
   private Random random;
 
@@ -56,7 +60,7 @@ public class ClientTree {
   }
 
   public DnsNode syncRandom()
-      throws DnsException, SignatureException, InterruptedException, TextParseException {
+      throws DnsException, SignatureException, InterruptedException, TextParseException, UnknownHostException {
     if (rootUpdateDue()) {
       updateRoot();
     }
@@ -92,7 +96,7 @@ public class ClientTree {
   }
 
   // traversal next link of missing
-  public void syncNextLink() throws DnsException, TextParseException {
+  public void syncNextLink() throws DnsException, TextParseException, UnknownHostException {
     String hash = links.missing.peek();
     Entry entry = links.resolveNext(hash);
     links.missing.poll();
@@ -105,7 +109,8 @@ public class ClientTree {
   }
 
   // the second random and the third random
-  private DnsNode syncNextRandomNode() throws DnsException, TextParseException {
+  private DnsNode syncNextRandomNode()
+      throws DnsException, TextParseException, UnknownHostException {
     int pos = random.nextInt(enrs.missing.size());
     String hash = enrs.missing.get(pos);
     Entry entry = enrs.resolveNext(hash);
@@ -122,7 +127,7 @@ public class ClientTree {
 
   // updateRoot ensures that the given tree has an up-to-date root.
   private void updateRoot()
-      throws TextParseException, DnsException, SignatureException, InterruptedException {
+      throws TextParseException, DnsException, SignatureException, InterruptedException, UnknownHostException {
     slowdownRootUpdate();
     lastValidateTime = System.currentTimeMillis();
     RootEntry rootEntry = client.resolveRoot(linkEntry);

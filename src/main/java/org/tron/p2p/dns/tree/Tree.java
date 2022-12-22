@@ -2,7 +2,9 @@ package org.tron.p2p.dns.tree;
 
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import java.math.BigInteger;
 import java.net.UnknownHostException;
+import java.security.SignatureException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -14,13 +16,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.dns.DnsNode;
 import org.tron.p2p.exception.DnsException;
+import org.tron.p2p.exception.DnsException.TypeEnum;
+import org.tron.p2p.utils.ByteArray;
 
 @Slf4j(topic = "net")
 public class Tree {
 
   public static final int hashAbbrevSize = 1 + 16 * 13 / 8; // Size of an encoded hash (plus comma)
   public static final int maxChildren = 370 / hashAbbrevSize; // 13 children
-  public static final int minHashLength = 12;
   public static final int mergeSize = 5;
 
   @Getter
@@ -49,7 +52,7 @@ public class Tree {
 
     //every batch size of leaf entry construct a branch
     List<Entry> subtrees = new ArrayList<>();
-    while (leafs.size() > 0) {
+    while (!leafs.isEmpty()) {
       int total = leafs.size();
       int n = Math.min(maxChildren, total);
       Entry branch = build(leafs.subList(0, n));
@@ -63,16 +66,16 @@ public class Tree {
     return build(subtrees);
   }
 
-  public Tree makeTree(int seq, List<String> nodes, List<String> links, String privateKey)
+  public Tree makeTree(int seq, List<String> enrs, List<String> links, String privateKey)
       throws DnsException {
     List<Entry> nodesEntryList = new ArrayList<>();
-    for (int i = 0; i < nodes.size(); i++) {
-      nodesEntryList.add(NodesEntry.parseEntry(nodes.get(i)));
+    for (String enr : enrs) {
+      nodesEntryList.add(NodesEntry.parseEntry(enr));
     }
 
     List<Entry> linkEntryList = new ArrayList<>();
-    for (int i = 0; i < links.size(); i++) {
-      linkEntryList.add(LinkEntry.parseEntry(links.get(i)));
+    for (String link : links) {
+      linkEntryList.add(LinkEntry.parseEntry(link));
     }
 
     Tree tree = new Tree();
@@ -86,10 +89,25 @@ public class Tree {
     tree.getEntries().put(lRootStr, lRoot);
 
     tree.setRootEntry(new RootEntry(eRootStr, lRootStr, seq));
-    // we will sign the tree later
+
     if (StringUtils.isNotEmpty(privateKey)) {
       byte[] sig = Algorithm.sigData(tree.rootEntry.toString(), privateKey);
       tree.rootEntry.setSignature(sig);
+
+      BigInteger publicKeyInt = Algorithm.generateKeyPair(privateKey).getPublicKey();
+      String publicKey = ByteArray.toHexString(publicKeyInt.toByteArray());
+
+      //verify ourselves
+      boolean verified;
+      try {
+        verified = Algorithm.verifySignature(publicKey, tree.rootEntry.toString(),
+            tree.rootEntry.getSignature());
+      } catch (SignatureException e) {
+        throw new DnsException(TypeEnum.INVALID_SIGNATURE, e);
+      }
+      if (!verified) {
+        throw new DnsException(TypeEnum.INVALID_SIGNATURE, "");
+      }
     }
 
     return tree;
@@ -100,25 +118,26 @@ public class Tree {
     List<String> enrs = new ArrayList<>();
     while (nodes.size() >= mergeSize) {
       List<DnsNode> sub = nodes.subList(0, mergeSize);
-      enrs.add(DnsNode.compress(sub));
+      enrs.add(Entry.enrPrefix + DnsNode.compress(sub));
       nodes = nodes.subList(mergeSize, nodes.size());
     }
-    if (nodes.size() > 0) {
-      enrs.add(DnsNode.compress(nodes));
+    if (!nodes.isEmpty()) {
+      enrs.add(Entry.enrPrefix + DnsNode.compress(nodes));
     }
     return enrs;
   }
 
-  //use for test
-  public static void sortByString(List<String> nodes) {
-    Collections.sort(nodes);
-  }
+//  //use for test
+//  public static void sortByString(List<String> nodes) {
+//    Collections.sort(nodes);
+//  }
 
   public Map<String, String> toTXT(String rootDomain) {
     Map<String, String> dnsRecords = new HashMap<>();
+    dnsRecords.put(rootDomain, rootEntry.toFormat());
     for (String key : entries.keySet()) {
       String newKey = StringUtils.isNoneEmpty(rootDomain) ? key + "." + rootDomain : key;
-      dnsRecords.put(newKey, entries.get(key).toString());
+      dnsRecords.put(newKey.toLowerCase(), entries.get(key).toString());
     }
     return dnsRecords;
   }
@@ -127,9 +146,6 @@ public class Tree {
     return rootEntry.getSeq();
   }
 
-  public String signature() {
-    return Algorithm.encode64(rootEntry.getSignature());
-  }
 
   public List<String> getLinksEntry() {
     List<String> links = new ArrayList<>();
@@ -171,24 +187,16 @@ public class Tree {
     List<String> nodesEntryList = getNodesEntry();
     List<DnsNode> nodes = new ArrayList<>();
     for (String represent : nodesEntryList) {
-      String jonStr = represent.substring(Entry.enrPrefix.length());
+      String joinStr = represent.substring(Entry.enrPrefix.length());
       List<DnsNode> subNodes;
       try {
-        subNodes = DnsNode.decompress(jonStr);
+        subNodes = DnsNode.decompress(joinStr);
       } catch (InvalidProtocolBufferException | UnknownHostException e) {
         log.error("", e);
         continue;
       }
-      if (subNodes != null) {
-        nodes.addAll(subNodes);
-      }
+      nodes.addAll(subNodes);
     }
     return nodes;
-  }
-
-  private LinkEntry sign(String privateKey, String publicKey, String domain) {
-    byte[] signature = Algorithm.sigData(rootEntry.toString(), privateKey);
-    rootEntry.setSignature(signature);
-    return new LinkEntry(domain, publicKey);
   }
 }

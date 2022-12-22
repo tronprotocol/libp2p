@@ -47,7 +47,7 @@ public class LinkEntry implements Entry {
       String unCompressPublicKey = Algorithm.decompressPubKey(ByteArray.toHexString(data));
       return new LinkEntry(e, items[1], unCompressPublicKey);
     } catch (RuntimeException exception) {
-      throw new DnsException(TypeEnum.BAD_PUBKEY, "public key:" + base32PublicKey);
+      throw new DnsException(TypeEnum.BAD_PUBKEY, "bad public key:" + base32PublicKey);
     }
   }
 

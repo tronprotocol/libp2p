@@ -6,7 +6,7 @@ public class DnsException extends Exception {
   private DnsException.TypeEnum type;
 
   public DnsException(DnsException.TypeEnum type, String errMsg) {
-    super(errMsg);
+    super(type.desc + ", " + errMsg);
     this.type = type;
   }
 
@@ -25,6 +25,7 @@ public class DnsException extends Exception {
   }
 
   public enum TypeEnum {
+    LOOK_UP_FAILED(0, "look up txt failed"),
     //Resolver/sync errors
     NO_ROOT_FOUND(1, "no valid root found"),
     NO_ENTRY_FOUND(2, "no valid tree entry found"),

@@ -3,19 +3,20 @@ package org.tron.p2p.dns;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 import org.tron.p2p.dns.tree.Algorithm;
+import org.tron.p2p.dns.tree.Entry;
 import org.tron.p2p.dns.tree.Tree;
 import org.tron.p2p.exception.DnsException;
 
 public class TreeTest {
 
-  @Test
-  public void testMerge() throws UnknownHostException {
-    DnsNode[] nodes = new DnsNode[] {
+  public static DnsNode[] sampleNode() throws UnknownHostException {
+    return new DnsNode[] {
         new DnsNode(null, "192.168.0.1", null, 10000),
         new DnsNode(null, "192.168.0.2", null, 10000),
         new DnsNode(null, "192.168.0.3", null, 10000),
@@ -32,15 +33,19 @@ public class TreeTest {
         new DnsNode(null, null, "fe80::0002", 10000),
         new DnsNode(null, null, "fe80::0002", 10001),
     };
+  }
+
+  @Test
+  public void testMerge() throws UnknownHostException {
+    DnsNode[] nodes = sampleNode();
     List<DnsNode> nodeList = Arrays.asList(nodes);
 
     List<String> enrs = Tree.merge(nodeList);
     int total = 0;
     for (int i = 0; i < enrs.size(); i++) {
-      //System.out.println(enrs.get(i));
       List<DnsNode> subList = null;
       try {
-        subList = DnsNode.decompress(enrs.get(i));
+        subList = DnsNode.decompress(enrs.get(i).substring(Entry.enrPrefix.length()));
       } catch (InvalidProtocolBufferException e) {
         Assert.fail();
       }
@@ -55,62 +60,70 @@ public class TreeTest {
   }
 
   @Test
-  public void testTreeBuild() {
+  public void testTreeBuild() throws UnknownHostException {
     int seq = 0;
 
-    String[] enrs = new String[] {
-        "enr:-11",
-        "enr:-12",
-        "enr:-13",
-        "enr:-14",
-        "enr:-15",
-        "enr:-16",
-        "enr:-17",
-        "enr:-18",
-        "enr:-19",
-        "enr:-20",
+    DnsNode[] dnsNodes = new DnsNode[] {
+        new DnsNode(null, "192.168.0.1", null, 10000),
+        new DnsNode(null, "192.168.0.2", null, 10000),
+        new DnsNode(null, "192.168.0.3", null, 10000),
+        new DnsNode(null, "192.168.0.4", null, 10000),
+        new DnsNode(null, "192.168.0.5", null, 10000),
+        new DnsNode(null, "192.168.0.6", null, 10000),
+        new DnsNode(null, "192.168.0.7", null, 10000),
+        new DnsNode(null, "192.168.0.8", null, 10000),
+        new DnsNode(null, "192.168.0.9", null, 10000),
+        new DnsNode(null, "192.168.0.10", null, 10000),
 
-        "enr:-01",
-        "enr:-02",
-        "enr:-03",
-        "enr:-04",
-        "enr:-05",
-        "enr:-06",
-        "enr:-07",
-        "enr:-08",
-        "enr:-09",
-        "enr:-10",
+        new DnsNode(null, "192.168.0.11", null, 10000),
+        new DnsNode(null, "192.168.0.12", null, 10000),
+        new DnsNode(null, "192.168.0.13", null, 10000),
+        new DnsNode(null, "192.168.0.14", null, 10000),
+        new DnsNode(null, "192.168.0.15", null, 10000),
+        new DnsNode(null, "192.168.0.16", null, 10000),
+        new DnsNode(null, "192.168.0.17", null, 10000),
+        new DnsNode(null, "192.168.0.18", null, 10000),
+        new DnsNode(null, "192.168.0.19", null, 10000),
+        new DnsNode(null, "192.168.0.20", null, 10000),
 
-        "enr:-31",
-        "enr:-32",
-        "enr:-33",
-        "enr:-34",
-        "enr:-35",
-        "enr:-36",
-        "enr:-37",
-        "enr:-38",
-        "enr:-39",
-        "enr:-40",
+        new DnsNode(null, "192.168.0.21", null, 10000),
+        new DnsNode(null, "192.168.0.22", null, 10000),
+        new DnsNode(null, "192.168.0.23", null, 10000),
+        new DnsNode(null, "192.168.0.24", null, 10000),
+        new DnsNode(null, "192.168.0.25", null, 10000),
+        new DnsNode(null, "192.168.0.26", null, 10000),
+        new DnsNode(null, "192.168.0.27", null, 10000),
+        new DnsNode(null, "192.168.0.28", null, 10000),
+        new DnsNode(null, "192.168.0.29", null, 10000),
+        new DnsNode(null, "192.168.0.30", null, 10000),
 
-        "enr:-21",
-        "enr:-22",
-        "enr:-23",
-        "enr:-24",
-        "enr:-25",
-        "enr:-26",
-        "enr:-27",
-        "enr:-28",
-        "enr:-29",
-        "enr:-30",
+        new DnsNode(null, "192.168.0.31", null, 10000),
+        new DnsNode(null, "192.168.0.32", null, 10000),
+        new DnsNode(null, "192.168.0.33", null, 10000),
+        new DnsNode(null, "192.168.0.34", null, 10000),
+        new DnsNode(null, "192.168.0.35", null, 10000),
+        new DnsNode(null, "192.168.0.36", null, 10000),
+        new DnsNode(null, "192.168.0.37", null, 10000),
+        new DnsNode(null, "192.168.0.38", null, 10000),
+        new DnsNode(null, "192.168.0.39", null, 10000),
+        new DnsNode(null, "192.168.0.40", null, 10000),
     };
+
+    String[] enrs = new String[dnsNodes.length];
+    for (int i = 0; i < dnsNodes.length; i++) {
+      DnsNode dnsNode = dnsNodes[i];
+      List<DnsNode> nodeList = new ArrayList<>();
+      nodeList.add(dnsNode);
+      enrs[i] = Entry.enrPrefix + DnsNode.compress(nodeList);
+    }
 
     String[] links = new String[] {};
 
     String linkBranch0 = "enrtree-branch:";
-    String enrBranch1 = "enrtree-branch:6IO27O4VNVLEXOZGNSXQDKJXPY,3HNH3GNDZMNSAG2MW3U2CCI6Q4,GIB7THFXZA6KAR5VBZBKXL3ZOM,SI5I6TDMKLSMI2BYPFM4UBSNAY,56XW2HM5UL4VGGO35MEBL6EKH4,CEEWOCVSF5WKZJINLYCRDRGC5E,XFJF3RRL4VT4KUCUZSN6X237XA,7563TGAVUGLUS56UN4U6FPOALM,N5E37EIOZM5WKWPAJ4GWZBE6OM,S4TY4DRHH6H7BNON5PRQTKDMT4,IIJU5OHAOXF7U7NFRMIP4QWISY,LBTVYOOTPGHJ564ERWSQB3N3FE,2KZTZ2JGMGSSJZD36DIE756YFE";
-    String enrBranch2 = "enrtree-branch:PSH6I7BLH34UPMZFVLIGGLK5Y4,RFKWDXZ7IHHG6P447AVDUMR47I,ROCOAI6W6BHP5Y7ZHSU4G2HWUE,J2GZ3YE5MGWAPJOLAFY3AK5QIQ,6TF3QO27XNKIFPWAHKJFNX3AAE,4IKISW3IVUFNOWSAHH76QZGDNU,TUIQUPD5Z72GEMATQRTSQQIIPM,OVPJK576RPLHQLYJMZTBYKTCZI,VPYADPNQ63XOAUGEC6XEGLTA3A,MFS4SS345VOTXX4AFAZCNBQXHE,U3WBA2RMWGUXUEE4QOQJWYOFIM,YBX4WAU5X5QY5ZI2UV6CBLALC4,FQF34URDWCXL666PAXN5VYF6NA";
-    String enrBranch3 = "enrtree-branch:ULFQKWBT7IZWTJTPBFBTEHGYMA,ERRXKHBVFOX5RSURGVRCDKRQIY,A6JMATIOZFENSIDDHOSGY6SRIY,5UT3WSI7QYGSEFSPCJVG7TNXWQ,OJWI5NXHNVVPZLXM54C5W72T3U,UV655MTHW6D7KAAQVSEPARBM5E,JYWFLHVLZGNVZ34J3BJS7HZ7IQ,7J6D2VVC5P5TVLOGGW5HVUONBM,SMJVZUUZUTOEQ37A2ZMENGXFPU,TP5IVF3NEIUMNSO3CIPQFUOXRM,KJY3EWYENTGZBSHTK5PTGGQADQ,V4KYLTQ2SLDDUNHHQYUWUN674I,35IRJB63LLMAGQ2YBRLRCALKQA";
-    String enrBranch4 = "enrtree-branch:IRUJBJM54QDEWPWFJAT7NQWQJ4,CCTZBAUKV5V4PEGUFZVMJ64Y4U,ADY23V3S6APLFAAG36HHEZ3X5M,HHA2E4PN3L4UB4N5PN2AH2VAS4";
+    String enrBranch1 = "enrtree-branch:BLD3R3KMDTU45ZLWJVZUPTFYSU,VMR2V5OEVYEDMOBXQVCDXC27BQ,YGSUKDEJ4BIAHGAFOMD2FAFM6E,TS37BZBFM26FX6AQZYEG5AYHBI,TV32WATOVCUYJZGLAL4WZJFUDA,4TVT5IRPHA5LM44SUDV2ROKEAE,E2ONR5TTLGBEF7GAQPRTONEBL4,U4UWUP4P6VCBU67TGOF4DHOQKE,33MFG7RVRC222ZER2KUGFZZALI,YSLBZEKCJ3TMPZI5ZB4PBEOQ5U,LE35Q7ZYW7UKGBBUXMWYXI6RNM,VJHUAEGWOJJ3KLUYQSMTW5IN6M,R4CB53QODD75K77POLYSVHGARE";
+    String enrBranch2 = "enrtree-branch:OXJM7ILGB7R5KPFWHGE4WWVDFM,OUQU7CPV3WINGXARXPE6BUWMHI,VHKMLLMOTBRVGWHCRG7J4MKADQ,WWW7CA42SVYJRBBAGJLJC53HRU,DLHMH4WTZVTAODPL4USLFK4EFE,EY2FKZMS2VBALYF4BIYIOMLMOI,KPUZVWPB4G4CW4WUEBUEKKCFIY,K6ZIEIAMKUYLC5J7735L73GIOY,O3R2HTMZQVGNZH5QWI3N7NJOGM,OCFMB3TXJL3A3HMWB4LBRMKND4,MPRENJ6QJAVBCKQTSDXC7VSLGM,XSAKPV6THRFVRFY5ICAPMEVW2U,225YUW2SUVFPNBZGF6U4MRFLSM";
+    String enrBranch3 = "enrtree-branch:J7ZZPDS32SYGAY4FE2OIV75ALE,W3NN3665O73SL3UX75CPQIGMKI,RK2MLI4RXN7DAWTGFFYGCHH5AM,U6QXGZAJ4S6EM62O74BI4ES7PQ,MZDJBVYAWWJELPXM5GQNXIZG5I,347EXJRF4MABPI72RRZT5BGK2A,GO2HUZ7TWZSTEB63NQZPM5LNO4,2HC72FNU3RLYFW47KSWZZ3DWOU,O6OAX4RUW644PWVL2XUQOP4BTE,5UPCPCC7GK3XSGBMYL4HDIGWSA,N3DRVRVWDC47FQFZEKCVM255ZU,D62KHBUZEIWEMNT7LLIZ3U3BUY,NPQ57QFBR2VICN4TIYZR6IPQMM";
+    String enrBranch4 = "enrtree-branch:SWTFTTLY6CSP7NWCDFRXPQ5AKU,B7UJ5TNENXPH57QZSCMXRDOGR4,56TQVLKSN2WYDDNAHQ6IUNTFXE,S2M5KHI6LYLZNCPCLT76KLYGBE";
 
     String[] branches = new String[] {linkBranch0, enrBranch1, enrBranch2, enrBranch3, enrBranch4};
 
@@ -118,24 +131,25 @@ public class TreeTest {
     List<String> enrList = Arrays.asList(enrs);
     List<String> linkList = Arrays.asList(links);
 
-    Tree.sortByString(enrList);//eth use sortByID, but we sort by string
-    Tree.sortByString(linkList);
+//    Tree.sortByString(enrList);//eth use sortByID, but we sort by string
+//    Tree.sortByString(linkList);
 
     Tree tree = new Tree();
     try {
       tree = tree.makeTree(seq, enrList, linkList, null);
     } catch (DnsException e) {
+      e.printStackTrace();
       Assert.fail();
     }
 
     /*
-                                    b r a n c h 4
-                 /              /            \              \
-               /               /              \              \
-             /                /                \              \
-          branch1          branch2           branch3           \
-        /      \         /       \          /       \           \
-      enr:-01 ~ enr:13  enr:-14 ~ enr:26   enr:-27 ~ enr:-39  enr:40
+                                 b r a n c h 4
+                   /              /           \          \
+                /               /               \           \
+             /                /                   \            \
+          branch1           branch2              branch3          \
+        /      \          /       \             /       \           \
+      enr:-01 ~ enr:-13  enr:-14 ~ enr:-26   enr:-27 ~ enr:-39  enr:-40
     */
 
     Assert.assertEquals(branchList.size() + enrList.size() + linkList.size(),

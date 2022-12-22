@@ -10,7 +10,7 @@ import org.tron.p2p.utils.ByteArray;
 
 public class AlgorithmTest {
 
-  String privateKey = "b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291";
+  public static String privateKey = "b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291";
 
   @Test
   public void testPublicKeyCompressAndUnCompress() {

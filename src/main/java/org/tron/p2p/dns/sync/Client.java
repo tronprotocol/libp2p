@@ -3,6 +3,7 @@ package org.tron.p2p.dns.sync;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import java.net.UnknownHostException;
 import java.security.SignatureException;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -44,15 +45,18 @@ public class Client {
       ClientTree clientTree = new ClientTree(this, new LinkCache(), loc);
       Tree tree = new Tree();
       clientTree.syncAll(tree.getEntries());
-      tree.setRootEntry(clientTree.root);
+      tree.setRootEntry(clientTree.getRoot());
       return tree;
     }
     return null;
   }
 
   public RootEntry resolveRoot(LinkEntry linkEntry)
-      throws TextParseException, DnsException, SignatureException {
+      throws TextParseException, DnsException, SignatureException, UnknownHostException {
     TXTRecord txtRecord = LookUpTxt.lookUpTxt(linkEntry.getDomain());
+    if (txtRecord == null) {
+      throw new DnsException(TypeEnum.LOOK_UP_FAILED, "domain: " + linkEntry.getDomain());
+    }
     for (String txt : txtRecord.getStrings()) {
       if (txt.startsWith(Entry.rootPrefix)) {
         return RootEntry.parseEntry(txt, linkEntry.getUnCompressPublicKey());
@@ -62,7 +66,8 @@ public class Client {
   }
 
   // resolveEntry retrieves an entry from the cache or fetches it from the network if it isn't cached.
-  public Entry resolveEntry(String domain, String hash) throws DnsException, TextParseException {
+  public Entry resolveEntry(String domain, String hash)
+      throws DnsException, TextParseException, UnknownHostException {
     Entry entry = cache.getIfPresent(hash);
     if (entry != null) {
       return entry;
@@ -71,13 +76,17 @@ public class Client {
     return entry;
   }
 
-  private Entry doResolveEntry(String domain, String hash) throws DnsException, TextParseException {
+  private Entry doResolveEntry(String domain, String hash)
+      throws DnsException, TextParseException, UnknownHostException {
     try {
       ByteArray.toHexString(Algorithm.decode32(hash));
     } catch (Exception e) {
       throw new DnsException(TypeEnum.OTHER_ERROR, "invalid base32 hash: " + hash);
     }
     TXTRecord txtRecord = LookUpTxt.lookUpTxt(hash, domain);
+    if (txtRecord == null) {
+      return null;
+    }
     String txt = LookUpTxt.joinTXTRecord(txtRecord);
 
     Entry entry = null;
@@ -109,28 +118,5 @@ public class Client {
       randomIterator.addTree(urlScheme);
     }
     return randomIterator;
-  }
-
-  public static void main(String[] args) {
-    Client client = new Client();
-    try {
-      Tree tree = client.syncTree(
-          "enrtree://AKA3AM6LPBYEUDMVNU3BSVQJ5AD45Y7YPOHJLEF6W26QOE4VTUDPE@les.mainnet.ethdisco.net");
-      System.out.println("==branch==");
-      for (String branch : tree.getBranchesEntry()) {
-        System.out.println(branch);
-      }
-      System.out.println("==link==");
-      for (String link : tree.getLinksEntry()) {
-        System.out.println(link);
-      }
-      System.out.println("==node==");
-      for (String node : tree.getNodesEntry()) {
-        System.out.println(node);
-      }
-      System.out.println();
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
   }
 }
