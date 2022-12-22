@@ -5,6 +5,8 @@ import com.aliyun.alidns20150109.models.*;
 import com.aliyun.alidns20150109.models.DescribeDomainRecordsResponseBody.DescribeDomainRecordsResponseBodyDomainRecordsRecord;
 import com.aliyun.teaopenapi.models.Config;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.tron.p2p.dns.tree.RootEntry;
 import org.tron.p2p.dns.tree.Tree;
 import org.tron.p2p.exception.DnsException;
 
@@ -19,6 +21,7 @@ public class AliClient implements Publish {
   private final int maxRetryCount = 3;
   private final int successCode = 200;
   private final long retryWaitTime = 30;
+  private int lastSeq = 0;
   private final Client aliDnsClient;
 
   public AliClient(String endpoint, String accessKeyId, String accessKeySecret) throws Exception {
@@ -31,10 +34,11 @@ public class AliClient implements Publish {
 
   @Override
   public void deploy(String domainName, Tree t) throws DnsException {
-    Map<String, String> records = t.toTXT(domainName);
     try {
       Map<String, DescribeDomainRecordsResponseBodyDomainRecordsRecord> existing = collectRecords(
           domainName);
+      t.setSeq(this.lastSeq + 1);
+      Map<String, String> records = t.toTXT(domainName);
       submitChanges(domainName, records, existing);
     } catch (Exception e) {
       throw new DnsException(DnsException.TypeEnum.DEPLOY_DOMAIN_FAILED, e);
@@ -49,12 +53,13 @@ public class AliClient implements Publish {
     return response.statusCode == successCode;
   }
 
+  // collects all TXT records below the given name. it also update lastSeq
   @Override
   public Map<String, DescribeDomainRecordsResponseBodyDomainRecordsRecord> collectRecords(
-      String domain)
-      throws Exception {
+      String domain) throws Exception {
     Map<String, DescribeDomainRecordsResponseBodyDomainRecordsRecord> records = new HashMap<>();
 
+    String rootContent = null;
     try {
       DescribeDomainRecordsRequest request = new DescribeDomainRecordsRequest();
       request.setDomainName(domain);
@@ -67,9 +72,12 @@ public class AliClient implements Publish {
         if (response.statusCode == successCode) {
           for (DescribeDomainRecordsResponseBodyDomainRecordsRecord r : response.getBody()
               .getDomainRecords().getRecord()) {
-            records.put(r.getRR(), r);
+            String name = StringUtils.stripEnd(r.getRR(), ".");
+            records.put(name, r);
+            if (domain.equalsIgnoreCase(name)) {
+              rootContent = r.value;
+            }
           }
-
           if (currentPageNum * domainRecordsPageSize >= response.getBody().getTotalCount()) {
             break;
           }
@@ -81,6 +89,11 @@ public class AliClient implements Publish {
     } catch (Exception e) {
       log.warn("Failed to collect domain records, error msg: {}", e.getMessage());
       throw e;
+    }
+
+    if (rootContent != null) {
+      RootEntry rootEntry = RootEntry.parseEntry(rootContent);
+      this.lastSeq = rootEntry.getSeq();
     }
 
     return records;

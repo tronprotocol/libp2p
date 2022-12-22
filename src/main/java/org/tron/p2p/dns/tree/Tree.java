@@ -127,11 +127,6 @@ public class Tree {
     return enrs;
   }
 
-//  //use for test
-//  public static void sortByString(List<String> nodes) {
-//    Collections.sort(nodes);
-//  }
-
   public Map<String, String> toTXT(String rootDomain) {
     Map<String, String> dnsRecords = new HashMap<>();
     dnsRecords.put(rootDomain, rootEntry.toFormat());
@@ -142,10 +137,13 @@ public class Tree {
     return dnsRecords;
   }
 
-  public int seq() {
+  public int getSeq() {
     return rootEntry.getSeq();
   }
 
+  public void setSeq(int seq) {
+    rootEntry.setSeq(seq);
+  }
 
   public List<String> getLinksEntry() {
     List<String> links = new ArrayList<>();

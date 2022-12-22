@@ -116,7 +116,12 @@ public class AwsRoute53Test {
         "replace your host zone id",
         Region.US_EAST_1);
     String domain = "replace with your domain";
-    awsClient.deploy(domain, tree);
+    try {
+      awsClient.deploy(domain, tree);
+    } catch (DnsException e) {
+      Assert.fail();
+      return;
+    }
 
     BigInteger publicKeyInt = Algorithm.generateKeyPair(AlgorithmTest.privateKey).getPublicKey();
     String puKeyCompress = Algorithm.compressPubKey(publicKeyInt);

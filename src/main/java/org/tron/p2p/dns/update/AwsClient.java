@@ -8,7 +8,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.tron.p2p.dns.tree.RootEntry;
 import org.tron.p2p.dns.tree.Tree;
+import org.tron.p2p.exception.DnsException;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -36,6 +38,7 @@ public class AwsClient implements Publish {
   public static final int route53ChangeSizeLimit = 32000;
   public static final int route53ChangeCountLimit = 1000;
   public static final int maxRetryLimit = 60;
+  private int lastSeq = 0;
   private Route53Client route53Client;
   private String zoneId;
 
@@ -91,23 +94,24 @@ public class AwsClient implements Publish {
 
   // uploads the given tree to Route53.
   @Override
-  public void deploy(String domain, Tree tree) {
+  public void deploy(String domain, Tree tree) throws DnsException {
     checkZone(domain);
 
     Map<String, RecordSet> existing = collectRecords(domain);
     log.info("Find {} TXT records for {}", existing.size(), domain);
 
+    tree.setSeq(this.lastSeq + 1);
     Map<String, String> records = tree.toTXT(domain);
 
     List<Change> changes = computeChanges(domain, records, existing);
 
-    String comment = String.format("Enrtree update of %s at seq %d", domain, tree.seq());
+    String comment = String.format("Enrtree update of %s at seq %d", domain, tree.getSeq());
     submitChanges(changes, comment);
   }
 
   // removes all TXT records of the given domain.
   @Override
-  public boolean deleteDomain(String rootDomain) {
+  public boolean deleteDomain(String rootDomain) throws DnsException {
     checkZone(rootDomain);
 
     Map<String, RecordSet> existing = collectRecords(rootDomain);
@@ -120,14 +124,15 @@ public class AwsClient implements Publish {
     return true;
   }
 
-  // collects all TXT records below the given name.
+  // collects all TXT records below the given name. it also update lastSeq
   @Override
-  public Map<String, RecordSet> collectRecords(String rootDomain) {
+  public Map<String, RecordSet> collectRecords(String rootDomain) throws DnsException {
     Map<String, RecordSet> existing = new HashMap<>();
     ListResourceRecordSetsRequest.Builder request = ListResourceRecordSetsRequest.builder();
     request.hostedZoneId(zoneId);
     int page = 0;
 
+    String rootContent = null;
     while (true) {
       log.info("Loading existing TXT records from name:{} zoneId:{} page:{}", rootDomain, zoneId,
           page);
@@ -148,6 +153,9 @@ public class AwsClient implements Publish {
             resourceRecordSet.ttl());
         String name = StringUtils.stripEnd(resourceRecordSet.name(), ".");
         existing.put(name, recordSet);
+        if (rootDomain.equalsIgnoreCase(name)) {
+          rootContent = StringUtils.join(values);
+        }
         log.info("Find name: {}", name);
       }
 
@@ -166,6 +174,10 @@ public class AwsClient implements Publish {
       page += 1;
     }
 
+    if (rootContent != null) {
+      RootEntry rootEntry = RootEntry.parseEntry(rootContent);
+      this.lastSeq = rootEntry.getSeq();
+    }
     return existing;
   }
 

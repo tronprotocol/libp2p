@@ -1,5 +1,11 @@
 package org.tron.p2p.dns.update;
 
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.base.Parameter;
@@ -7,20 +13,13 @@ import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
 import org.tron.p2p.dns.DnsNode;
 import org.tron.p2p.dns.tree.Tree;
-import org.tron.p2p.exception.DnsException;
-
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import software.amazon.awssdk.regions.Region;
 
 @Slf4j(topic = "net")
 public class PublishService {
 
-  private final long publishDelay = 24 * 60 * 60;
+  private static final long publishDelay = 24 * 60 * 60;
+
   private ScheduledExecutorService publisher = Executors.newSingleThreadScheduledExecutor();
 
   public void init() {
@@ -41,7 +40,7 @@ public class PublishService {
     }
   }
 
-  public void publishAliDns() throws Exception {
+  private void publishAliDns() throws Exception {
     P2pConfig config = Parameter.p2pConfig;
     AliClient client = new AliClient(config.getAliDnsEndpoint(),
         config.getAliAccessKeyId(),
@@ -52,7 +51,7 @@ public class PublishService {
     client.deploy(config.getDnsDomain(), tree);
   }
 
-  public void publishAwsDns() throws Exception {
+  private void publishAwsDns() throws Exception {
     P2pConfig config = Parameter.p2pConfig;
     AwsClient client = new AwsClient(config.getAwsAccessKeyId(),
         config.getAwsAccessKeySecret(),

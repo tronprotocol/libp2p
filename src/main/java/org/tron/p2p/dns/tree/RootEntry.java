@@ -1,6 +1,8 @@
 package org.tron.p2p.dns.tree;
 
 
+import static org.bouncycastle.asn1.x509.ObjectDigestInfo.publicKey;
+
 import java.security.SignatureException;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,6 +21,7 @@ public class RootEntry implements Entry {
   @Getter
   private String lRoot;
   @Getter
+  @Setter
   private int seq;
   @Getter
   @Setter
@@ -37,9 +40,7 @@ public class RootEntry implements Entry {
     this.signature = signature;
   }
 
-  public static RootEntry parseEntry(String e, String publicKey)
-      throws SignatureException, DnsException {
-    log.info("Root url:[{}], public key:{}", e, publicKey);
+  public static RootEntry parseEntry(String e) throws DnsException {
     String[] items = e.split("\\s+");
     if (items.length != 5
         || items[1].split("=").length != 2
@@ -63,21 +64,25 @@ public class RootEntry implements Entry {
           String.format("signature's length(%d) != 65, signature: %s", signature.length,
               ByteArray.toHexString(signature)));
     }
-    boolean verify = Algorithm.verifySignature(publicKey, rootEntry.toString(), signature);
+    rootEntry.setSignature(signature);
+    return rootEntry;
+  }
+
+  public static RootEntry parseEntry(String e, String publicKey)
+      throws SignatureException, DnsException {
+    log.info("Root url:[{}], public key:{}", e, publicKey);
+    RootEntry rootEntry = parseEntry(e);
+    boolean verify = Algorithm.verifySignature(publicKey, rootEntry.toString(),
+        rootEntry.getSignature());
     if (!verify) {
       throw new DnsException(TypeEnum.INVALID_SIGNATURE,
           "verify signature failed, data:[" + e + "], publicKey:" + publicKey);
     }
-    if (!Algorithm.isValidHash(eroot) || !Algorithm.isValidHash(lroot)) {
-      throw new DnsException(TypeEnum.INVALID_CHILD, "eroot:" + eroot + " lroot:" + lroot);
+    if (!Algorithm.isValidHash(rootEntry.eRoot) || !Algorithm.isValidHash(rootEntry.lRoot)) {
+      throw new DnsException(TypeEnum.INVALID_CHILD,
+          "eroot:" + rootEntry.eRoot + " lroot:" + rootEntry.lRoot);
     }
-
-    if (Algorithm.isValidHash(eroot) && Algorithm.isValidHash(lroot) && StringUtils.isNumeric(
-        sequence)) {
-      rootEntry.setSignature(signature);
-      return rootEntry;
-    }
-    return null;
+    return rootEntry;
   }
 
   @Override

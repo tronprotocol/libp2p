@@ -170,6 +170,6 @@ public class TreeTest {
 
     Assert.assertEquals(Algorithm.encode32AndTruncate(enrBranch4), tree.getRootEntry().getERoot());
     Assert.assertEquals(Algorithm.encode32AndTruncate(linkBranch0), tree.getRootEntry().getLRoot());
-    Assert.assertEquals(seq, tree.seq());
+    Assert.assertEquals(seq, tree.getSeq());
   }
 }
