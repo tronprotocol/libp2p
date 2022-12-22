@@ -1,30 +1,45 @@
 package org.tron.p2p.dns;
 
 
+import java.util.ArrayList;
 import java.util.List;
 import org.tron.p2p.discover.Node;
+import org.tron.p2p.dns.sync.Client;
+import org.tron.p2p.dns.sync.RandomIterator;
+import org.tron.p2p.dns.tree.Tree;
 import org.tron.p2p.dns.update.PublishService;
 
 public class DnsManager {
 
   private static PublishService publishService;
+  private static Client syncClient;
 
   public static void init() {
     publishService = new PublishService();
+    syncClient = new Client();
     publishService.init();
+    syncClient.init();
   }
 
   public static void close() {
     if (publishService != null) {
       publishService.close();
     }
+    if (syncClient != null) {
+      syncClient.close();
+    }
   }
 
   public List<Node> getAllNodes() {
-    return null;
+    List<Node> nodes = new ArrayList<>();
+    for (Tree tree : syncClient.getTrees().values()) {
+      nodes.addAll(tree.getNodes());
+    }
+    return nodes;
   }
 
   public Node getRandomNodes() {
-    return null;
+    RandomIterator randomIterator = syncClient.newIterator();
+    return randomIterator.next();
   }
 }

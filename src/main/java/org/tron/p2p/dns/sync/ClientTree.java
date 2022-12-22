@@ -155,7 +155,7 @@ public class ClientTree {
   }
 
   public long nextScheduledRootCheck() {
-    return lastValidateTime + Parameter.recheckInterval * 60 * 1000L;
+    return lastValidateTime + Client.recheckInterval * 1000L;
   }
 
   private void slowdownRootUpdate() throws InterruptedException {

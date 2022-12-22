@@ -74,12 +74,13 @@ public class PublishService {
   }
 
   private boolean checkConfig(P2pConfig config) {
-    if (!config.isDnsPublishEnable()) {
+    //we must enable discover service before we can publish dns service
+    if (!config.isDiscoverEnable() || !config.isDnsPublishEnable()) {
+      log.info("Discover service is disable or publish is service disable");
       return false;
     }
     if (config.getDnsType() == null) {
-      log.error(
-          "The dns server type must be specified when the dns publishing function is enabled");
+      log.error("The dns server type must be specified when dns publish service is enable");
       return false;
     }
     if (config.getDnsType() == DnsType.AliYun &&

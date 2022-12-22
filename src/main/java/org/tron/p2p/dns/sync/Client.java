@@ -5,11 +5,16 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.net.UnknownHostException;
 import java.security.SignatureException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.Executor;
+import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.tron.p2p.base.Parameter;
 import org.tron.p2p.dns.lookup.LookUpTxt;
 import org.tron.p2p.dns.tree.Algorithm;
 import org.tron.p2p.dns.tree.BranchEntry;
@@ -27,16 +32,39 @@ import org.xbill.DNS.TextParseException;
 @Slf4j(topic = "net")
 public class Client {
 
+  public final static int recheckInterval = 30 * 60; //seconds
+  public final static int cacheLimit = 1000;
   private Cache<String, Entry> cache;
-  private Executor resolveExecutor;
+  @Getter
+  private Map<String, Tree> trees;
+
+  private ScheduledExecutorService syncer = Executors.newSingleThreadScheduledExecutor();
 
   public Client() {
     this.cache = CacheBuilder.newBuilder()
-        .maximumSize(Parameter.cacheLimit)
+        .maximumSize(cacheLimit)
         .expireAfterWrite(1, TimeUnit.HOURS)
         .recordStats()
         .build();
-    this.resolveExecutor = Executors.newFixedThreadPool(5);
+    trees = new HashMap<>();
+  }
+
+  public void init() {
+    if (!Parameter.p2pConfig.getEntreeUrls().isEmpty()) {
+      syncer.scheduleWithFixedDelay(() -> startSync(), 5, recheckInterval,
+          TimeUnit.SECONDS);
+    }
+  }
+
+  public void startSync() {
+    for (String urlScheme : Parameter.p2pConfig.getEntreeUrls()) {
+      try {
+        Tree tree = syncTree(urlScheme);
+        trees.put(urlScheme, tree);
+      } catch (Exception e) {
+        log.error("SyncTree failed", e);
+      }
+    }
   }
 
   public Tree syncTree(String urlScheme) throws Exception {
@@ -112,11 +140,21 @@ public class Client {
     return entry;
   }
 
-  public RandomIterator newIterator(List<String> urlSchemes) throws DnsException {
+  public RandomIterator newIterator() {
     RandomIterator randomIterator = new RandomIterator(this);
-    for (String urlScheme : urlSchemes) {
-      randomIterator.addTree(urlScheme);
+    for (String urlScheme : Parameter.p2pConfig.getEntreeUrls()) {
+      try {
+        randomIterator.addTree(urlScheme);
+      } catch (DnsException e) {
+        log.error("AddTree failed", e);
+      }
     }
     return randomIterator;
+  }
+
+  public void close() {
+    if (syncer != null) {
+      syncer.shutdown();
+    }
   }
 }

@@ -1,8 +1,6 @@
 package org.tron.p2p.dns.tree;
 
 
-import static org.bouncycastle.asn1.x509.ObjectDigestInfo.publicKey;
-
 import java.security.SignatureException;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,7 +9,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.exception.DnsException;
 import org.tron.p2p.exception.DnsException.TypeEnum;
 import org.tron.p2p.utils.ByteArray;
-import org.web3j.crypto.Hash;
 
 @Slf4j(topic = "net")
 public class RootEntry implements Entry {
@@ -31,13 +28,6 @@ public class RootEntry implements Entry {
     this.eRoot = eRoot;
     this.lRoot = lRoot;
     this.seq = seq;
-  }
-
-  public RootEntry(String eRoot, String lRoot, int seq, byte[] signature) {
-    this.eRoot = eRoot;
-    this.lRoot = lRoot;
-    this.seq = seq;
-    this.signature = signature;
   }
 
   public static RootEntry parseEntry(String e) throws DnsException {
