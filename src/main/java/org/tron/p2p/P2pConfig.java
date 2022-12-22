@@ -30,4 +30,12 @@ public class P2pConfig {
   //dns write config
   private String dnsPrivate = null;
   private List<String> knownLinks = new ArrayList<>();
+  // dns publish config
+  private boolean dnsPublishEnable = false;
+  private String dnsServer = null;
+  private String dnsEndpoint = null;
+  private String dnsDomain = null;
+  private String dnsPrivateKey = null;
+  private String accessKeyId = null;
+  private String accessKeySecret = null;
 }
