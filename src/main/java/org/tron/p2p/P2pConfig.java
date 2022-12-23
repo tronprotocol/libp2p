@@ -27,12 +27,12 @@ public class P2pConfig {
   private boolean disconnectionPolicyEnable = false;
 
   //dns read config
-  private List<String> entreeUrls = new ArrayList<>();
+  private List<String> enrTreeUrls = new ArrayList<>();
 
   //dns publish config
   private boolean dnsPublishEnable = false;
   private String dnsPrivate = null;
-  private List<String> knownLinks = new ArrayList<>();
+  private List<String> knownEnrTreeUrls = new ArrayList<>();
   private String dnsDomain = null;
   private DnsType dnsType = null;
 

@@ -74,7 +74,7 @@ public class AlgorithmTest {
     Assert.assertEquals(65, sig.length);
     String base64Sig = Algorithm.encode64(sig);
     Assert.assertEquals(
-        "sRAWqxdvpzS1UmNP1nt7iLuyiJUJgzvCw-635SLfg7A7OqjkI-bfwD-nYz-wdD5Qb8FwAOke37KgIZ9xTxo7BBs=",
+        "sRAWqxdvpzS1UmNP1nt7iLuyiJUJgzvCw-635SLfg7A7OqjkI-bfwD-nYz-wdD5Qb8FwAOke37KgIZ9xTxo7BBs",
         base64Sig);
 
     byte[] sigData;

@@ -43,6 +43,7 @@ public class RandomIterator implements Iterator<DnsNode> {
     while (true) {
       ClientTree clientTree = pickTree();
       if (clientTree == null) {
+        log.error("clientTree is null");
         return null;
       }
       DnsNode dnsNode;
@@ -66,11 +67,14 @@ public class RandomIterator implements Iterator<DnsNode> {
   public void addTree(String url) throws DnsException {
     LinkEntry linkEntry = LinkEntry.parseEntry(url);
     linkCache.addLink("", linkEntry.getRepresent());
+    log.info("linkCache.backrefs size :{}", linkCache.backrefs.size());
+    log.info("changes: {}", linkCache.isChanged());
   }
 
   //the first random
   private ClientTree pickTree() {
-    if (trees == null || trees.size() == 0) {
+    if (trees == null) {
+      log.info("trees is null");
       return null;
     }
     if (linkCache.isChanged()) {
@@ -93,7 +97,7 @@ public class RandomIterator implements Iterator<DnsNode> {
     return null;
   }
 
-  public boolean existSyncAbleTrees() {
+  private boolean existSyncAbleTrees() {
     syncAbleList = new ArrayList<>();
     disabledList = new ArrayList<>();
     for (ClientTree ct : trees.values()) {
@@ -126,6 +130,7 @@ public class RandomIterator implements Iterator<DnsNode> {
   }
 
   private void rebuildTrees() {
+    log.info("rebuildTrees");
     Iterator<Entry<String, ClientTree>> it = trees.entrySet().iterator();
     while (it.hasNext()) {
       Entry<String, ClientTree> entry = it.next();

@@ -154,7 +154,7 @@ public class AwsClient implements Publish {
         String name = StringUtils.stripEnd(resourceRecordSet.name(), ".");
         existing.put(name, recordSet);
         if (rootDomain.equalsIgnoreCase(name)) {
-          rootContent = StringUtils.join(values);
+          rootContent = StringUtils.join(values, "");
         }
         log.info("Find name: {}", name);
       }
@@ -175,6 +175,7 @@ public class AwsClient implements Publish {
     }
 
     if (rootContent != null) {
+      rootContent = StringUtils.strip(rootContent, "\"");
       RootEntry rootEntry = RootEntry.parseEntry(rootContent);
       this.lastSeq = rootEntry.getSeq();
     }
@@ -221,7 +222,7 @@ public class AwsClient implements Publish {
           break;
         }
         try {
-          Thread.sleep(30 * 1000);
+          Thread.sleep(15 * 1000);
         } catch (InterruptedException e) {
         }
       }

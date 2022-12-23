@@ -48,14 +48,14 @@ public class Client {
   }
 
   public void init() {
-    if (!Parameter.p2pConfig.getEntreeUrls().isEmpty()) {
+    if (!Parameter.p2pConfig.getEnrTreeUrls().isEmpty()) {
       syncer.scheduleWithFixedDelay(() -> startSync(), 5, recheckInterval,
           TimeUnit.SECONDS);
     }
   }
 
   public void startSync() {
-    for (String urlScheme : Parameter.p2pConfig.getEntreeUrls()) {
+    for (String urlScheme : Parameter.p2pConfig.getEnrTreeUrls()) {
       try {
         Tree tree = syncTree(urlScheme);
         trees.put(urlScheme, tree);
@@ -72,6 +72,7 @@ public class Client {
       Tree tree = new Tree();
       clientTree.syncAll(tree.getEntries());
       tree.setRootEntry(clientTree.getRoot());
+      log.info("SyncTree {} complete", urlScheme);
       return tree;
     }
     return null;
@@ -140,7 +141,7 @@ public class Client {
 
   public RandomIterator newIterator() {
     RandomIterator randomIterator = new RandomIterator(this);
-    for (String urlScheme : Parameter.p2pConfig.getEntreeUrls()) {
+    for (String urlScheme : Parameter.p2pConfig.getEnrTreeUrls()) {
       try {
         randomIterator.addTree(urlScheme);
       } catch (DnsException e) {

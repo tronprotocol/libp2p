@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.SignatureException;
 import java.util.Arrays;
 import java.util.Base64;
+import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.ec.CustomNamedCurves;
 import org.bouncycastle.crypto.params.ECDomainParameters;
@@ -20,7 +21,7 @@ import org.web3j.crypto.Sign.SignatureData;
 public class Algorithm {
 
   private static int truncateLength = 26;
-  private static String padding = "=";
+  public static String padding = "=";
 
   public static String compressPubKey(BigInteger pubKey) {
     String pubKeyYPrefix = pubKey.testBit(0) ? "03" : "02";
@@ -105,7 +106,9 @@ public class Algorithm {
   }
 
   public static String encode64(byte[] content) {
-    return new String(Base64.getUrlEncoder().encode(content), StandardCharsets.UTF_8);
+    String base64Content = new String(Base64.getUrlEncoder().encode(content),
+        StandardCharsets.UTF_8);
+    return StringUtils.stripEnd(base64Content, padding);
   }
 
   // An Encoding is a radix 64 encoding/decoding scheme, defined by a
