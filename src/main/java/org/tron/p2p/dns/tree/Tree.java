@@ -22,15 +22,18 @@ import org.tron.p2p.utils.ByteArray;
 @Slf4j(topic = "net")
 public class Tree {
 
-  public static final int hashAbbrevSize = 1 + 16 * 13 / 8; // Size of an encoded hash (plus comma)
-  public static final int maxChildren = 370 / hashAbbrevSize; // 13 children
-  public static final int mergeSize = 5;
+  public static final int HashAbbrevSize = 1 + 16 * 13 / 8; // Size of an encoded hash (plus comma)
+  public static final int MaxChildren = 370 / HashAbbrevSize; // 13 children
+  public static final int MergeSize = 5;
 
   @Getter
   @Setter
   private RootEntry rootEntry;
   @Getter
   private Map<String, Entry> entries;
+
+  @Setter
+  private String privateKey;
 
   public Tree() {
     this.entries = new HashMap<>();
@@ -40,7 +43,7 @@ public class Tree {
     if (leafs.size() == 1) {
       return leafs.get(0);
     }
-    if (leafs.size() <= maxChildren) {
+    if (leafs.size() <= MaxChildren) {
       String[] children = new String[leafs.size()];
       for (int i = 0; i < leafs.size(); i++) {
         String subDomain = Algorithm.encode32AndTruncate(leafs.get(i).toString());
@@ -54,7 +57,7 @@ public class Tree {
     List<Entry> subtrees = new ArrayList<>();
     while (!leafs.isEmpty()) {
       int total = leafs.size();
-      int n = Math.min(maxChildren, total);
+      int n = Math.min(MaxChildren, total);
       Entry branch = build(leafs.subList(0, n));
 
       leafs = leafs.subList(n, total);
@@ -91,35 +94,42 @@ public class Tree {
     tree.setRootEntry(new RootEntry(eRootStr, lRootStr, seq));
 
     if (StringUtils.isNotEmpty(privateKey)) {
-      byte[] sig = Algorithm.sigData(tree.rootEntry.toString(), privateKey);
-      tree.rootEntry.setSignature(sig);
-
-      BigInteger publicKeyInt = Algorithm.generateKeyPair(privateKey).getPublicKey();
-      String publicKey = ByteArray.toHexString(publicKeyInt.toByteArray());
-
-      //verify ourselves
-      boolean verified;
-      try {
-        verified = Algorithm.verifySignature(publicKey, tree.rootEntry.toString(),
-            tree.rootEntry.getSignature());
-      } catch (SignatureException e) {
-        throw new DnsException(TypeEnum.INVALID_SIGNATURE, e);
-      }
-      if (!verified) {
-        throw new DnsException(TypeEnum.INVALID_SIGNATURE, "");
-      }
+      tree.setPrivateKey(privateKey);
+      tree.sign();
     }
-
     return tree;
+  }
+
+  public void sign() throws DnsException {
+    if (StringUtils.isEmpty(privateKey)) {
+      return;
+    }
+    byte[] sig = Algorithm.sigData(rootEntry.toString(), privateKey);
+    rootEntry.setSignature(sig);
+
+    BigInteger publicKeyInt = Algorithm.generateKeyPair(privateKey).getPublicKey();
+    String publicKey = ByteArray.toHexString(publicKeyInt.toByteArray());
+
+    //verify ourselves
+    boolean verified;
+    try {
+      verified = Algorithm.verifySignature(publicKey, rootEntry.toString(),
+          rootEntry.getSignature());
+    } catch (SignatureException e) {
+      throw new DnsException(TypeEnum.INVALID_SIGNATURE, e);
+    }
+    if (!verified) {
+      throw new DnsException(TypeEnum.INVALID_SIGNATURE, "");
+    }
   }
 
   public static List<String> merge(List<DnsNode> nodes) {
     Collections.sort(nodes);
     List<String> enrs = new ArrayList<>();
-    while (nodes.size() >= mergeSize) {
-      List<DnsNode> sub = nodes.subList(0, mergeSize);
+    while (nodes.size() >= MergeSize) {
+      List<DnsNode> sub = nodes.subList(0, MergeSize);
       enrs.add(Entry.enrPrefix + DnsNode.compress(sub));
-      nodes = nodes.subList(mergeSize, nodes.size());
+      nodes = nodes.subList(MergeSize, nodes.size());
     }
     if (!nodes.isEmpty()) {
       enrs.add(Entry.enrPrefix + DnsNode.compress(nodes));

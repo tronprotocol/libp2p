@@ -101,6 +101,7 @@ public class AwsClient implements Publish {
     log.info("Find {} TXT records for {}", existing.size(), domain);
 
     tree.setSeq(this.lastSeq + 1);
+    tree.sign(); //seq changed, wo need to sign again
     Map<String, String> records = tree.toTXT(domain);
 
     List<Change> changes = computeChanges(domain, records, existing);

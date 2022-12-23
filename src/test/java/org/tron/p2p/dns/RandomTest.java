@@ -3,6 +3,7 @@ package org.tron.p2p.dns;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.Assert;
 import org.junit.Test;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.base.Parameter;
@@ -32,7 +33,7 @@ public class RandomTest {
     }
 
     for (Tree tree : syncClient.getTrees().values()) {
-      System.out.println(tree.getNodes().size());
+      Assert.assertTrue(tree.getNodes().size() > 0);
     }
 
     RandomIterator randomIterator = syncClient.newIterator();

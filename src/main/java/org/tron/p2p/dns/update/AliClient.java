@@ -38,6 +38,7 @@ public class AliClient implements Publish {
       Map<String, DescribeDomainRecordsResponseBodyDomainRecordsRecord> existing = collectRecords(
           domainName);
       t.setSeq(this.lastSeq + 1);
+      t.sign(); //seq changed, wo need to sign again
       Map<String, String> records = t.toTXT(domainName);
       submitChanges(domainName, records, existing);
     } catch (Exception e) {

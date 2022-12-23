@@ -58,15 +58,16 @@ public class RootEntry implements Entry {
     return rootEntry;
   }
 
-  public static RootEntry parseEntry(String e, String publicKey)
+  public static RootEntry parseEntry(String e, String publicKey, String domain)
       throws SignatureException, DnsException {
-    log.info("Root url:[{}], public key:{}", e, publicKey);
+    log.info("Domain:{}, Root url:[{}], public key:{} domain:{}", domain, e, publicKey);
     RootEntry rootEntry = parseEntry(e);
     boolean verify = Algorithm.verifySignature(publicKey, rootEntry.toString(),
         rootEntry.getSignature());
     if (!verify) {
       throw new DnsException(TypeEnum.INVALID_SIGNATURE,
-          "verify signature failed, data:[" + e + "], publicKey:" + publicKey);
+          String.format("verify signature failed! data:[%s], publicKey:%s, domain:%s", e, publicKey,
+              domain));
     }
     if (!Algorithm.isValidHash(rootEntry.eRoot) || !Algorithm.isValidHash(rootEntry.lRoot)) {
       throw new DnsException(TypeEnum.INVALID_CHILD,

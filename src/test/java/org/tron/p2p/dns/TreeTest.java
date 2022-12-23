@@ -50,9 +50,9 @@ public class TreeTest {
         Assert.fail();
       }
       if (i < enrs.size() - 1) {
-        Assert.assertEquals(Tree.mergeSize, subList.size());
+        Assert.assertEquals(Tree.MergeSize, subList.size());
       } else {
-        Assert.assertTrue(subList.size() <= Tree.mergeSize);
+        Assert.assertTrue(subList.size() <= Tree.MergeSize);
       }
       total += subList.size();
     }

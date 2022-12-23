@@ -86,7 +86,7 @@ public class Client {
     }
     for (String txt : txtRecord.getStrings()) {
       if (txt.startsWith(Entry.rootPrefix)) {
-        return RootEntry.parseEntry(txt, linkEntry.getUnCompressPublicKey());
+        return RootEntry.parseEntry(txt, linkEntry.getUnCompressPublicKey(), linkEntry.getDomain());
       }
     }
     throw new DnsException(TypeEnum.NO_ROOT_FOUND, "domain: " + linkEntry.getDomain());
