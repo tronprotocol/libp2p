@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -15,7 +17,9 @@ import lombok.extern.slf4j.Slf4j;
 public class LinkCache {
 
   Map<String, Set<String>> backrefs;
-  boolean changed;
+  @Getter
+  @Setter
+  private boolean changed; //if data in backrefs changes
 
   public LinkCache() {
     backrefs = new HashMap<>();
@@ -23,9 +27,10 @@ public class LinkCache {
   }
 
   public boolean isReferenced(String urlScheme) {
-    return backrefs.containsKey(urlScheme) && backrefs.get(urlScheme).size() > 0;
+    return backrefs.containsKey(urlScheme) && !backrefs.get(urlScheme).isEmpty();
   }
 
+  // there is a link `to` in tree `from`
   public void addLink(String from, String to) {
     if (backrefs.containsKey(to)) {
       Set<String> refs = backrefs.get(to);
@@ -46,7 +51,7 @@ public class LinkCache {
     List<String> stk = new ArrayList<>();
     stk.add(from);
 
-    while (stk.size() > 0) {
+    while (!stk.isEmpty()) {
       int size = stk.size();
       String item = stk.get(size - 1);
       stk = stk.subList(0, size - 1);
@@ -64,7 +69,7 @@ public class LinkCache {
         }
         this.changed = true;
         refs.remove(item);
-        if (refs.size() == 0) {
+        if (refs.isEmpty()) {
           it.remove();
           stk.add(r);
         }

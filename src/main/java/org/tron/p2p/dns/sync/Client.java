@@ -5,9 +5,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.net.UnknownHostException;
 import java.security.SignatureException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -146,7 +144,7 @@ public class Client {
       try {
         randomIterator.addTree(urlScheme);
       } catch (DnsException e) {
-        log.error("AddTree failed", e);
+        log.error("AddTree failed " + urlScheme, e);
       }
     }
     return randomIterator;

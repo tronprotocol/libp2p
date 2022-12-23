@@ -29,37 +29,26 @@ public class PublishService {
   }
 
   private void startPublish() {
+    P2pConfig config = Parameter.p2pConfig;
     try {
-      if (Parameter.p2pConfig.getDnsType() == DnsType.AliYun) {
-        publishAliDns();
-      } else if (Parameter.p2pConfig.getDnsType() == DnsType.AwsRoute53) {
-        publishAwsDns();
+      Publish publish;
+      if (config.getDnsType() == DnsType.AliYun) {
+        publish = new AliClient(config.getAliDnsEndpoint(),
+            config.getAliAccessKeyId(),
+            config.getAliAccessKeySecret());
+      } else {
+        publish = new AwsClient(config.getAwsAccessKeyId(),
+            config.getAwsAccessKeySecret(),
+            config.getAwsHostZoneId(),
+            Region.of(config.getAwsRegion()));
       }
+      Tree tree = new Tree();
+      List<String> nodes = getNodes();
+      tree = tree.makeTree(1, nodes, config.getKnownLinks(), config.getDnsPrivate());
+      publish.deploy(config.getDnsDomain(), tree);
     } catch (Exception e) {
       log.warn("Failed to publish dns, error msg: {}", e.getMessage());
     }
-  }
-
-  private void publishAliDns() throws Exception {
-    P2pConfig config = Parameter.p2pConfig;
-    AliClient client = new AliClient(config.getAliDnsEndpoint(),
-        config.getAliAccessKeyId(),
-        config.getAliAccessKeySecret());
-    Tree tree = new Tree();
-    List<String> nodes = getNodes();
-    tree = tree.makeTree(1, nodes, config.getKnownLinks(), config.getDnsPrivate());
-    client.deploy(config.getDnsDomain(), tree);
-  }
-
-  private void publishAwsDns() throws Exception {
-    P2pConfig config = Parameter.p2pConfig;
-    AwsClient client = new AwsClient(config.getAwsAccessKeyId(),
-        config.getAwsAccessKeySecret(),
-        config.getAwsHostZoneId(), Region.of(config.getAwsRegion()));
-    Tree tree = new Tree();
-    List<String> nodes = getNodes();
-    tree = tree.makeTree(1, nodes, config.getKnownLinks(), config.getDnsPrivate());
-    client.deploy(config.getDnsDomain(), tree);
   }
 
   private List<String> getNodes() throws UnknownHostException {
@@ -76,7 +65,7 @@ public class PublishService {
   private boolean checkConfig(P2pConfig config) {
     //we must enable discover service before we can publish dns service
     if (!config.isDiscoverEnable() || !config.isDnsPublishEnable()) {
-      log.info("Discover service is disable or publish is service disable");
+      log.info("Discover service is disable or dns publish service is disable");
       return false;
     }
     if (config.getDnsType() == null) {

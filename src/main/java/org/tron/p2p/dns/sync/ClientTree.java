@@ -81,7 +81,7 @@ public class ClientTree {
     return syncNextRandomNode();
   }
 
-  // canSyncRandom checks if any meaningful action can be performed by syncRandom.
+  // checks if any meaningful action can be performed by syncRandom.
   public boolean canSyncRandom() {
     return rootUpdateDue() || !links.done() || !enrs.done() || enrs.leaves == 0;
   }
@@ -108,7 +108,7 @@ public class ClientTree {
     }
   }
 
-  // the second random and the third random
+  // get one hash from enr missing randomly, then get random node from hash if hash is a leaf node
   private DnsNode syncNextRandomNode()
       throws DnsException, TextParseException, UnknownHostException {
     int pos = random.nextInt(enrs.missing.size());
@@ -149,7 +149,7 @@ public class ClientTree {
   }
 
   private boolean rootUpdateDue() {
-    boolean tooManyFailures = rootFailCount > rootRecheckFailCount;
+    boolean tooManyFailures = leafFailCount > rootRecheckFailCount;
     boolean scheduledCheck = nextScheduledRootCheck() > System.currentTimeMillis();
     return root == null || tooManyFailures || scheduledCheck;
   }

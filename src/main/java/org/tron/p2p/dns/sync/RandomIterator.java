@@ -69,15 +69,15 @@ public class RandomIterator implements Iterator<DnsNode> {
   }
 
   //the first random
-  public ClientTree pickTree() {
+  private ClientTree pickTree() {
     if (trees == null || trees.size() == 0) {
       return null;
     }
-    if (linkCache.changed) {
+    if (linkCache.isChanged()) {
       rebuildTrees();
-      linkCache.changed = false;
+      linkCache.setChanged(false);
     }
-    boolean canSync = syncAbleTrees();
+    boolean canSync = existSyncAbleTrees();
     if (canSync) {
       // Pick a random tree.
       int size = syncAbleList.size();
@@ -85,13 +85,15 @@ public class RandomIterator implements Iterator<DnsNode> {
     } else {
       // No sync action can be performed on any tree right now. The only meaningful
       // thing to do is waiting for any root record to get updated.
-      waitForRootUpdates(disabledList);
+      if (disabledList.size() > 0) {
+        waitForRootUpdates(disabledList);
+      }
     }
     // There are no trees left, the iterator was closed.
     return null;
   }
 
-  public boolean syncAbleTrees() {
+  public boolean existSyncAbleTrees() {
     syncAbleList = new ArrayList<>();
     disabledList = new ArrayList<>();
     for (ClientTree ct : trees.values()) {
@@ -117,8 +119,10 @@ public class RandomIterator implements Iterator<DnsNode> {
     long sleep = nextCheck - System.currentTimeMillis();
     log.info("DNS iterator waiting for root updates, sleep:{}, tree:{}", sleep,
         ct.linkEntry.getDomain());
-    //todo
-    //Thread.sleep(sleep);
+    try {
+      Thread.sleep(sleep);
+    } catch (InterruptedException e) {
+    }
   }
 
   private void rebuildTrees() {

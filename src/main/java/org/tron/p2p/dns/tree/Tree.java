@@ -127,12 +127,14 @@ public class Tree {
     return enrs;
   }
 
+  // hash => lower(hash).domain
   public Map<String, String> toTXT(String rootDomain) {
     Map<String, String> dnsRecords = new HashMap<>();
     dnsRecords.put(rootDomain, rootEntry.toFormat());
-    for (String key : entries.keySet()) {
-      String newKey = StringUtils.isNoneEmpty(rootDomain) ? key + "." + rootDomain : key;
-      dnsRecords.put(newKey.toLowerCase(), entries.get(key).toString());
+    for (Map.Entry<String, Entry> item : entries.entrySet()) {
+      String hash = item.getKey();
+      String newKey = StringUtils.isNoneEmpty(rootDomain) ? hash + "." + rootDomain : hash;
+      dnsRecords.put(newKey.toLowerCase(), item.getValue().toString());
     }
     return dnsRecords;
   }
@@ -147,8 +149,7 @@ public class Tree {
 
   public List<String> getLinksEntry() {
     List<String> links = new ArrayList<>();
-    for (String hash : entries.keySet()) {
-      Entry entry = entries.get(hash);
+    for (Entry entry : entries.values()) {
       if (entry instanceof LinkEntry) {
         LinkEntry linkEntry = (LinkEntry) entry;
         links.add(linkEntry.toString());
@@ -159,8 +160,7 @@ public class Tree {
 
   public List<String> getBranchesEntry() {
     List<String> branches = new ArrayList<>();
-    for (String hash : entries.keySet()) {
-      Entry entry = entries.get(hash);
+    for (Entry entry : entries.values()) {
       if (entry instanceof BranchEntry) {
         BranchEntry branchEntry = (BranchEntry) entry;
         branches.add(branchEntry.toString());

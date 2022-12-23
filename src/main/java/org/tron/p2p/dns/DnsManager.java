@@ -13,12 +13,14 @@ public class DnsManager {
 
   private static PublishService publishService;
   private static Client syncClient;
+  private static RandomIterator randomIterator;
 
   public static void init() {
     publishService = new PublishService();
     syncClient = new Client();
     publishService.init();
     syncClient.init();
+    randomIterator = syncClient.newIterator();
   }
 
   public static void close() {
@@ -39,7 +41,6 @@ public class DnsManager {
   }
 
   public Node getRandomNodes() {
-    RandomIterator randomIterator = syncClient.newIterator();
     return randomIterator.next();
   }
 }
