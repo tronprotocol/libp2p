@@ -24,7 +24,7 @@ public class Tree {
 
   public static final int HashAbbrevSize = 1 + 16 * 13 / 8; // Size of an encoded hash (plus comma)
   public static final int MaxChildren = 370 / HashAbbrevSize; // 13 children
-  public static final int MergeSize = 5;
+  public static final int MaxMergeSize = 5;
 
   @Getter
   @Setter
@@ -126,13 +126,19 @@ public class Tree {
   public static List<String> merge(List<DnsNode> nodes) {
     Collections.sort(nodes);
     List<String> enrs = new ArrayList<>();
-    while (nodes.size() >= MergeSize) {
-      List<DnsNode> sub = nodes.subList(0, MergeSize);
-      enrs.add(Entry.enrPrefix + DnsNode.compress(sub));
-      nodes = nodes.subList(MergeSize, nodes.size());
+    int networkA = -1;
+    List<DnsNode> sub = new ArrayList<>();
+    for (int i = 0; i < nodes.size(); i++) {
+      DnsNode dnsNode = nodes.get(i);
+      if ((networkA > -1 && dnsNode.getNetworkA() != networkA) || sub.size() >= MaxMergeSize) {
+        enrs.add(Entry.enrPrefix + DnsNode.compress(sub));
+        sub.clear();
+      }
+      sub.add(dnsNode);
+      networkA = dnsNode.getNetworkA();
     }
-    if (!nodes.isEmpty()) {
-      enrs.add(Entry.enrPrefix + DnsNode.compress(nodes));
+    if (!sub.isEmpty()) {
+      enrs.add(Entry.enrPrefix + DnsNode.compress(sub));
     }
     return enrs;
   }

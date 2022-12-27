@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.dns.DnsNode;
 import org.tron.p2p.dns.tree.Entry;
@@ -35,6 +36,7 @@ public class ClientTree {
 
   // used for sync
   @Getter
+  @Setter
   private RootEntry root;
   private SubtreeSync enrs;
   private SubtreeSync links;
@@ -59,11 +61,14 @@ public class ClientTree {
     enrs.resolveAll(entries);
   }
 
+  // retrieves a single entry of the tree. The Node return value is non-nil if the entry was a node.
   public DnsNode syncRandom()
       throws DnsException, SignatureException, InterruptedException, TextParseException, UnknownHostException {
     if (rootUpdateDue()) {
       updateRoot();
     }
+
+    // Link tree sync has priority, run it to completion before syncing ENRs.
     if (!links.done()) {
       try {
         syncNextLink();
@@ -75,6 +80,9 @@ public class ClientTree {
     }
     gcLinks();
 
+    // Sync next random entry in ENR tree. Once every node has been visited, we simply
+    // start over. This is fine because entries are cached internally by the client LRU
+    // also by DNS resolvers.
     if (enrs.done()) {
       enrs = new SubtreeSync(client, linkEntry, root.getERoot(), false);
     }
@@ -124,10 +132,10 @@ public class ClientTree {
     return null;
   }
 
-
   // updateRoot ensures that the given tree has an up-to-date root.
-  private void updateRoot()
-      throws TextParseException, DnsException, SignatureException, InterruptedException, UnknownHostException {
+  private void updateRoot() throws TextParseException, DnsException, SignatureException,
+      InterruptedException, UnknownHostException {
+    log.info("updateRoot {}", linkEntry.getDomain());
     slowdownRootUpdate();
     lastValidateTime = System.currentTimeMillis();
     RootEntry rootEntry = client.resolveRoot(linkEntry);
@@ -150,7 +158,7 @@ public class ClientTree {
 
   private boolean rootUpdateDue() {
     boolean tooManyFailures = leafFailCount > rootRecheckFailCount;
-    boolean scheduledCheck = nextScheduledRootCheck() > System.currentTimeMillis();
+    boolean scheduledCheck = System.currentTimeMillis() > nextScheduledRootCheck();
     return root == null || tooManyFailures || scheduledCheck;
   }
 

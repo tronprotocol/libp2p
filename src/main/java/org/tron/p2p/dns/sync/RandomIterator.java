@@ -54,14 +54,16 @@ public class RandomIterator implements Iterator<DnsNode> {
             clientTree.getLinkEntry().getDomain(), e);
         continue;
       }
-      cur = dnsNode;
-      return dnsNode;
+      if (dnsNode != null) {
+        return dnsNode;
+      }
     }
   }
 
   @Override
   public boolean hasNext() {
-    return false;
+    this.cur = next();
+    return this.cur != null;
   }
 
   public void addTree(String url) throws DnsException {
@@ -94,7 +96,9 @@ public class RandomIterator implements Iterator<DnsNode> {
       }
     }
     // There are no trees left, the iterator was closed.
-    return null;
+    //return null;
+    int size = disabledList.size();
+    return disabledList.get(random.nextInt(size));
   }
 
   private boolean existSyncAbleTrees() {
@@ -123,18 +127,25 @@ public class RandomIterator implements Iterator<DnsNode> {
     long sleep = nextCheck - System.currentTimeMillis();
     log.info("DNS iterator waiting for root updates, sleep:{}, tree:{}", sleep,
         ct.linkEntry.getDomain());
-    try {
-      Thread.sleep(sleep);
-    } catch (InterruptedException e) {
+//    try {
+//      Thread.sleep(sleep);
+//    } catch (InterruptedException e) {
+//    }
+    for (ClientTree clientTree : waitTrees) {
+      clientTree.setRoot(null);
     }
   }
 
+  // rebuilds the 'trees' map.
+  // if tree in trees is not referenced by other, wo delete it from trees and add it later.
   private void rebuildTrees() {
-    log.info("rebuildTrees");
+    log.info("rebuildTrees...");
     Iterator<Entry<String, ClientTree>> it = trees.entrySet().iterator();
     while (it.hasNext()) {
       Entry<String, ClientTree> entry = it.next();
-      if (!linkCache.isReferenced(entry.getKey())) {
+      String urlScheme = entry.getKey();
+      if (!linkCache.isReferenced(urlScheme)) {
+        log.info("remove tree from trees:{}", urlScheme);
         it.remove();
       }
     }
@@ -144,20 +155,19 @@ public class RandomIterator implements Iterator<DnsNode> {
       Entry<String, Set<String>> entry = it2.next();
       String urlScheme = entry.getKey();
       if (!trees.containsKey(urlScheme)) {
-        LinkEntry linkEntry;
         try {
-          linkEntry = LinkEntry.parseEntry(urlScheme);
+          LinkEntry linkEntry = LinkEntry.parseEntry(urlScheme);
+          trees.put(urlScheme, new ClientTree(client, linkCache, linkEntry));
+          log.info("add tree to trees:{}", urlScheme);
         } catch (DnsException e) {
-          log.error("", e);
+          log.error("Parse LinkEntry failed", e);
           continue;
         }
-        trees.put(urlScheme, new ClientTree(client, linkCache, linkEntry));
       }
     }
   }
 
   public void close() {
-
+    trees = null;
   }
-
 }

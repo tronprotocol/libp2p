@@ -111,6 +111,7 @@ public class AwsRoute53Test {
       Assert.fail();
     }
 
+    //warning: replace your key in the following section, or this test will fail
     AwsClient awsClient = new AwsClient("replace your access key",
         "replace your access key secret",
         "replace your host zone id",

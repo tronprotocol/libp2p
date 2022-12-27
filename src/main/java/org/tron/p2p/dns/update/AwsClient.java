@@ -1,6 +1,7 @@
 package org.tron.p2p.dns.update;
 
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -106,8 +107,17 @@ public class AwsClient implements Publish {
 
     List<Change> changes = computeChanges(domain, records, existing);
 
-    String comment = String.format("Enrtree update of %s at seq %d", domain, tree.getSeq());
-    submitChanges(changes, comment);
+    if (existing.size() == 0 || changes.size() / (double) existing.size() >= changeThreshold) {
+      String comment = String.format("Enrtree update of %s at seq %d", domain, tree.getSeq());
+      log.info(comment);
+      submitChanges(changes, comment);
+    } else {
+      NumberFormat nf = NumberFormat.getNumberInstance();
+      nf.setMaximumFractionDigits(4);
+      double changePercent = changes.size() / (double) existing.size();
+      log.info("Change percent {} is below changeThreshold {}, change count {}, skip this changes",
+          nf.format(changePercent), changeThreshold, changes.size());
+    }
   }
 
   // removes all TXT records of the given domain.
@@ -228,6 +238,7 @@ public class AwsClient implements Publish {
         }
       }
     }
+    log.info("Submit {} changes complete", changes.size());
   }
 
   // computeChanges creates DNS changes for the given set of DNS discovery records.

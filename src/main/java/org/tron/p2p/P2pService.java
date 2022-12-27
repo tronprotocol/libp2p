@@ -1,7 +1,10 @@
 package org.tron.p2p;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
@@ -50,11 +53,17 @@ public class P2pService {
   }
 
   public List<Node> getConnectableNodes() {
-    return NodeManager.getConnectableNodes();
+    Set<Node> nodes = new HashSet<>();
+    nodes.addAll(NodeManager.getConnectableNodes());
+    nodes.addAll(DnsManager.getAllNodes());
+    return new ArrayList<>(nodes);
   }
 
   public List<Node> getAllNodes() {
-    return NodeManager.getAllNodes();
+    Set<Node> nodes = new HashSet<>();
+    nodes.addAll(NodeManager.getAllNodes());
+    nodes.addAll(DnsManager.getAllNodes());
+    return new ArrayList<>(nodes);
   }
 
   public void updateNodeId(Channel channel, String nodeId) {

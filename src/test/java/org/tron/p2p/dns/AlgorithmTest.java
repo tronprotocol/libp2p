@@ -53,7 +53,7 @@ public class AlgorithmTest {
 
   @Test
   public void testEncode64() {
-    String base64Sig = "1eFfi7ggzTbtAldC1pfXPn5A3mZQwEdk0-ZwCKGhZbQn2E6zWodG7v06kFu8gjiCe6FvJo04BYvgKHtPJ5pX5wE=";
+    String base64Sig = "1eFfi7ggzTbtAldC1pfXPn5A3mZQwEdk0-ZwCKGhZbQn2E6zWodG7v06kFu8gjiCe6FvJo04BYvgKHtPJ5pX5wE";
     byte[] decoded;
     try {
       decoded = Algorithm.decode64(base64Sig);
@@ -62,7 +62,7 @@ public class AlgorithmTest {
       Assert.fail();
     }
 
-    String base64Content = "1eFfi7ggzTbtAldC1pfXPn5A3mZQwEdk0-ZwCKGhZbQn2E6zWodG7v06kFu8gjiCe6FvJo04BYvgKHtPJ5pX5wE";
+    String base64Content = "1eFfi7ggzTbtAldC1pfXPn5A3mZQwEdk0-ZwCKGhZbQn2E6zWodG7v06kFu8gjiCe6FvJo04BYvgKHtPJ5pX5wE=";
     decoded = Algorithm.decode64(base64Content);
     Assert.assertNotEquals(base64Content, Algorithm.encode64(decoded));
   }

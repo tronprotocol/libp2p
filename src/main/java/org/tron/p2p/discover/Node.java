@@ -151,9 +151,14 @@ public class Node implements Serializable, Cloneable {
         + ", id=" + Hex.toHexString(id) + '}';
   }
 
+  private String format() {
+    return "Node{" + " hostV4='" + hostV4 + '\'' + ", hostV6='" + hostV6 + '\'' + ", port=" + port
+        + '}';
+  }
+
   @Override
   public int hashCode() {
-    return this.toString().hashCode();
+    return this.format().hashCode();
   }
 
   @Override

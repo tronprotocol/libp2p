@@ -18,7 +18,7 @@ import software.amazon.awssdk.regions.Region;
 @Slf4j(topic = "net")
 public class PublishService {
 
-  private static final long publishDelay = 24 * 60 * 60;
+  private static final long publishDelay = 3 * 60 * 60;
 
   private ScheduledExecutorService publisher = Executors.newSingleThreadScheduledExecutor();
 

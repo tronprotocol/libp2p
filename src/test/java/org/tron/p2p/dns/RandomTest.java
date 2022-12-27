@@ -27,7 +27,7 @@ public class RandomTest {
     syncClient.init();
 
     try {
-      Thread.sleep(10 * 1000);
+      Thread.sleep(5 * 1000);
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
@@ -40,7 +40,7 @@ public class RandomTest {
     int count = 0;
     while (count < 10) {
       DnsNode dnsNode = randomIterator.next();
-      System.out.println(dnsNode == null);
+      Assert.assertNotNull(dnsNode);
       count += 1;
     }
   }

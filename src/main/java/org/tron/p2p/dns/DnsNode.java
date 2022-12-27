@@ -65,6 +65,14 @@ public class DnsNode extends Node implements Comparable<DnsNode> {
     return ByteArray.toHexString(bytes);
   }
 
+  public int getNetworkA() {
+    if (StringUtils.isNotEmpty(hostV4)) {
+      return Integer.parseInt(hostV4.split("\\.")[0]);
+    } else {
+      return 0;
+    }
+  }
+
   @Override
   public int compareTo(DnsNode o) {
     if (this.v4Hex.compareTo(o.v4Hex) != 0) {

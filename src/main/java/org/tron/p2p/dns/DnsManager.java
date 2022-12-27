@@ -30,9 +30,12 @@ public class DnsManager {
     if (syncClient != null) {
       syncClient.close();
     }
+    if (randomIterator != null) {
+      randomIterator.close();
+    }
   }
 
-  public List<Node> getAllNodes() {
+  public static List<Node> getAllNodes() {
     List<Node> nodes = new ArrayList<>();
     for (Tree tree : syncClient.getTrees().values()) {
       nodes.addAll(tree.getNodes());
@@ -40,7 +43,7 @@ public class DnsManager {
     return nodes;
   }
 
-  public Node getRandomNodes() {
+  public static Node getRandomNodes() {
     return randomIterator.next();
   }
 }

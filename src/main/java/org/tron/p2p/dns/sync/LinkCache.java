@@ -19,7 +19,7 @@ public class LinkCache {
   Map<String, Set<String>> backrefs;
   @Getter
   @Setter
-  private boolean changed; //if data in backrefs changes
+  private boolean changed; //if data in backrefs changes, we need to rebuild trees
 
   public LinkCache() {
     backrefs = new HashMap<>();
