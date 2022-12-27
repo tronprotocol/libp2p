@@ -23,24 +23,17 @@ public class HelloMessage extends Message {
 
   public HelloMessage(DisconnectCode code) {
     super(MessageType.HANDSHAKE_HELLO, null);
-    Discover.Endpoint.Builder builder = Discover.Endpoint.newBuilder()
-        .setNodeId(ByteString.copyFrom(Parameter.p2pConfig.getNodeID()))
-        .setPort(Parameter.p2pConfig.getPort());
-    if (StringUtils.isNotEmpty(Parameter.p2pConfig.getIp())) {
-      builder.setAddress(ByteString.copyFrom(
-          ByteArray.fromString(Parameter.p2pConfig.getIp())));
-    }
-    if (StringUtils.isNotEmpty(Parameter.p2pConfig.getIpv6())) {
-      builder.setAddressIpv6(ByteString.copyFrom(
-          ByteArray.fromString(Parameter.p2pConfig.getIpv6())));
-    }
-    Discover.Endpoint endpoint = builder.build();
+    Discover.Endpoint endpoint = Parameter.getHomeNode();
     this.helloMessage = Connect.HelloMessage.newBuilder()
-        .setFrom(endpoint)
-        .setVersion(Parameter.p2pConfig.getVersion())
-        .setCode(code.getValue())
-        .setTimestamp(System.currentTimeMillis()).build();
+      .setFrom(endpoint)
+      .setNetworkId(Parameter.p2pConfig.getNetworkId())
+      .setCode(code.getValue())
+      .setTimestamp(System.currentTimeMillis()).build();
     this.data = helloMessage.toByteArray();
+  }
+
+  public int getNetworkId() {
+    return this.helloMessage.getNetworkId();
   }
 
   public int getVersion() {
@@ -56,10 +49,7 @@ public class HelloMessage extends Message {
   }
 
   public Node getFrom() {
-    Discover.Endpoint from = this.helloMessage.getFrom();
-    return new Node(from.getNodeId().toByteArray(),
-        new String(from.getAddress().toByteArray()),
-        new String(from.getAddressIpv6().toByteArray()), from.getPort());
+    return NetUtil.getNode(helloMessage.getFrom());
   }
 
   @Override

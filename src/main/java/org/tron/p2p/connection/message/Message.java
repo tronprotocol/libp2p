@@ -3,6 +3,7 @@ package org.tron.p2p.connection.message;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.apache.commons.lang3.ArrayUtils;
+import org.tron.p2p.connection.message.detect.StatusMessage;
 import org.tron.p2p.connection.message.handshake.HelloMessage;
 import org.tron.p2p.connection.message.keepalive.PingMessage;
 import org.tron.p2p.connection.message.keepalive.PongMessage;
@@ -26,8 +27,8 @@ public abstract class Message {
     return this.data;
   }
 
-  public ByteBuf getSendData() {
-    return Unpooled.wrappedBuffer(ArrayUtils.add(this.data, 0, type.getType()));
+  public byte[] getSendData() {
+    return ArrayUtils.add(this.data, 0, type.getType());
   }
 
   public abstract boolean valid();
@@ -46,6 +47,9 @@ public abstract class Message {
           break;
         case HANDSHAKE_HELLO:
           message = new HelloMessage(data);
+          break;
+        case STATUS:
+          message = new StatusMessage(data);
           break;
         default:
           throw new P2pException(P2pException.TypeEnum.NO_SUCH_MESSAGE, "type=" + type);

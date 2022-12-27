@@ -80,7 +80,7 @@ public class ImportUsing {
 
   private void initConfig(P2pConfig config) {
     // set p2p version
-    config.setVersion(11111);
+    config.setNetworkId(11111);
 
     // set tcp and udp listen port
     config.setPort(18888);
@@ -194,6 +194,5 @@ public class ImportUsing {
     }
 
   }
-
 
 }

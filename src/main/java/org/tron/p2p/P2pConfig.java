@@ -18,7 +18,7 @@ public class P2pConfig {
   private String ip = NetUtil.getExternalIpV4();
   private String ipv6 = NetUtil.getExternalIpV6();
   private int port = 18888;
-  private int version = 1;
+  private int networkId = 1;
   private int minConnections = 8;
   private int maxConnections = 50;
   private int minActiveConnections = 2;

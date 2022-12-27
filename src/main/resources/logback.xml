@@ -37,7 +37,7 @@
     <appender-ref ref="FILE"/>
   </root>
 
-  <logger level="INFO" name="net"/>
+  <logger level="DEBUG" name="net"/>
 
 </configuration>
 
