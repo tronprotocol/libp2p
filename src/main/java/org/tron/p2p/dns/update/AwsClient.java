@@ -4,14 +4,19 @@ package org.tron.p2p.dns.update;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.tron.p2p.dns.DnsNode;
+import org.tron.p2p.dns.tree.NodesEntry;
 import org.tron.p2p.dns.tree.RootEntry;
 import org.tron.p2p.dns.tree.Tree;
 import org.tron.p2p.exception.DnsException;
+import org.tron.p2p.exception.DnsException.TypeEnum;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -42,11 +47,13 @@ public class AwsClient implements Publish {
   private int lastSeq = 0;
   private Route53Client route53Client;
   private String zoneId;
+  private Set<DnsNode> serverNodes;
 
   public AwsClient(final String accessKey, final String accessKeySecret,
-      final String zoneId, final Region region) {
+      final String zoneId, final Region region) throws DnsException {
     if (StringUtils.isEmpty(accessKey) || StringUtils.isEmpty(accessKeySecret)) {
-      throw new RuntimeException("Need Route53 Access Key ID and secret to proceed");
+      throw new DnsException(TypeEnum.DEPLOY_DOMAIN_FAILED,
+          "Need Route53 Access Key ID and secret to proceed");
     }
     StaticCredentialsProvider staticCredentialsProvider = StaticCredentialsProvider.create(
         new AwsCredentials() {
@@ -65,6 +72,7 @@ public class AwsClient implements Publish {
         .region(region)
         .build();
     this.zoneId = zoneId;
+    this.serverNodes = new HashSet<>();
   }
 
   private void checkZone(String domain) {
@@ -107,16 +115,30 @@ public class AwsClient implements Publish {
 
     List<Change> changes = computeChanges(domain, records, existing);
 
-    if (existing.size() == 0 || changes.size() / (double) existing.size() >= changeThreshold) {
+    Set<DnsNode> treeNodes = new HashSet<>(tree.getDnsNodes());
+    treeNodes.removeAll(serverNodes); // tree - dns
+    int addNodeSize = treeNodes.size();
+
+    Set<DnsNode> set1 = new HashSet<>(serverNodes);
+    treeNodes = new HashSet<>(tree.getDnsNodes());
+    set1.removeAll(treeNodes); // dns - tree
+    int deleteNodeSize = set1.size();
+
+    if ((existing.size() == 0 || changes.size() / (double) existing.size() >= changeThreshold)
+        && (serverNodes.isEmpty()
+        || (addNodeSize + deleteNodeSize) / (double) serverNodes.size() >= changeThreshold)) {
       String comment = String.format("Enrtree update of %s at seq %d", domain, tree.getSeq());
       log.info(comment);
       submitChanges(changes, comment);
     } else {
       NumberFormat nf = NumberFormat.getNumberInstance();
       nf.setMaximumFractionDigits(4);
-      double changePercent = changes.size() / (double) existing.size();
-      log.info("Change percent {} is below changeThreshold {}, change count {}, skip this changes",
-          nf.format(changePercent), changeThreshold, changes.size());
+      double changePercent = existing.isEmpty() ? 1.0 : (changes.size() / (double) existing.size());
+      double nodePercent = serverNodes.isEmpty() ? 1.0
+          : ((addNodeSize + deleteNodeSize) / (double) serverNodes.size());
+      log.info(
+          "Total change percent {} or Node add/delete percent {} is below changeThreshold {}, skip this changes",
+          nf.format(changePercent), nf.format(nodePercent), changeThreshold);
     }
   }
 
@@ -144,6 +166,7 @@ public class AwsClient implements Publish {
     int page = 0;
 
     String rootContent = null;
+    Set<DnsNode> serverNodes = new HashSet<>();
     while (true) {
       log.info("Loading existing TXT records from name:{} zoneId:{} page:{}", rootDomain, zoneId,
           page);
@@ -164,8 +187,20 @@ public class AwsClient implements Publish {
             resourceRecordSet.ttl());
         String name = StringUtils.stripEnd(resourceRecordSet.name(), ".");
         existing.put(name, recordSet);
+
+        String content = StringUtils.join(values, "");
         if (rootDomain.equalsIgnoreCase(name)) {
-          rootContent = StringUtils.join(values, "");
+          rootContent = content;
+        }
+        if (content.startsWith(org.tron.p2p.dns.tree.Entry.enrPrefix)) {
+          NodesEntry nodesEntry;
+          try {
+            nodesEntry = NodesEntry.parseEntry(content);
+            List<DnsNode> dnsNodes = nodesEntry.getNodes();
+            serverNodes.addAll(dnsNodes);
+          } catch (DnsException e) {
+            //ignore
+          }
         }
         log.info("Find name: {}", name);
       }
@@ -190,6 +225,7 @@ public class AwsClient implements Publish {
       RootEntry rootEntry = RootEntry.parseEntry(rootContent);
       this.lastSeq = rootEntry.getSeq();
     }
+    this.serverNodes = serverNodes;
     return existing;
   }
 

@@ -151,7 +151,7 @@ public class TreeTest {
         tree.getEntries().size());
     Assert.assertEquals(branchList.size(), tree.getBranchesEntry().size());
     Assert.assertEquals(enrList.size(), tree.getNodesEntry().size());
-    Assert.assertEquals(linkList.size(), tree.getLinksEntry().size());
+    Assert.assertEquals(linkList.size(), tree.getLinks().size());
 
     for (String branch : tree.getBranchesEntry()) {
       Assert.assertTrue(branchList.contains(branch));
@@ -159,7 +159,7 @@ public class TreeTest {
     for (String nodeEntry : tree.getNodesEntry()) {
       Assert.assertTrue(enrList.contains(nodeEntry));
     }
-    for (String link : tree.getLinksEntry()) {
+    for (String link : tree.getLinks()) {
       Assert.assertTrue(linkList.contains(link));
     }
 

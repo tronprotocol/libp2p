@@ -3,6 +3,7 @@ package org.tron.p2p.dns.update;
 
 import java.util.Map;
 import org.tron.p2p.dns.tree.Tree;
+import org.tron.p2p.exception.DnsException;
 
 public interface Publish<T> {
 
@@ -11,7 +12,7 @@ public interface Publish<T> {
 
   double changeThreshold = 0.2;
 
-  void deploy(String domainName, Tree t) throws Exception;
+  void deploy(String domainName, Tree t) throws DnsException;
 
   boolean deleteDomain(String domainName) throws Exception;
 

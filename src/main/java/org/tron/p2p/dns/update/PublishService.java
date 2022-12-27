@@ -24,7 +24,7 @@ public class PublishService {
 
   public void init() {
     if (checkConfig(Parameter.p2pConfig)) {
-      publisher.scheduleWithFixedDelay(() -> startPublish(), 300, publishDelay, TimeUnit.SECONDS);
+      publisher.scheduleWithFixedDelay(this::startPublish, 300, publishDelay, TimeUnit.SECONDS);
     }
   }
 

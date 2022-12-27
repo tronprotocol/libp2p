@@ -24,10 +24,10 @@ public class ClientTree {
 
   private static final int rootRecheckFailCount = 5;
   // used for construct
-  private Client client;
+  private final Client client;
   @Getter
   public LinkEntry linkEntry;
-  private LinkCache linkCache;
+  private final LinkCache linkCache;
 
   // used for check
   private long lastValidateTime;
@@ -38,14 +38,14 @@ public class ClientTree {
   @Getter
   @Setter
   private RootEntry root;
-  private SubtreeSync enrs;
-  private SubtreeSync links;
+  private SubtreeSync enrSync;
+  private SubtreeSync linkSync;
 
   //all links in this tree
   private Set<String> curLinks;
   private String linkGCRoot;
 
-  private Random random;
+  private final Random random;
 
   public ClientTree(Client c, LinkCache lc, LinkEntry loc) {
     this.client = c;
@@ -57,8 +57,8 @@ public class ClientTree {
 
   public void syncAll(Map<String, Entry> entries) throws Exception {
     updateRoot();
-    links.resolveAll(entries);
-    enrs.resolveAll(entries);
+    linkSync.resolveAll(entries);
+    enrSync.resolveAll(entries);
   }
 
   // retrieves a single entry of the tree. The Node return value is non-nil if the entry was a node.
@@ -69,7 +69,7 @@ public class ClientTree {
     }
 
     // Link tree sync has priority, run it to completion before syncing ENRs.
-    if (!links.done()) {
+    if (!linkSync.done()) {
       try {
         syncNextLink();
       } catch (Exception e) {
@@ -83,20 +83,20 @@ public class ClientTree {
     // Sync next random entry in ENR tree. Once every node has been visited, we simply
     // start over. This is fine because entries are cached internally by the client LRU
     // also by DNS resolvers.
-    if (enrs.done()) {
-      enrs = new SubtreeSync(client, linkEntry, root.getERoot(), false);
+    if (enrSync.done()) {
+      enrSync = new SubtreeSync(client, linkEntry, root.getERoot(), false);
     }
     return syncNextRandomNode();
   }
 
   // checks if any meaningful action can be performed by syncRandom.
   public boolean canSyncRandom() {
-    return rootUpdateDue() || !links.done() || !enrs.done() || enrs.leaves == 0;
+    return rootUpdateDue() || !linkSync.done() || !enrSync.done() || enrSync.leaves == 0;
   }
 
   // gcLinks removes outdated links from the global link cache. GC runs once when the link sync finishes.
   public void gcLinks() {
-    if (!links.done() || root.getLRoot().equals(linkGCRoot)) {
+    if (!linkSync.done() || root.getLRoot().equals(linkGCRoot)) {
       return;
     }
     linkCache.resetLinks(linkEntry.getRepresent(), curLinks);
@@ -105,9 +105,9 @@ public class ClientTree {
 
   // traversal next link of missing
   public void syncNextLink() throws DnsException, TextParseException, UnknownHostException {
-    String hash = links.missing.peek();
-    Entry entry = links.resolveNext(hash);
-    links.missing.poll();
+    String hash = linkSync.missing.peek();
+    Entry entry = linkSync.resolveNext(hash);
+    linkSync.missing.poll();
 
     if (entry instanceof LinkEntry) {
       LinkEntry dest = (LinkEntry) entry;
@@ -119,10 +119,10 @@ public class ClientTree {
   // get one hash from enr missing randomly, then get random node from hash if hash is a leaf node
   private DnsNode syncNextRandomNode()
       throws DnsException, TextParseException, UnknownHostException {
-    int pos = random.nextInt(enrs.missing.size());
-    String hash = enrs.missing.get(pos);
-    Entry entry = enrs.resolveNext(hash);
-    enrs.missing.remove(pos);
+    int pos = random.nextInt(enrSync.missing.size());
+    String hash = enrSync.missing.get(pos);
+    Entry entry = enrSync.resolveNext(hash);
+    enrSync.missing.remove(pos);
     if (entry instanceof NodesEntry) {
       NodesEntry nodesEntry = (NodesEntry) entry;
       List<DnsNode> nodeList = nodesEntry.getNodes();
@@ -135,7 +135,7 @@ public class ClientTree {
   // updateRoot ensures that the given tree has an up-to-date root.
   private void updateRoot() throws TextParseException, DnsException, SignatureException,
       InterruptedException, UnknownHostException {
-    log.info("updateRoot {}", linkEntry.getDomain());
+    log.info("UpdateRoot {}", linkEntry.getDomain());
     slowdownRootUpdate();
     lastValidateTime = System.currentTimeMillis();
     RootEntry rootEntry = client.resolveRoot(linkEntry);
@@ -147,12 +147,14 @@ public class ClientTree {
     rootFailCount = 0;
     leafFailCount = 0;
 
-    if (links == null || !rootEntry.getLRoot().equals(links.root)) {
-      links = new SubtreeSync(client, linkEntry, rootEntry.getLRoot(), true);
+    // if lroot is not changed, wo do not to sync the link tree
+    if (linkSync == null || !rootEntry.getLRoot().equals(linkSync.root)) {
+      linkSync = new SubtreeSync(client, linkEntry, rootEntry.getLRoot(), true);
       curLinks = new HashSet<>();//clear all links
     }
-    if (enrs == null || !rootEntry.getERoot().equals(enrs.root)) {
-      enrs = new SubtreeSync(client, linkEntry, rootEntry.getERoot(), false);
+    // if eroot is not changed, wo do not to sync the enr tree
+    if (enrSync == null || !rootEntry.getERoot().equals(enrSync.root)) {
+      enrSync = new SubtreeSync(client, linkEntry, rootEntry.getERoot(), false);
     }
   }
 

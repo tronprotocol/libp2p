@@ -3,7 +3,7 @@ package org.tron.p2p.exception;
 
 public class DnsException extends Exception {
 
-  private DnsException.TypeEnum type;
+  private final DnsException.TypeEnum type;
 
   public DnsException(DnsException.TypeEnum type, String errMsg) {
     super(type.desc + ", " + errMsg);
@@ -42,7 +42,10 @@ public class DnsException extends Exception {
     INVALID_SIGNATURE(11, "invalid base64 signature"),
     INVALID_ROOT_SYNTAX(12, "invalid root syntax"),
     INVALID_SCHEME_URL(13, "invalid scheme url"),
+
+    // Publish error
     DEPLOY_DOMAIN_FAILED(14, "failed to deploy domain"),
+
     OTHER_ERROR(15, "other error");
 
     private Integer value;

@@ -31,12 +31,19 @@ public class Tree {
   private RootEntry rootEntry;
   @Getter
   private Map<String, Entry> entries;
-
+  @Setter
+  @Getter
+  private List<String> links;
+  @Setter
+  @Getter
+  private List<DnsNode> dnsNodes;
   @Setter
   private String privateKey;
 
   public Tree() {
     this.entries = new HashMap<>();
+    this.links = new ArrayList<>();
+    this.dnsNodes = new ArrayList<>();
   }
 
   private Entry build(List<Entry> leafs) {
@@ -92,6 +99,8 @@ public class Tree {
     tree.getEntries().put(lRootStr, lRoot);
 
     tree.setRootEntry(new RootEntry(eRootStr, lRootStr, seq));
+    tree.setDnsNodes(getNodes());
+    tree.setLinks(getLinksEntry());
 
     if (StringUtils.isNotEmpty(privateKey)) {
       tree.setPrivateKey(privateKey);
@@ -128,8 +137,7 @@ public class Tree {
     List<String> enrs = new ArrayList<>();
     int networkA = -1;
     List<DnsNode> sub = new ArrayList<>();
-    for (int i = 0; i < nodes.size(); i++) {
-      DnsNode dnsNode = nodes.get(i);
+    for (DnsNode dnsNode : nodes) {
       if ((networkA > -1 && dnsNode.getNetworkA() != networkA) || sub.size() >= MaxMergeSize) {
         enrs.add(Entry.enrPrefix + DnsNode.compress(sub));
         sub.clear();
@@ -163,15 +171,15 @@ public class Tree {
     rootEntry.setSeq(seq);
   }
 
-  public List<String> getLinksEntry() {
-    List<String> links = new ArrayList<>();
+  private List<String> getLinksEntry() {
+    List<String> linkList = new ArrayList<>();
     for (Entry entry : entries.values()) {
       if (entry instanceof LinkEntry) {
         LinkEntry linkEntry = (LinkEntry) entry;
-        links.add(linkEntry.toString());
+        linkList.add(linkEntry.toString());
       }
     }
-    return links;
+    return linkList;
   }
 
   public List<String> getBranchesEntry() {
@@ -187,8 +195,7 @@ public class Tree {
 
   public List<String> getNodesEntry() {
     List<String> nodesEntryList = new ArrayList<>();
-    for (String hash : entries.keySet()) {
-      Entry entry = entries.get(hash);
+    for (Entry entry : entries.values()) {
       if (entry instanceof NodesEntry) {
         NodesEntry nodesEntry = (NodesEntry) entry;
         nodesEntryList.add(nodesEntry.toString());
@@ -197,7 +204,7 @@ public class Tree {
     return nodesEntryList;
   }
 
-  public List<DnsNode> getNodes() {
+  private List<DnsNode> getNodes() {
     List<String> nodesEntryList = getNodesEntry();
     List<DnsNode> nodes = new ArrayList<>();
     for (String represent : nodesEntryList) {

@@ -38,7 +38,7 @@ public class DnsManager {
   public static List<Node> getAllNodes() {
     List<Node> nodes = new ArrayList<>();
     for (Tree tree : syncClient.getTrees().values()) {
-      nodes.addAll(tree.getNodes());
+      nodes.addAll(tree.getDnsNodes());
     }
     return nodes;
   }

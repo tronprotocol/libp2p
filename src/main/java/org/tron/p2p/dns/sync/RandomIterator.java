@@ -18,17 +18,17 @@ import org.tron.p2p.exception.DnsException;
 @Slf4j(topic = "net")
 public class RandomIterator implements Iterator<DnsNode> {
 
-  private Client client;
+  private final Client client;
   private Map<String, ClientTree> trees;
 
   @Getter
   private DnsNode cur;
-  private LinkCache linkCache;
+  private final LinkCache linkCache;
 
   private List<ClientTree> syncAbleList;
   private List<ClientTree> disabledList;
 
-  private Random random;
+  private final Random random;
 
   public RandomIterator(Client client) {
     this.client = client;
@@ -91,7 +91,7 @@ public class RandomIterator implements Iterator<DnsNode> {
     } else {
       // No sync action can be performed on any tree right now. The only meaningful
       // thing to do is waiting for any root record to get updated.
-      if (disabledList.size() > 0) {
+      if (!disabledList.isEmpty()) {
         waitForRootUpdates(disabledList);
       }
     }
@@ -161,7 +161,6 @@ public class RandomIterator implements Iterator<DnsNode> {
           log.info("add tree to trees:{}", urlScheme);
         } catch (DnsException e) {
           log.error("Parse LinkEntry failed", e);
-          continue;
         }
       }
     }

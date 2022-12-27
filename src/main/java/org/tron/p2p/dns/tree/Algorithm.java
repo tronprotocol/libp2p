@@ -20,8 +20,8 @@ import org.web3j.crypto.Sign.SignatureData;
 
 public class Algorithm {
 
-  private static int truncateLength = 26;
-  public static String padding = "=";
+  private static final int truncateLength = 26;
+  public static final String padding = "=";
 
   public static String compressPubKey(BigInteger pubKey) {
     String pubKeyYPrefix = pubKey.testBit(0) ? "03" : "02";
@@ -48,8 +48,7 @@ public class Algorithm {
   public static ECKeyPair generateKeyPair(String privateKey) {
     BigInteger privKey = new BigInteger(privateKey, 16);
     BigInteger pubKey = Sign.publicKeyFromPrivate(privKey);
-    ECKeyPair keyPair = new ECKeyPair(privKey, pubKey);
-    return keyPair;
+    return new ECKeyPair(privKey, pubKey);
   }
 
   /**
@@ -72,8 +71,7 @@ public class Algorithm {
     }
     Sign.SignatureData signature = new SignatureData((byte) recId, ByteArray.subArray(sig, 0, 32),
         ByteArray.subArray(sig, 32, 64));
-    BigInteger pubKeyRecovered = Sign.signedMessageToKey(msg.getBytes(), signature);
-    return pubKeyRecovered;
+    return Sign.signedMessageToKey(msg.getBytes(), signature);
   }
 
   /**
@@ -137,11 +135,12 @@ public class Algorithm {
    */
   public static byte[] decode32(String content) {
     int left = content.length() % 8;
+    StringBuilder sb = new StringBuilder(content);
     if (left > 0) {
       for (int i = 0; i < 8 - left; i++) {
-        content = content + padding;
+        sb.append(padding);
       }
     }
-    return Base32.decode(content);
+    return Base32.decode(sb.toString());
   }
 }

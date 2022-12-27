@@ -61,10 +61,7 @@ public class LinkCache {
         Entry<String, Set<String>> entry = it.next();
         String r = entry.getKey();
         Set<String> refs = entry.getValue();
-        if (keep.contains(r)) {
-          continue;
-        }
-        if (!refs.contains(item)) {
+        if (keep.contains(r) || !refs.contains(item)) {
           continue;
         }
         this.changed = true;

@@ -51,8 +51,14 @@ public class AwsRoute53Test {
     newRecords.put("mhtdo6tmubria2xwg5ludack24.n",
         "enr:-HW4QLAYqmrwllBEnzWWs7I5Ev2IAs7x_dZlbYdRdMUx5EyKHDXp7AV5CkuPGUPdvbv1_Ms1CPfhcGCvSElSosZmyoqAgmlkgnY0iXNlY3AyNTZrMaECriawHKWdDRk2xeZkrOXBQ0dfMFLHY4eENZwdufn1S1o");
 
-    AwsClient publish = new AwsClient("random1", "random2", "random3",
-        Region.US_EAST_1);
+    AwsClient publish;
+    try {
+      publish = new AwsClient("random1", "random2", "random3",
+          Region.US_EAST_1);
+    } catch (DnsException e) {
+      Assert.fail();
+      return;
+    }
     List<Change> changes = publish.computeChanges("n", newRecords, existing);
 
     Change[] wantChanges = new Change[] {
@@ -112,10 +118,16 @@ public class AwsRoute53Test {
     }
 
     //warning: replace your key in the following section, or this test will fail
-    AwsClient awsClient = new AwsClient("replace your access key",
-        "replace your access key secret",
-        "replace your host zone id",
-        Region.US_EAST_1);
+    AwsClient awsClient;
+    try {
+      awsClient = new AwsClient("replace your access key",
+          "replace your access key secret",
+          "replace your host zone id",
+          Region.US_EAST_1);
+    } catch (DnsException e) {
+      Assert.fail();
+      return;
+    }
     String domain = "replace with your domain";
     try {
       awsClient.deploy(domain, tree);
@@ -136,7 +148,7 @@ public class AwsRoute53Test {
       Assert.fail();
       return;
     }
-    Assert.assertEquals(links.length, route53Tree.getLinksEntry().size());
-    Assert.assertEquals(nodes.length, route53Tree.getNodes().size());
+    Assert.assertEquals(links.length, route53Tree.getLinks().size());
+    Assert.assertEquals(nodes.length, route53Tree.getDnsNodes().size());
   }
 }

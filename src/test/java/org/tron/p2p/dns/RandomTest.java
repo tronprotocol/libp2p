@@ -33,7 +33,7 @@ public class RandomTest {
     }
 
     for (Tree tree : syncClient.getTrees().values()) {
-      Assert.assertTrue(tree.getNodes().size() > 0);
+      Assert.assertTrue(tree.getDnsNodes().size() > 0);
     }
 
     RandomIterator randomIterator = syncClient.newIterator();

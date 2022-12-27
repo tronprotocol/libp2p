@@ -13,9 +13,9 @@ import org.tron.p2p.exception.DnsException.TypeEnum;
 @Slf4j(topic = "net")
 public class NodesEntry implements Entry {
 
-  private String represent;
+  private final String represent;
   @Getter
-  private List<DnsNode> nodes;
+  private final List<DnsNode> nodes;
 
   public NodesEntry(String represent, List<DnsNode> nodes) {
     this.represent = represent;
