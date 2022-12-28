@@ -60,7 +60,7 @@ public class RootEntry implements Entry {
 
   public static RootEntry parseEntry(String e, String publicKey, String domain)
       throws SignatureException, DnsException {
-    //log.info("Domain:{}, Root url:[{}], public key:{} domain:{}", domain, e, publicKey);
+    log.info("Domain:{}, Root url:[{}], public key:{}", domain, e, publicKey);
     RootEntry rootEntry = parseEntry(e);
     boolean verify = Algorithm.verifySignature(publicKey, rootEntry.toString(),
         rootEntry.getSignature());

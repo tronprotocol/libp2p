@@ -143,7 +143,7 @@ public class AwsRoute53Test {
 
     Tree route53Tree;
     try {
-      route53Tree = client.syncTree(Entry.linkPrefix + base32Pubkey + "@" + domain);
+      route53Tree = client.syncTree(Entry.linkPrefix + base32Pubkey + "@" + domain, null);
     } catch (Exception e) {
       Assert.fail();
       return;

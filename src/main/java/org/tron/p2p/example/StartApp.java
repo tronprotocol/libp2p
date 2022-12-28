@@ -6,10 +6,8 @@ import static java.lang.Thread.sleep;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-
-import com.google.gson.JsonNull;
-import com.google.gson.JsonParser;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -18,6 +16,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.P2pService;
@@ -27,6 +26,7 @@ import org.tron.p2p.base.Parameter;
 public class StartApp {
 
   public static void main(String[] args) {
+    log.info("StartApp");
     Parameter.version = 1;
 
     P2pService p2pService = new P2pService();
@@ -67,7 +67,7 @@ public class StartApp {
 
     if (Parameter.p2pConfig.getMinConnections() > Parameter.p2pConfig.getMaxConnections()) {
       log.error("Check maxConnections({}) >= minConnections({}) failed",
-        Parameter.p2pConfig.getMaxConnections(), Parameter.p2pConfig.getMinConnections());
+          Parameter.p2pConfig.getMaxConnections(), Parameter.p2pConfig.getMinConnections());
       System.exit(0);
     }
 
@@ -90,6 +90,10 @@ public class StartApp {
     if (StringUtils.isNotEmpty(Parameter.p2pConfig.getIpv6())) {
       log.info("Local ipv6: {}", Parameter.p2pConfig.getIpv6());
     }
+
+    if (cli.hasOption("u")) {
+      Parameter.p2pConfig.setEnrTreeUrls(Arrays.asList(cli.getOptionValue("u").split(",")));
+    }
     p2pService.start(Parameter.p2pConfig);
 
     while (true) {
@@ -103,7 +107,7 @@ public class StartApp {
 
   private static CommandLine parseCli(String[] args) throws ParseException {
     Option opt1 = new Option("s", "seed-nodes", true,
-      "seed node(s), required, ip:port[,ip:port[...]]");
+        "seed node(s), required, ip:port[,ip:port[...]]");
     opt1.setRequired(false);
     Option opt2 = new Option("t", "trust-ips", true, "trust ip(s), ip[,ip[...]]");
     opt2.setRequired(false);
@@ -120,6 +124,9 @@ public class StartApp {
     Option opt8 = new Option("v", "version", true, "p2p version, int, default 1");
     opt8.setRequired(false);
 
+    Option opt10 = new Option("u", "url-schemes", true, "url-schemes, url[,url[...]]");
+    opt10.setRequired(false);
+
     Options options = new Options();
     options.addOption(opt1);
     options.addOption(opt2);
@@ -129,6 +136,22 @@ public class StartApp {
     options.addOption(opt6);
     options.addOption(opt7);
     options.addOption(opt8);
+    options.addOption(opt10);
+
+    Options kadOptions = new Options();
+    kadOptions.addOption(opt1);
+    kadOptions.addOption(opt2);
+    kadOptions.addOption(opt3);
+    kadOptions.addOption(opt4);
+    kadOptions.addOption(opt5);
+    kadOptions.addOption(opt6);
+    kadOptions.addOption(opt7);
+    kadOptions.addOption(opt8);
+
+    Options dnsReadOptions = new Options();
+    dnsReadOptions.addOption(opt10);
+
+    Options dnsPublishOptions = new Options();
 
     CommandLine cli;
     CommandLineParser cliParser = new DefaultParser();
@@ -137,7 +160,10 @@ public class StartApp {
     try {
       cli = cliParser.parse(options, args);
     } catch (ParseException e) {
-      helpFormatter.printHelp(">>>>>> available cli options", options);
+      helpFormatter.printHelp(">>>>>> available cli options:", kadOptions);
+      helpFormatter.setSyntaxPrefix("\n");
+      helpFormatter.printHelp("available dns read cli options:", dnsReadOptions);
+      helpFormatter.printHelp("available dns publish cli options:", dnsPublishOptions);
       throw e;
     }
 

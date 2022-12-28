@@ -22,15 +22,17 @@ import org.xbill.DNS.TextParseException;
 @Slf4j(topic = "net")
 public class ClientTree {
 
-  private static final int rootRecheckFailCount = 5;
+  private static final int rootRecheckFailCount = 30 * 60;
   // used for construct
   private final Client client;
   @Getter
-  public LinkEntry linkEntry;
+  @Setter
+  private LinkEntry linkEntry;
   private final LinkCache linkCache;
 
   // used for check
   private long lastValidateTime;
+  private int lastSeq = -1;
   private int leafFailCount = 0;
   private int rootFailCount = 0;
 
@@ -46,6 +48,12 @@ public class ClientTree {
   private String linkGCRoot;
 
   private final Random random;
+
+  public ClientTree(Client c) {
+    this.client = c;
+    this.linkCache = new LinkCache();
+    random = new Random();
+  }
 
   public ClientTree(Client c, LinkCache lc, LinkEntry loc) {
     this.client = c;
@@ -143,18 +151,32 @@ public class ClientTree {
       rootFailCount += 1;
       return;
     }
-    this.root = rootEntry;
+    if (rootEntry.getSeq() <= lastSeq) {
+      log.info("The seq of url doesn't change, url:[{}], seq:{}", linkEntry.getRepresent(),
+          lastSeq);
+      return;
+    }
+
+    root = rootEntry;
+    lastSeq = rootEntry.getSeq();
     rootFailCount = 0;
     leafFailCount = 0;
 
-    // if lroot is not changed, wo do not to sync the link tree
     if (linkSync == null || !rootEntry.getLRoot().equals(linkSync.root)) {
       linkSync = new SubtreeSync(client, linkEntry, rootEntry.getLRoot(), true);
       curLinks = new HashSet<>();//clear all links
+    } else {
+      // if lroot is not changed, wo do not to sync the link tree
+      log.info("The lroot of url doesn't change, url:[{}], lroot:[{}]", linkEntry.getRepresent(),
+          linkSync.root);
     }
-    // if eroot is not changed, wo do not to sync the enr tree
+
     if (enrSync == null || !rootEntry.getERoot().equals(enrSync.root)) {
       enrSync = new SubtreeSync(client, linkEntry, rootEntry.getERoot(), false);
+    } else {
+      // if eroot is not changed, wo do not to sync the enr tree
+      log.info("The eroot of url doesn't change, url:[{}], eroot:[{}]", linkEntry.getRepresent(),
+          enrSync.root);
     }
   }
 

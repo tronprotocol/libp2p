@@ -30,11 +30,12 @@ import org.xbill.DNS.TextParseException;
 @Slf4j(topic = "net")
 public class Client {
 
-  public final static int recheckInterval = 30 * 60; //seconds
+  public final static int recheckInterval = 60; //seconds, should be smaller than rootTTL
   public final static int cacheLimit = 1000;
   private Cache<String, Entry> cache;
   @Getter
   private Map<String, Tree> trees;
+  private Map<String, ClientTree> clientTrees;
 
   private ScheduledExecutorService syncer = Executors.newSingleThreadScheduledExecutor();
 
@@ -45,6 +46,7 @@ public class Client {
         .recordStats()
         .build();
     trees = new HashMap<>();
+    clientTrees = new HashMap<>();
   }
 
   public void init() {
@@ -56,19 +58,28 @@ public class Client {
 
   public void startSync() {
     for (String urlScheme : Parameter.p2pConfig.getEnrTreeUrls()) {
+      ClientTree clientTree = clientTrees.getOrDefault(urlScheme, new ClientTree(this));
+      Tree tree;
       try {
-        Tree tree = syncTree(urlScheme);
-        trees.put(urlScheme, tree);
+        tree = syncTree(urlScheme, clientTree);
       } catch (Exception e) {
-        log.error("SyncTree failed", e);
+        log.error("SyncTree failed, url:" + urlScheme, e);
+        continue;
       }
+      trees.put(urlScheme, tree);
+      clientTrees.put(urlScheme, clientTree);
     }
   }
 
-  public Tree syncTree(String urlScheme) throws Exception {
+  public Tree syncTree(String urlScheme, ClientTree clientTree) throws Exception {
     LinkEntry loc = LinkEntry.parseEntry(urlScheme);
     if (loc != null) {
-      ClientTree clientTree = new ClientTree(this, new LinkCache(), loc);
+      if (clientTree == null) {
+        clientTree = new ClientTree(this);
+      }
+      if (clientTree.getLinkEntry() == null) {
+        clientTree.setLinkEntry(loc);
+      }
       Tree tree = new Tree();
       clientTree.syncAll(tree.getEntries());
       tree.setRootEntry(clientTree.getRoot());
@@ -80,6 +91,7 @@ public class Client {
 
   public RootEntry resolveRoot(LinkEntry linkEntry)
       throws TextParseException, DnsException, SignatureException, UnknownHostException {
+    //do not put root in cache
     TXTRecord txtRecord = LookUpTxt.lookUpTxt(linkEntry.getDomain());
     if (txtRecord == null) {
       throw new DnsException(TypeEnum.LOOK_UP_FAILED, "domain: " + linkEntry.getDomain());
@@ -100,6 +112,9 @@ public class Client {
       return entry;
     }
     entry = doResolveEntry(domain, hash);
+    if (entry != null) {
+      cache.put(hash, entry);
+    }
     return entry;
   }
 

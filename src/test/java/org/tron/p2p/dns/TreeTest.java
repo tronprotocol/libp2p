@@ -33,8 +33,9 @@ public class TreeTest {
         new DnsNode(null, "192.168.0.10", "fe80::0001", 10005),
         new DnsNode(null, "192.168.0.10", "fe80::0002", 10005),
         new DnsNode(null, null, "fe80::0001", 10000),
-        new DnsNode(null, null, "fe80::0002", 10000),
-        new DnsNode(null, null, "fe80::0002", 10001),
+//        new DnsNode(null, null, "fe80::0002", 10000),
+//        new DnsNode(null, null, "fe80::0003", 10001),
+//        new DnsNode(null, null, "fe80::0004", 10001),
     };
   }
 

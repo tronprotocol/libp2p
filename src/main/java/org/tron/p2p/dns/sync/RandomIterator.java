@@ -19,7 +19,7 @@ import org.tron.p2p.exception.DnsException;
 public class RandomIterator implements Iterator<DnsNode> {
 
   private final Client client;
-  private Map<String, ClientTree> trees;
+  private Map<String, ClientTree> clientTrees;
 
   @Getter
   private DnsNode cur;
@@ -32,7 +32,7 @@ public class RandomIterator implements Iterator<DnsNode> {
 
   public RandomIterator(Client client) {
     this.client = client;
-    trees = new HashMap<>();
+    clientTrees = new HashMap<>();
     linkCache = new LinkCache();
     random = new Random();
   }
@@ -69,14 +69,14 @@ public class RandomIterator implements Iterator<DnsNode> {
   public void addTree(String url) throws DnsException {
     LinkEntry linkEntry = LinkEntry.parseEntry(url);
     linkCache.addLink("", linkEntry.getRepresent());
-    log.info("linkCache.backrefs size :{}", linkCache.backrefs.size());
-    log.info("changes: {}", linkCache.isChanged());
+    //log.info("linkCache.backrefs size :{}", linkCache.backrefs.size());
+    //log.info("changes: {}", linkCache.isChanged());
   }
 
   //the first random
   private ClientTree pickTree() {
-    if (trees == null) {
-      log.info("trees is null");
+    if (clientTrees == null) {
+      log.info("clientTrees is null");
       return null;
     }
     if (linkCache.isChanged()) {
@@ -104,7 +104,7 @@ public class RandomIterator implements Iterator<DnsNode> {
   private boolean existSyncAbleTrees() {
     syncAbleList = new ArrayList<>();
     disabledList = new ArrayList<>();
-    for (ClientTree ct : trees.values()) {
+    for (ClientTree ct : clientTrees.values()) {
       if (ct.canSyncRandom()) {
         syncAbleList.add(ct);
       } else {
@@ -126,7 +126,7 @@ public class RandomIterator implements Iterator<DnsNode> {
     }
     long sleep = nextCheck - System.currentTimeMillis();
     log.info("DNS iterator waiting for root updates, sleep:{}, tree:{}", sleep,
-        ct.linkEntry.getDomain());
+        ct.getLinkEntry().getDomain());
 //    try {
 //      Thread.sleep(sleep);
 //    } catch (InterruptedException e) {
@@ -140,7 +140,7 @@ public class RandomIterator implements Iterator<DnsNode> {
   // if tree in trees is not referenced by other, wo delete it from trees and add it later.
   private void rebuildTrees() {
     log.info("rebuildTrees...");
-    Iterator<Entry<String, ClientTree>> it = trees.entrySet().iterator();
+    Iterator<Entry<String, ClientTree>> it = clientTrees.entrySet().iterator();
     while (it.hasNext()) {
       Entry<String, ClientTree> entry = it.next();
       String urlScheme = entry.getKey();
@@ -154,10 +154,10 @@ public class RandomIterator implements Iterator<DnsNode> {
     while (it2.hasNext()) {
       Entry<String, Set<String>> entry = it2.next();
       String urlScheme = entry.getKey();
-      if (!trees.containsKey(urlScheme)) {
+      if (!clientTrees.containsKey(urlScheme)) {
         try {
           LinkEntry linkEntry = LinkEntry.parseEntry(urlScheme);
-          trees.put(urlScheme, new ClientTree(client, linkCache, linkEntry));
+          clientTrees.put(urlScheme, new ClientTree(client, linkCache, linkEntry));
           log.info("add tree to trees:{}", urlScheme);
         } catch (DnsException e) {
           log.error("Parse LinkEntry failed", e);
@@ -167,6 +167,6 @@ public class RandomIterator implements Iterator<DnsNode> {
   }
 
   public void close() {
-    trees = null;
+    clientTrees = null;
   }
 }
