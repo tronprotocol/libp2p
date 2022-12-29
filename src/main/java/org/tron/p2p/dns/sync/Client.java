@@ -3,6 +3,7 @@ package org.tron.p2p.dns.sync;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.protobuf.InvalidProtocolBufferException;
 import java.net.UnknownHostException;
 import java.security.SignatureException;
 import java.util.HashMap;
@@ -85,8 +86,8 @@ public class Client {
     log.info("SyncTree {} complete", urlScheme);
   }
 
-  public RootEntry resolveRoot(LinkEntry linkEntry)
-      throws TextParseException, DnsException, SignatureException, UnknownHostException {
+  public RootEntry resolveRoot(LinkEntry linkEntry) throws TextParseException, DnsException,
+      SignatureException, UnknownHostException, InvalidProtocolBufferException {
     //do not put root in cache
     TXTRecord txtRecord = LookUpTxt.lookUpTxt(linkEntry.getDomain());
     if (txtRecord == null) {

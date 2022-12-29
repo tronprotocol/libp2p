@@ -103,7 +103,7 @@ public class AwsClient implements Publish {
 
   // uploads the given tree to Route53.
   @Override
-  public void deploy(String domain, Tree tree) throws DnsException {
+  public void deploy(String domain, Tree tree) throws Exception {
     checkZone(domain);
 
     Map<String, RecordSet> existing = collectRecords(domain);
@@ -144,7 +144,7 @@ public class AwsClient implements Publish {
 
   // removes all TXT records of the given domain.
   @Override
-  public boolean deleteDomain(String rootDomain) throws DnsException {
+  public boolean deleteDomain(String rootDomain) throws Exception {
     checkZone(rootDomain);
 
     Map<String, RecordSet> existing = collectRecords(rootDomain);
@@ -159,7 +159,7 @@ public class AwsClient implements Publish {
 
   // collects all TXT records below the given name. it also update lastSeq
   @Override
-  public Map<String, RecordSet> collectRecords(String rootDomain) throws DnsException {
+  public Map<String, RecordSet> collectRecords(String rootDomain) throws Exception {
     Map<String, RecordSet> existing = new HashMap<>();
     ListResourceRecordSetsRequest.Builder request = ListResourceRecordSetsRequest.builder();
     request.hostedZoneId(zoneId);

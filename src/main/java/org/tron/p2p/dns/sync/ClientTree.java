@@ -1,6 +1,7 @@
 package org.tron.p2p.dns.sync;
 
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import java.net.UnknownHostException;
 import java.security.SignatureException;
 import java.util.HashMap;
@@ -74,7 +75,7 @@ public class ClientTree {
 
   // retrieves a single entry of the tree. The Node return value is non-nil if the entry was a node.
   public DnsNode syncRandom()
-      throws DnsException, SignatureException, InterruptedException, TextParseException, UnknownHostException {
+      throws DnsException, SignatureException, InterruptedException, TextParseException, UnknownHostException, InvalidProtocolBufferException {
     if (rootUpdateDue()) {
       updateRoot(new HashMap<>());
     }
@@ -149,7 +150,7 @@ public class ClientTree {
   // updateRoot ensures that the given tree has an up-to-date root.
   private void updateRoot(Map<String, Entry> entries)
       throws TextParseException, DnsException, SignatureException,
-      InterruptedException, UnknownHostException {
+      InterruptedException, UnknownHostException, InvalidProtocolBufferException {
     log.info("UpdateRoot {}", linkEntry.getDomain());
     slowdownRootUpdate();
     lastValidateTime = System.currentTimeMillis();

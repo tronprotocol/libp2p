@@ -40,7 +40,7 @@ public class DnsException extends Exception {
     INVALID_ENR(9, "invalid node record"),
     INVALID_CHILD(10, "invalid child hash"),
     INVALID_SIGNATURE(11, "invalid base64 signature"),
-    INVALID_ROOT_SYNTAX(12, "invalid root syntax"),
+    INVALID_ROOT(12, "invalid DnsRoot proto"),
     INVALID_SCHEME_URL(13, "invalid scheme url"),
 
     // Publish error

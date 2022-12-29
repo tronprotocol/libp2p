@@ -131,7 +131,7 @@ public class AwsRoute53Test {
     String domain = "replace with your domain";
     try {
       awsClient.deploy(domain, tree);
-    } catch (DnsException e) {
+    } catch (Exception e) {
       Assert.fail();
       return;
     }
