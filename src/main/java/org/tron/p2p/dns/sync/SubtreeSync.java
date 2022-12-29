@@ -45,7 +45,9 @@ public class SubtreeSync {
     while (!done()) {
       String hash = missing.peek();
       Entry entry = resolveNext(hash);
-      dest.put(hash, entry);
+      if (entry != null) {
+        dest.put(hash, entry);
+      }
       missing.poll();
     }
   }

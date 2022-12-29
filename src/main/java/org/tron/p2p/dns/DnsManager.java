@@ -2,7 +2,10 @@ package org.tron.p2p.dns;
 
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.dns.sync.Client;
 import org.tron.p2p.dns.sync.RandomIterator;
@@ -35,12 +38,15 @@ public class DnsManager {
     }
   }
 
-  public static List<Node> getAllNodes() {
-    List<Node> nodes = new ArrayList<>();
+  public static List<DnsNode> getDnsNodes() {
+    Set<DnsNode> nodes = new HashSet<>();
     for (Tree tree : syncClient.getTrees().values()) {
-      nodes.addAll(tree.getDnsNodes());
+      List<DnsNode> connectAbleNodes = tree.getDnsNodes().stream()
+          .filter(node -> node.getPreferInetSocketAddress() != null)
+          .collect(Collectors.toList());
+      nodes.addAll(connectAbleNodes);
     }
-    return nodes;
+    return new ArrayList<>(nodes);
   }
 
   public static Node getRandomNodes() {

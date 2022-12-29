@@ -33,9 +33,9 @@ public class TreeTest {
         new DnsNode(null, "192.168.0.10", "fe80::0001", 10005),
         new DnsNode(null, "192.168.0.10", "fe80::0002", 10005),
         new DnsNode(null, null, "fe80::0001", 10000),
-//        new DnsNode(null, null, "fe80::0002", 10000),
-//        new DnsNode(null, null, "fe80::0003", 10001),
-//        new DnsNode(null, null, "fe80::0004", 10001),
+        new DnsNode(null, null, "fe80::0002", 10000),
+        new DnsNode(null, null, "fe80::0003", 10001),
+        new DnsNode(null, null, "fe80::0004", 10001),
     };
   }
 
@@ -152,7 +152,7 @@ public class TreeTest {
         tree.getEntries().size());
     Assert.assertEquals(branchList.size(), tree.getBranchesEntry().size());
     Assert.assertEquals(enrList.size(), tree.getNodesEntry().size());
-    Assert.assertEquals(linkList.size(), tree.getLinks().size());
+    Assert.assertEquals(linkList.size(), tree.getLinksEntry().size());
 
     for (String branch : tree.getBranchesEntry()) {
       Assert.assertTrue(branchList.contains(branch));
@@ -160,7 +160,7 @@ public class TreeTest {
     for (String nodeEntry : tree.getNodesEntry()) {
       Assert.assertTrue(enrList.contains(nodeEntry));
     }
-    for (String link : tree.getLinks()) {
+    for (String link : tree.getLinksEntry()) {
       Assert.assertTrue(linkList.contains(link));
     }
 
@@ -200,7 +200,7 @@ public class TreeTest {
     }
 
     // add some node
-    int addCount = deleteCount;
+    int addCount = 100;
     i = 0;
     while (i < addCount) {
       i += 1;

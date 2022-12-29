@@ -7,7 +7,7 @@ import org.tron.p2p.exception.DnsException;
 
 public interface Publish<T> {
 
-  int rootTTL = 30 * 60;
+  int rootTTL = 10 * 60;
   int treeNodeTTL = 4 * 7 * 24 * 60 * 60;
 
   double changeThreshold = 0.2;

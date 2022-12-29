@@ -141,14 +141,15 @@ public class AwsRoute53Test {
     String base32Pubkey = Algorithm.encode32(ByteArray.fromHexString(puKeyCompress));
     Client client = new Client();
 
-    Tree route53Tree;
+    Tree route53Tree = new Tree();
     try {
-      route53Tree = client.syncTree(Entry.linkPrefix + base32Pubkey + "@" + domain, null);
+      client.syncTree(Entry.linkPrefix + base32Pubkey + "@" + domain, null,
+          route53Tree);
     } catch (Exception e) {
       Assert.fail();
       return;
     }
-    Assert.assertEquals(links.length, route53Tree.getLinks().size());
+    Assert.assertEquals(links.length, route53Tree.getLinksEntry().size());
     Assert.assertEquals(nodes.length, route53Tree.getDnsNodes().size());
   }
 }

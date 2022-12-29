@@ -55,14 +55,14 @@ public class P2pService {
   public List<Node> getConnectableNodes() {
     Set<Node> nodes = new HashSet<>();
     nodes.addAll(NodeManager.getConnectableNodes());
-    nodes.addAll(DnsManager.getAllNodes());
+    nodes.addAll(DnsManager.getDnsNodes());
     return new ArrayList<>(nodes);
   }
 
   public List<Node> getAllNodes() {
     Set<Node> nodes = new HashSet<>();
     nodes.addAll(NodeManager.getAllNodes());
-    nodes.addAll(DnsManager.getAllNodes());
+    nodes.addAll(DnsManager.getDnsNodes());
     return new ArrayList<>(nodes);
   }
 

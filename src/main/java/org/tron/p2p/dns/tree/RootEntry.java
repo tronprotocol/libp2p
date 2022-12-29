@@ -1,6 +1,7 @@
 package org.tron.p2p.dns.tree;
 
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import java.security.SignatureException;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,11 +9,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.exception.DnsException;
 import org.tron.p2p.exception.DnsException.TypeEnum;
+import org.tron.p2p.protos.Discover.DnsRoot;
 import org.tron.p2p.utils.ByteArray;
 
 @Slf4j(topic = "net")
 public class RootEntry implements Entry {
 
+  private DnsRoot dnsRoot;
   @Getter
   private String eRoot;
   @Getter
@@ -24,6 +27,10 @@ public class RootEntry implements Entry {
   @Setter
   private byte[] signature;
 
+  public RootEntry(DnsRoot dnsRoot) {
+    this.dnsRoot = dnsRoot;
+  }
+
   public RootEntry(String eRoot, String lRoot, int seq) {
     this.eRoot = eRoot;
     this.lRoot = lRoot;
@@ -32,6 +39,7 @@ public class RootEntry implements Entry {
 
   public static RootEntry parseEntry(String e) throws DnsException {
     String[] items = e.split("\\s+");
+//    DnsRoot dnsRoot1 = DnsRoot.parseFrom(ByteArray.fromHexString(items[1]));
     if (items.length != 5
         || items[1].split("=").length != 2
         || items[2].split("=").length != 2

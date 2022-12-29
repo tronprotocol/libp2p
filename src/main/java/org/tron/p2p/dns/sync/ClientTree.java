@@ -3,7 +3,9 @@ package org.tron.p2p.dns.sync;
 
 import java.net.UnknownHostException;
 import java.security.SignatureException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -12,6 +14,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.dns.DnsNode;
+import org.tron.p2p.dns.tree.BranchEntry;
 import org.tron.p2p.dns.tree.Entry;
 import org.tron.p2p.dns.tree.LinkEntry;
 import org.tron.p2p.dns.tree.NodesEntry;
@@ -64,7 +67,7 @@ public class ClientTree {
   }
 
   public void syncAll(Map<String, Entry> entries) throws Exception {
-    updateRoot();
+    updateRoot(entries);
     linkSync.resolveAll(entries);
     enrSync.resolveAll(entries);
   }
@@ -73,7 +76,7 @@ public class ClientTree {
   public DnsNode syncRandom()
       throws DnsException, SignatureException, InterruptedException, TextParseException, UnknownHostException {
     if (rootUpdateDue()) {
-      updateRoot();
+      updateRoot(new HashMap<>());
     }
 
     // Link tree sync has priority, run it to completion before syncing ENRs.
@@ -104,6 +107,9 @@ public class ClientTree {
 
   // gcLinks removes outdated links from the global link cache. GC runs once when the link sync finishes.
   public void gcLinks() {
+    log.info("linkSync:{}, root:{}, linkGCRoot:{}", linkSync != null, root != null,
+        linkGCRoot != null);
+    //todo
     if (!linkSync.done() || root.getLRoot().equals(linkGCRoot)) {
       return;
     }
@@ -141,7 +147,8 @@ public class ClientTree {
   }
 
   // updateRoot ensures that the given tree has an up-to-date root.
-  private void updateRoot() throws TextParseException, DnsException, SignatureException,
+  private void updateRoot(Map<String, Entry> entries)
+      throws TextParseException, DnsException, SignatureException,
       InterruptedException, UnknownHostException {
     log.info("UpdateRoot {}", linkEntry.getDomain());
     slowdownRootUpdate();
@@ -162,21 +169,53 @@ public class ClientTree {
     rootFailCount = 0;
     leafFailCount = 0;
 
+    boolean clearLink = false;
     if (linkSync == null || !rootEntry.getLRoot().equals(linkSync.root)) {
       linkSync = new SubtreeSync(client, linkEntry, rootEntry.getLRoot(), true);
       curLinks = new HashSet<>();//clear all links
+
+      //if entries comes from tree, we remove all LinkEntry
+      Iterator<Map.Entry<String, Entry>> it = entries.entrySet().iterator();
+      while (it.hasNext()) {
+        Entry entry = it.next().getValue();
+        if (entry instanceof LinkEntry) {
+          it.remove();
+        }
+      }
+      clearLink = true;
     } else {
       // if lroot is not changed, wo do not to sync the link tree
       log.info("The lroot of url doesn't change, url:[{}], lroot:[{}]", linkEntry.getRepresent(),
           linkSync.root);
     }
 
+    boolean clearEnr = false;
     if (enrSync == null || !rootEntry.getERoot().equals(enrSync.root)) {
       enrSync = new SubtreeSync(client, linkEntry, rootEntry.getERoot(), false);
+
+      //if entries comes from tree, we remove all NodesEntry
+      Iterator<Map.Entry<String, Entry>> it = entries.entrySet().iterator();
+      while (it.hasNext()) {
+        Entry entry = it.next().getValue();
+        if (entry instanceof NodesEntry) {
+          it.remove();
+        }
+      }
+      clearEnr = true;
     } else {
       // if eroot is not changed, wo do not to sync the enr tree
       log.info("The eroot of url doesn't change, url:[{}], eroot:[{}]", linkEntry.getRepresent(),
           enrSync.root);
+    }
+
+    if (clearLink && clearEnr) {
+      Iterator<Map.Entry<String, Entry>> it = entries.entrySet().iterator();
+      while (it.hasNext()) {
+        Entry entry = it.next().getValue();
+        if (entry instanceof BranchEntry) {
+          it.remove();
+        }
+      }
     }
   }
 

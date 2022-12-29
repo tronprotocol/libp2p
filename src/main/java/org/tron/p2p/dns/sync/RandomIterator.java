@@ -54,7 +54,7 @@ public class RandomIterator implements Iterator<DnsNode> {
             clientTree.getLinkEntry().getDomain(), e);
         continue;
       }
-      if (dnsNode != null) {
+      if (dnsNode != null && dnsNode.getPreferInetSocketAddress() != null) {
         return dnsNode;
       }
     }

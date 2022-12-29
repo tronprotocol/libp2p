@@ -152,7 +152,7 @@ public class Node implements Serializable, Cloneable {
       + ", id=" + Hex.toHexString(id) + '}';
   }
 
-  private String format() {
+  public String format() {
     return "Node{" + " hostV4='" + hostV4 + '\'' + ", hostV6='" + hostV6 + '\'' + ", port=" + port
         + '}';
   }

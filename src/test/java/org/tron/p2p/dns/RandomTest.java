@@ -24,17 +24,6 @@ public class RandomTest {
     Parameter.p2pConfig.setEnrTreeUrls(enrTreeUrls);
 
     Client syncClient = new Client();
-    syncClient.init();
-
-    try {
-      Thread.sleep(5 * 1000);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-
-    for (Tree tree : syncClient.getTrees().values()) {
-      Assert.assertTrue(tree.getDnsNodes().size() > 0);
-    }
 
     RandomIterator randomIterator = syncClient.newIterator();
     int count = 0;

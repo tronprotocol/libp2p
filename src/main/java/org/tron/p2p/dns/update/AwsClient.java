@@ -289,7 +289,8 @@ public class AwsClient implements Publish {
       String value = entry.getValue();
       String newValue = splitTxt(value);
 
-      //ttl of name in dns server do not changed with time
+      // name's ttl in our domain will not changed,
+      // but this ttl on public dns server will decrease with time after request it first time
       long ttl = path.equalsIgnoreCase(name) ? rootTTL : treeNodeTTL;
 
       if (!existing.containsKey(path)) {

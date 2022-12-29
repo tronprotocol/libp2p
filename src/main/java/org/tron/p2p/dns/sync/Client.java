@@ -51,7 +51,7 @@ public class Client {
 
   public void init() {
     if (!Parameter.p2pConfig.getEnrTreeUrls().isEmpty()) {
-      syncer.scheduleWithFixedDelay(() -> startSync(), 5, recheckInterval,
+      syncer.scheduleWithFixedDelay(this::startSync, 5, recheckInterval,
           TimeUnit.SECONDS);
     }
   }
@@ -59,34 +59,30 @@ public class Client {
   public void startSync() {
     for (String urlScheme : Parameter.p2pConfig.getEnrTreeUrls()) {
       ClientTree clientTree = clientTrees.getOrDefault(urlScheme, new ClientTree(this));
-      Tree tree;
+      Tree tree = trees.getOrDefault(urlScheme, new Tree());
+      trees.put(urlScheme, tree);
+      clientTrees.put(urlScheme, clientTree);
       try {
-        tree = syncTree(urlScheme, clientTree);
+        syncTree(urlScheme, clientTree, tree);
       } catch (Exception e) {
         log.error("SyncTree failed, url:" + urlScheme, e);
         continue;
       }
-      trees.put(urlScheme, tree);
-      clientTrees.put(urlScheme, clientTree);
+      log.info("tree {} node size:{}", urlScheme, tree.getDnsNodes().size());
     }
   }
 
-  public Tree syncTree(String urlScheme, ClientTree clientTree) throws Exception {
+  public void syncTree(String urlScheme, ClientTree clientTree, Tree tree) throws Exception {
     LinkEntry loc = LinkEntry.parseEntry(urlScheme);
-    if (loc != null) {
-      if (clientTree == null) {
-        clientTree = new ClientTree(this);
-      }
-      if (clientTree.getLinkEntry() == null) {
-        clientTree.setLinkEntry(loc);
-      }
-      Tree tree = new Tree();
-      clientTree.syncAll(tree.getEntries());
-      tree.setRootEntry(clientTree.getRoot());
-      log.info("SyncTree {} complete", urlScheme);
-      return tree;
+    if (clientTree == null) {
+      clientTree = new ClientTree(this);
     }
-    return null;
+    if (clientTree.getLinkEntry() == null) {
+      clientTree.setLinkEntry(loc);
+    }
+    clientTree.syncAll(tree.getEntries());
+    tree.setRootEntry(clientTree.getRoot());
+    log.info("SyncTree {} complete", urlScheme);
   }
 
   public RootEntry resolveRoot(LinkEntry linkEntry)

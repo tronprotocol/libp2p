@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -30,20 +31,13 @@ public class Tree {
   @Setter
   private RootEntry rootEntry;
   @Getter
+  @Setter
   private Map<String, Entry> entries;
-  @Setter
-  @Getter
-  private List<String> links;
-  @Setter
-  @Getter
-  private List<DnsNode> dnsNodes;
   @Setter
   private String privateKey;
 
   public Tree() {
-    this.entries = new HashMap<>();
-    this.links = new ArrayList<>();
-    this.dnsNodes = new ArrayList<>();
+    this.entries = new ConcurrentHashMap<>();
   }
 
   private Entry build(List<Entry> leafs) {
@@ -99,8 +93,6 @@ public class Tree {
     tree.getEntries().put(lRootStr, lRoot);
 
     tree.setRootEntry(new RootEntry(eRootStr, lRootStr, seq));
-    tree.setDnsNodes(getNodes());
-    tree.setLinks(getLinksEntry());
 
     if (StringUtils.isNotEmpty(privateKey)) {
       tree.setPrivateKey(privateKey);
@@ -171,7 +163,7 @@ public class Tree {
     rootEntry.setSeq(seq);
   }
 
-  private List<String> getLinksEntry() {
+  public List<String> getLinksEntry() {
     List<String> linkList = new ArrayList<>();
     for (Entry entry : entries.values()) {
       if (entry instanceof LinkEntry) {
@@ -204,7 +196,7 @@ public class Tree {
     return nodesEntryList;
   }
 
-  private List<DnsNode> getNodes() {
+  public List<DnsNode> getDnsNodes() {
     List<String> nodesEntryList = getNodesEntry();
     List<DnsNode> nodes = new ArrayList<>();
     for (String represent : nodesEntryList) {
@@ -220,4 +212,8 @@ public class Tree {
     }
     return nodes;
   }
+
+//  public List<DnsNode> getDnsNodes() {
+//    return getNodes();
+//  }
 }
