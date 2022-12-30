@@ -117,39 +117,39 @@ public class AwsRoute53Test {
       Assert.fail();
     }
 
-    //warning: replace your key in the following section, or this test will fail
-    AwsClient awsClient;
-    try {
-      awsClient = new AwsClient("replace your access key",
-          "replace your access key secret",
-          "replace your host zone id",
-          Region.US_EAST_1);
-    } catch (DnsException e) {
-      Assert.fail();
-      return;
-    }
-    String domain = "replace with your domain";
-    try {
-      awsClient.deploy(domain, tree);
-    } catch (Exception e) {
-      Assert.fail();
-      return;
-    }
-
-    BigInteger publicKeyInt = Algorithm.generateKeyPair(AlgorithmTest.privateKey).getPublicKey();
-    String puKeyCompress = Algorithm.compressPubKey(publicKeyInt);
-    String base32Pubkey = Algorithm.encode32(ByteArray.fromHexString(puKeyCompress));
-    Client client = new Client();
-
-    Tree route53Tree = new Tree();
-    try {
-      client.syncTree(Entry.linkPrefix + base32Pubkey + "@" + domain, null,
-          route53Tree);
-    } catch (Exception e) {
-      Assert.fail();
-      return;
-    }
-    Assert.assertEquals(links.length, route53Tree.getLinksEntry().size());
-    Assert.assertEquals(nodes.length, route53Tree.getDnsNodes().size());
+//    //warning: replace your key in the following section, or this test will fail
+//    AwsClient awsClient;
+//    try {
+//      awsClient = new AwsClient("replace your access key",
+//          "replace your access key secret",
+//          "replace your host zone id",
+//          Region.US_EAST_1);
+//    } catch (DnsException e) {
+//      Assert.fail();
+//      return;
+//    }
+//    String domain = "replace with your domain";
+//    try {
+//      awsClient.deploy(domain, tree);
+//    } catch (Exception e) {
+//      Assert.fail();
+//      return;
+//    }
+//
+//    BigInteger publicKeyInt = Algorithm.generateKeyPair(AlgorithmTest.privateKey).getPublicKey();
+//    String puKeyCompress = Algorithm.compressPubKey(publicKeyInt);
+//    String base32Pubkey = Algorithm.encode32(ByteArray.fromHexString(puKeyCompress));
+//    Client client = new Client();
+//
+//    Tree route53Tree = new Tree();
+//    try {
+//      client.syncTree(Entry.linkPrefix + base32Pubkey + "@" + domain, null,
+//          route53Tree);
+//    } catch (Exception e) {
+//      Assert.fail();
+//      return;
+//    }
+//    Assert.assertEquals(links.length, route53Tree.getLinksEntry().size());
+//    Assert.assertEquals(nodes.length, route53Tree.getDnsNodes().size());
   }
 }

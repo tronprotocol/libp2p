@@ -41,7 +41,8 @@ public class SubtreeSync {
     return missing.isEmpty();
   }
 
-  public void resolveAll(Map<String, Entry> dest) throws Exception {
+  public void resolveAll(Map<String, Entry> dest)
+      throws DnsException, UnknownHostException, TextParseException {
     while (!done()) {
       String hash = missing.peek();
       Entry entry = resolveNext(hash);

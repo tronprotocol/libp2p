@@ -91,7 +91,7 @@ public class Client {
     //do not put root in cache
     TXTRecord txtRecord = LookUpTxt.lookUpTxt(linkEntry.getDomain());
     if (txtRecord == null) {
-      throw new DnsException(TypeEnum.LOOK_UP_FAILED, "domain: " + linkEntry.getDomain());
+      throw new DnsException(TypeEnum.LOOK_UP_ROOT_FAILED, "domain: " + linkEntry.getDomain());
     }
     for (String txt : txtRecord.getStrings()) {
       if (txt.startsWith(Entry.rootPrefix)) {

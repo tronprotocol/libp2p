@@ -27,10 +27,11 @@ public class RandomTest {
 
     RandomIterator randomIterator = syncClient.newIterator();
     int count = 0;
-    while (count < 10) {
+    while (count < 20) {
       DnsNode dnsNode = randomIterator.next();
       Assert.assertNotNull(dnsNode);
       count += 1;
+      System.out.println("get Node success:" + dnsNode.format());
     }
   }
 }

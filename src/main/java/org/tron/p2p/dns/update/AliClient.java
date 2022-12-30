@@ -134,8 +134,8 @@ public class AliClient implements Publish {
   }
 
   private boolean computeChanges(String domainName,
-                                 Map<String, String> records,
-                                 Map<String, DescribeDomainRecordsResponseBodyDomainRecordsRecord> existing) {
+      Map<String, String> records,
+      Map<String, DescribeDomainRecordsResponseBodyDomainRecordsRecord> existing) {
     long ttl = rootTTL;
     long changeCount = 0;
     for (Map.Entry<String, String> entry : records.entrySet()) {
@@ -156,7 +156,7 @@ public class AliClient implements Publish {
       }
     }
 
-    if (changeCount > 0 && (double)changeCount / existing.size() > changeThreshold) {
+    if (changeCount > 0 && (double) changeCount / existing.size() > changeThreshold) {
       return true;
     } else {
       return false;

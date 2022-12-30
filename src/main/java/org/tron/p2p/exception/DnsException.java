@@ -25,7 +25,7 @@ public class DnsException extends Exception {
   }
 
   public enum TypeEnum {
-    LOOK_UP_FAILED(0, "look up txt failed"),
+    LOOK_UP_ROOT_FAILED(0, "look up root failed"),
     //Resolver/sync errors
     NO_ROOT_FOUND(1, "no valid root found"),
     NO_ENTRY_FOUND(2, "no valid tree entry found"),

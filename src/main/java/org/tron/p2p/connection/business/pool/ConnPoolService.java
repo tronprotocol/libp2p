@@ -159,6 +159,7 @@ public class ConnPoolService extends P2pEventHandler {
         }
       }
       Collections.sort(filtered);
+      //Collections.shuffle(filtered);
       List<DnsNode> newNodes = CollectionUtils.truncate(filtered, lackSize);
       connectNodes.addAll(newNodes);
     }

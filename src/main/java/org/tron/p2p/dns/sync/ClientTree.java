@@ -108,9 +108,7 @@ public class ClientTree {
 
   // gcLinks removes outdated links from the global link cache. GC runs once when the link sync finishes.
   public void gcLinks() {
-    log.info("linkSync:{}, root:{}, linkGCRoot:{}", linkSync != null, root != null,
-        linkGCRoot != null);
-    //todo
+    //log.info("linkSync:{}, root:{}, linkGCRoot:{}", linkSync != null, root != null, linkGCRoot != null);
     if (!linkSync.done() || root.getLRoot().equals(linkGCRoot)) {
       return;
     }
@@ -223,6 +221,9 @@ public class ClientTree {
   private boolean rootUpdateDue() {
     boolean tooManyFailures = leafFailCount > rootRecheckFailCount;
     boolean scheduledCheck = System.currentTimeMillis() > nextScheduledRootCheck();
+    if (scheduledCheck) {
+      log.info("Update root because of scheduledCheck, {}", linkEntry.getDomain());
+    }
     return root == null || tooManyFailures || scheduledCheck;
   }
 
