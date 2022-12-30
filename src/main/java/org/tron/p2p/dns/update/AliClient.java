@@ -104,6 +104,9 @@ public class AliClient implements Publish {
       Map<String, String> records,
       Map<String, DescribeDomainRecordsResponseBodyDomainRecordsRecord> existing)
       throws Exception {
+    if (!computeChanges(domainName, records, existing)) {
+      return;
+    }
     long ttl = rootTTL;
     for (Map.Entry<String, String> entry : records.entrySet()) {
       boolean result = true;
@@ -127,6 +130,36 @@ public class AliClient implements Publish {
       if (!records.containsKey(key)) {
         deleteRecord(existing.get(key).getRecordId());
       }
+    }
+  }
+
+  private boolean computeChanges(String domainName,
+                                 Map<String, String> records,
+                                 Map<String, DescribeDomainRecordsResponseBodyDomainRecordsRecord> existing) {
+    long ttl = rootTTL;
+    long changeCount = 0;
+    for (Map.Entry<String, String> entry : records.entrySet()) {
+      if (!entry.getKey().equals(domainName)) {
+        ttl = treeNodeTTL;
+      }
+      if (!existing.containsKey(entry.getKey())) {
+        changeCount++;
+      } else if (!entry.getValue().equals(existing.get(entry.getKey()).getValue()) ||
+          existing.get(entry.getKey()).getTTL() != ttl) {
+        changeCount++;
+      }
+    }
+
+    for (String key : existing.keySet()) {
+      if (!records.containsKey(key)) {
+        changeCount++;
+      }
+    }
+
+    if (changeCount > 0 && (double)changeCount / existing.size() > changeThreshold) {
+      return true;
+    } else {
+      return false;
     }
   }
 
