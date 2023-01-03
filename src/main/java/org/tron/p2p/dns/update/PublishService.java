@@ -14,7 +14,6 @@ import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
 import org.tron.p2p.dns.DnsNode;
 import org.tron.p2p.dns.tree.Tree;
-import software.amazon.awssdk.regions.Region;
 
 @Slf4j(topic = "net")
 public class PublishService {
@@ -35,13 +34,13 @@ public class PublishService {
       Publish publish;
       if (config.getDnsType() == DnsType.AliYun) {
         publish = new AliClient(config.getAliDnsEndpoint(),
-            config.getAliAccessKeyId(),
-            config.getAliAccessKeySecret());
+            config.getAccessKeyId(),
+            config.getAccessKeySecret());
       } else {
-        publish = new AwsClient(config.getAwsAccessKeyId(),
-            config.getAwsAccessKeySecret(),
+        publish = new AwsClient(config.getAccessKeyId(),
+            config.getAccessKeySecret(),
             config.getAwsHostZoneId(),
-            Region.of(config.getAwsRegion()));
+            config.getAwsRegion());
       }
       Tree tree = new Tree();
       List<String> nodes = getNodes();
@@ -79,15 +78,15 @@ public class PublishService {
     }
     if (config.getDnsType() == DnsType.AliYun &&
         (StringUtils.isEmpty(config.getAliDnsEndpoint()) ||
-            StringUtils.isEmpty(config.getAliAccessKeyId()) ||
-            StringUtils.isEmpty(config.getAliAccessKeySecret()))) {
+            StringUtils.isEmpty(config.getAccessKeyId()) ||
+            StringUtils.isEmpty(config.getAccessKeySecret()))) {
       log.error("The configuration items related to the Aliyun dns server cannot be empty");
       return false;
     }
     if (config.getDnsType() == DnsType.AwsRoute53 &&
-        (StringUtils.isEmpty(config.getAwsHostZoneId()) ||
-            StringUtils.isEmpty(config.getAliAccessKeyId()) ||
-            StringUtils.isEmpty(config.getAwsAccessKeySecret()))) {
+        (StringUtils.isEmpty(config.getAccessKeyId()) ||
+            StringUtils.isEmpty(config.getAccessKeySecret()) ||
+            StringUtils.isEmpty(config.getAwsRegion()))) {
       log.error("The configuration items related to the AwsRoute53 dns server cannot be empty");
       return false;
     }

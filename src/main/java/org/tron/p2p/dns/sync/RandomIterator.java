@@ -20,11 +20,9 @@ public class RandomIterator implements Iterator<DnsNode> {
 
   private final Client client;
   private HashMap<String, ClientTree> clientTrees;
-
   @Getter
   private DnsNode cur;
   private final LinkCache linkCache;
-
   private final Random random;
 
   public RandomIterator(Client client) {
@@ -37,7 +35,9 @@ public class RandomIterator implements Iterator<DnsNode> {
   //syncs random tree entries until it finds a node.
   @Override
   public DnsNode next() {
-    while (true) {
+    int i = 0;
+    while (i < Client.randomRetryTimes) {
+      i += 1;
       ClientTree clientTree = pickTree();
       if (clientTree == null) {
         log.error("clientTree is null");
@@ -57,6 +57,7 @@ public class RandomIterator implements Iterator<DnsNode> {
         return dnsNode;
       }
     }
+    return null;
   }
 
   @Override
@@ -67,9 +68,7 @@ public class RandomIterator implements Iterator<DnsNode> {
 
   public void addTree(String url) throws DnsException {
     LinkEntry linkEntry = LinkEntry.parseEntry(url);
-    linkCache.addLink("", linkEntry.getRepresent()); // linkEntry is referenced by ""
-    //log.info("linkCache.backrefs size :{}", linkCache.backrefs.size());
-    //log.info("changes: {}", linkCache.isChanged());
+    linkCache.addLink("", linkEntry.getRepresent());
   }
 
   //the first random
@@ -104,9 +103,7 @@ public class RandomIterator implements Iterator<DnsNode> {
       }
     }
 
-    Iterator<Entry<String, Set<String>>> it2 = linkCache.backrefs.entrySet().iterator();
-    while (it2.hasNext()) {
-      Entry<String, Set<String>> entry = it2.next();
+    for (Entry<String, Set<String>> entry : linkCache.backrefs.entrySet()) {
       String urlScheme = entry.getKey();
       if (!clientTrees.containsKey(urlScheme)) {
         try {

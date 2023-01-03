@@ -67,7 +67,8 @@ public class ClientTree {
     random = new Random();
   }
 
-  public void syncAll(Map<String, Entry> entries) throws Exception {
+  public void syncAll(Map<String, Entry> entries) throws DnsException, UnknownHostException,
+      InvalidProtocolBufferException, SignatureException, InterruptedException, TextParseException {
     updateRoot(entries);
     linkSync.resolveAll(entries);
     enrSync.resolveAll(entries);
@@ -142,6 +143,7 @@ public class ClientTree {
       int size = nodeList.size();
       return nodeList.get(random.nextInt(size));
     }
+    log.info("Get branch or link entry in syncNextRandomNode");
     return null;
   }
 
