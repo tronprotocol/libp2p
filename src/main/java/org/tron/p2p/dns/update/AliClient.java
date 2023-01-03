@@ -21,6 +21,7 @@ public class AliClient implements Publish {
   private final int maxRetryCount = 3;
   private final int successCode = 200;
   private final long retryWaitTime = 30;
+  private final int treeNodeTTL = 24 * 60 * 60;
   private int lastSeq = 0;
   private final Client aliDnsClient;
 
@@ -107,11 +108,12 @@ public class AliClient implements Publish {
     if (!computeChanges(domainName, records, existing)) {
       return;
     }
-    long ttl = rootTTL;
+    long ttl;
     for (Map.Entry<String, String> entry : records.entrySet()) {
       boolean result = true;
-      if (!entry.getKey().equals(domainName)) {
-        ttl = treeNodeTTL;
+      ttl = treeNodeTTL;
+      if (entry.getKey().equals(domainName)) {
+        ttl = rootTTL;
       }
       if (!existing.containsKey(entry.getKey())) {
         result = addRecord(domainName, entry.getKey(), entry.getValue(), ttl);
@@ -136,11 +138,12 @@ public class AliClient implements Publish {
   private boolean computeChanges(String domainName,
       Map<String, String> records,
       Map<String, DescribeDomainRecordsResponseBodyDomainRecordsRecord> existing) {
-    long ttl = rootTTL;
+    long ttl;
     long changeCount = 0;
     for (Map.Entry<String, String> entry : records.entrySet()) {
-      if (!entry.getKey().equals(domainName)) {
-        ttl = treeNodeTTL;
+      ttl = treeNodeTTL;
+      if (entry.getKey().equals(domainName)) {
+        ttl = rootTTL;
       }
       if (!existing.containsKey(entry.getKey())) {
         changeCount++;
@@ -156,9 +159,14 @@ public class AliClient implements Publish {
       }
     }
 
-    if (changeCount > 0 && (double) changeCount / existing.size() > changeThreshold) {
+    if (changeCount > 0
+        && (existing.size() == 0 || (double) changeCount / existing.size() > changeThreshold)) {
+      log.info("change count: {}, existing count: {}",
+          changeCount, existing.size());
       return true;
     } else {
+      log.info("The number of changed data is too small, change count: {}, existing count: {}",
+          changeCount, existing.size());
       return false;
     }
   }
@@ -248,7 +256,7 @@ public class AliClient implements Publish {
     return recId;
   }
 
-  public String update(String DomainName, String RR, String value) {
+  public String update(String DomainName, String RR, String value, long ttl) {
     String type = "TXT";
     String recId = null;
     try {
@@ -259,6 +267,7 @@ public class AliClient implements Publish {
         request.setRR(RR);
         request.setType(type);
         request.setValue(value);
+        request.setTTL(ttl);
         AddDomainRecordResponse response = aliDnsClient.addDomainRecord(request);
         recId = response.getBody().getRecordId();
       } else {
@@ -267,6 +276,7 @@ public class AliClient implements Publish {
         request.setRR(RR);
         request.setType(type);
         request.setValue(value);
+        request.setTTL(ttl);
         UpdateDomainRecordResponse response = aliDnsClient.updateDomainRecord(request);
         recId = response.getBody().getRecordId();
       }
@@ -305,7 +315,8 @@ public class AliClient implements Publish {
 //
 //      client.updateRecord(oldRecId, "test", "12345678");
 //
-//      String recordId = client.addRecord("dnsdisc.com", "test1", "123456");
+//      client.addRecord("dnsdisc.com", "test2", "1234567890", 600);
+      client.update("dnsdisc.com", "test2", "1234567890", 86400);
 
       //client.deleteRecord(oldRecId);
 

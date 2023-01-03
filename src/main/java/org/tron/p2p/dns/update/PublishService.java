@@ -7,6 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.Node;
@@ -69,20 +70,24 @@ public class PublishService {
       return false;
     }
     if (config.getDnsType() == null) {
-      log.error("The dns server type must be specified when dns publish service is enable");
+      log.error("The dns server type must be specified when enabling the dns publishing service");
+      return false;
+    }
+    if (StringUtils.isEmpty(config.getDnsDomain())) {
+      log.error("The dns domain must be specified when enabling the dns publishing service");
       return false;
     }
     if (config.getDnsType() == DnsType.AliYun &&
-        (config.getAliDnsEndpoint() == null ||
-            config.getAliAccessKeyId() == null ||
-            config.getAliAccessKeySecret() == null)) {
+        (StringUtils.isEmpty(config.getAliDnsEndpoint()) ||
+            StringUtils.isEmpty(config.getAliAccessKeyId()) ||
+            StringUtils.isEmpty(config.getAliAccessKeySecret()))) {
       log.error("The configuration items related to the Aliyun dns server cannot be empty");
       return false;
     }
     if (config.getDnsType() == DnsType.AwsRoute53 &&
-        (config.getAwsHostZoneId() == null ||
-            config.getAliAccessKeyId() == null ||
-            config.getAwsAccessKeySecret() == null)) {
+        (StringUtils.isEmpty(config.getAwsHostZoneId()) ||
+            StringUtils.isEmpty(config.getAliAccessKeyId()) ||
+            StringUtils.isEmpty(config.getAwsAccessKeySecret()))) {
       log.error("The configuration items related to the AwsRoute53 dns server cannot be empty");
       return false;
     }
