@@ -7,6 +7,7 @@ import java.util.List;
 import lombok.Data;
 import org.tron.p2p.dns.update.DnsType;
 import org.tron.p2p.utils.NetUtil;
+import software.amazon.awssdk.regions.Region;
 
 @Data
 public class P2pConfig {
@@ -35,15 +36,9 @@ public class P2pConfig {
   private List<String> knownEnrTreeUrls = new ArrayList<>();
   private String dnsDomain = null;
   private DnsType dnsType = null;
-
-  //aliyun
-  private String aliAccessKeyId = null;
-  private String aliAccessKeySecret = null;
-  private String aliDnsEndpoint = null;
-
-  //aws
-  private String awsAccessKeyId = null;
-  private String awsAccessKeySecret = null;
-  private String awsHostZoneId = null;
-  private String awsRegion = null;
+  private String accessKeyId = null;
+  private String accessKeySecret = null;
+  private String aliDnsEndpoint = null; //for aliYun
+  private String awsHostZoneId = null; //for aws
+  private Region awsRegion = null; //for aws
 }

@@ -33,6 +33,7 @@ public class Client {
 
   public final static int recheckInterval = 60; //seconds, should be smaller than rootTTL
   public final static int cacheLimit = 1000;
+  public final static int randomRetryTimes = 10;
   private Cache<String, Entry> cache;
   @Getter
   private Map<String, Tree> trees;
