@@ -86,7 +86,7 @@ public class PublishService {
     if (config.getDnsType() == DnsType.AwsRoute53 &&
         (StringUtils.isEmpty(config.getAccessKeyId()) ||
             StringUtils.isEmpty(config.getAccessKeySecret()) ||
-            StringUtils.isEmpty(config.getAwsRegion()))) {
+            config.getAwsRegion() == null)) {
       log.error("The configuration items related to the AwsRoute53 dns server cannot be empty");
       return false;
     }
