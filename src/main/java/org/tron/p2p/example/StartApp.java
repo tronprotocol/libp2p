@@ -14,7 +14,6 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
@@ -211,7 +210,7 @@ public class StartApp {
     }
   }
 
-  private static OptionGroup getKadOptions() {
+  private static Options getKadOptions() {
 
     Option opt1 = new Option("s", "seed-nodes", true,
         "seed node(s), required, ip:port[,ip:port[...]]");
@@ -231,7 +230,7 @@ public class StartApp {
     Option opt8 = new Option("v", "version", true, "p2p version, int, default 1");
     opt8.setRequired(false);
 
-    OptionGroup group = new OptionGroup();
+    Options group = new Options();
     group.addOption(opt1);
     group.addOption(opt2);
     group.addOption(opt3);
@@ -243,47 +242,36 @@ public class StartApp {
     return group;
   }
 
-  private static OptionGroup getDnsReadOption() {
+  private static Options getDnsReadOption() {
     Option opt = new Option("u", "url-schemes", true,
         "dns urls to get nodes, url format enrtree://{pubkey}@{domain}. url[,url[...]]");
-    opt.setRequired(false);
-    OptionGroup group = new OptionGroup();
+    Options group = new Options();
     group.addOption(opt);
     return group;
   }
 
-  private static OptionGroup getDnsPublishOption() {
+  private static Options getDnsPublishOption() {
     Option opt1 = new Option(configPublish, configPublish, false, "enable dns publish");
-    opt1.setRequired(false);
     Option opt2 = new Option(null, configDnsPrivate, true,
         "dns private key used to publish, required, hex string of length 64");
-    opt2.setRequired(false);
     Option opt3 = new Option(null, configKnownUrls, true,
         "known dns urls to publish, url format enrtree://{pubkey}@{domain}, optional, url[,url[...]]");
-    opt3.setRequired(false);
     Option opt4 = new Option(null, configDomain, true,
         "dns domain to publish nodes, required, string");
-    opt4.setRequired(false);
     Option opt5 = new Option(null, configServerType, true,
         "dns server to publish, required, only \"aws\" or \"aliyun\" is support");
-    opt5.setRequired(false);
     Option opt6 = new Option(null, configAccessId, true,
         "access key id of aws or aliyun api, required, string");
-    opt6.setRequired(false);
     Option opt7 = new Option(null, configAccessSecret, true,
         "access key secret of aws or aliyun api, required, string");
-    opt7.setRequired(false);
     Option opt8 = new Option(null, configAwsRegion, true,
         "if server-type is aws, it's region of aws api, such as \"eu-south-1\", required, string");
-    opt8.setRequired(false);
     Option opt9 = new Option(null, configHostZoneId, true,
         "if server-type is aws, it's host zone id of aws's domain, optional, string");
-    opt9.setRequired(false);
     Option opt10 = new Option(null, configAliEndPoint, true,
         "if server-type is aliyun, it's endpoint of aws dns server, required, string");
-    opt10.setRequired(false);
 
-    OptionGroup group = new OptionGroup();
+    Options group = new Options();
     group.addOption(opt1);
     group.addOption(opt2);
     group.addOption(opt3);
@@ -298,28 +286,35 @@ public class StartApp {
   }
 
   private static CommandLine parseCli(String[] args) throws ParseException {
-    OptionGroup kadOptions = getKadOptions();
-    OptionGroup dnsReadOptions = getDnsReadOption();
-    OptionGroup dnsPublishOptions = getDnsPublishOption();
+    Options kadOptions = getKadOptions();
+    Options dnsReadOptions = getDnsReadOption();
+    Options dnsPublishOptions = getDnsPublishOption();
 
     Options options = new Options();
-    options.addOptionGroup(kadOptions);
-    options.addOptionGroup(dnsPublishOptions);
-    options.addOptionGroup(dnsPublishOptions);
+    for (Option option : kadOptions.getOptions()) {
+      options.addOption(option);
+    }
+    for (Option option : dnsReadOptions.getOptions()) {
+      options.addOption(option);
+    }
+    for (Option option : dnsPublishOptions.getOptions()) {
+      options.addOption(option);
+    }
 
     CommandLine cli;
     CommandLineParser cliParser = new DefaultParser();
-    HelpFormatter helpFormatter = new HelpFormatter();
 
     try {
       cli = cliParser.parse(options, args);
     } catch (ParseException e) {
+      log.error("Parse cli failed", e);
+      HelpFormatter helpFormatter = new HelpFormatter();
       helpFormatter.setWidth(100);
-      helpFormatter.printHelp(">>>>>> available cli options:", groupList(kadOptions));
+      helpFormatter.printHelp(">>>>>> available cli options:", kadOptions);
       helpFormatter.setSyntaxPrefix("\n");
-      helpFormatter.printHelp("available dns read cli options:", groupList(dnsReadOptions));
+      helpFormatter.printHelp("available dns read cli options:", dnsReadOptions);
       helpFormatter.setSyntaxPrefix("\n");
-      helpFormatter.printHelp("available dns publish cli options:", groupList(dnsPublishOptions));
+      helpFormatter.printHelp("available dns publish cli options:", dnsPublishOptions);
       helpFormatter.setSyntaxPrefix("\n");
       throw e;
     }
@@ -339,13 +334,5 @@ public class StartApp {
       }
     }
     return nodes;
-  }
-
-  private static Options groupList(OptionGroup group) {
-    Options options = new Options();
-    for (Option option : group.getOptions()) {
-      options.addOption(option);
-    }
-    return options;
   }
 }

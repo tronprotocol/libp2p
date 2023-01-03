@@ -18,7 +18,7 @@ import org.tron.p2p.dns.tree.Tree;
 @Slf4j(topic = "net")
 public class PublishService {
 
-  private static final long publishDelay = 3 * 60 * 60;
+  private static final long publishDelay = 1 * 60 * 60;
 
   private ScheduledExecutorService publisher = Executors.newSingleThreadScheduledExecutor();
 
