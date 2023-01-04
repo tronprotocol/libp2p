@@ -281,7 +281,7 @@ public class AwsClient implements Publish {
   // computeChanges creates DNS changes for the given set of DNS discovery records.
   // records is the latest records to be put in Route53.
   // The 'existing' arg is the set of records that already exist on Route53.
-  public List<Change> computeChanges(String name, Map<String, String> records,
+  public List<Change> computeChanges(String domain, Map<String, String> records,
       Map<String, RecordSet> existing) {
 
     List<Change> changes = new ArrayList<>();
@@ -292,7 +292,7 @@ public class AwsClient implements Publish {
 
       // name's ttl in our domain will not changed,
       // but this ttl on public dns server will decrease with time after request it first time
-      long ttl = path.equalsIgnoreCase(name) ? rootTTL : treeNodeTTL;
+      long ttl = path.equalsIgnoreCase(domain) ? rootTTL : treeNodeTTL;
 
       if (!existing.containsKey(path)) {
         log.info("Create {} = {}", path, value);
@@ -304,6 +304,15 @@ public class AwsClient implements Publish {
 
         if (!preValue.equalsIgnoreCase(newValue) || recordSet.ttl != ttl) {
           log.info("Updating {} from [{}] to [{}]", path, preValue, newValue);
+          if (path.equalsIgnoreCase(domain)) {
+            try {
+              RootEntry oldRoot = RootEntry.parseEntry(preValue);
+              RootEntry newRoot = RootEntry.parseEntry(newValue);
+              log.info("Updating root from [{}] to [{}]", oldRoot.getDnsRoot(), newRoot.getDnsRoot());
+            } catch (DnsException e) {
+              //ignore
+            }
+          }
           Change change = newTXTChange(ChangeAction.UPSERT, path, ttl, newValue);
           changes.add(change);
         }

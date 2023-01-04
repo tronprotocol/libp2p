@@ -4,6 +4,7 @@ package org.tron.p2p.dns.tree;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import java.security.SignatureException;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.exception.DnsException;
 import org.tron.p2p.exception.DnsException.TypeEnum;
@@ -13,6 +14,7 @@ import org.tron.p2p.utils.ByteArray;
 @Slf4j(topic = "net")
 public class RootEntry implements Entry {
 
+  @Getter
   private DnsRoot dnsRoot;
 
   public RootEntry(DnsRoot dnsRoot) {
