@@ -66,6 +66,10 @@ public class StartApp {
       Parameter.p2pConfig.setMinConnections(Integer.parseInt(cli.getOptionValue("m")));
     }
 
+    if (cli.hasOption("ma")) {
+      Parameter.p2pConfig.setMinActiveConnections(Integer.parseInt(cli.getOptionValue("ma")));
+    }
+
     if (Parameter.p2pConfig.getMinConnections() > Parameter.p2pConfig.getMaxConnections()) {
       log.error("Check maxConnections({}) >= minConnections({}) failed",
           Parameter.p2pConfig.getMaxConnections(), Parameter.p2pConfig.getMinConnections());
@@ -229,6 +233,8 @@ public class StartApp {
     opt7.setRequired(false);
     Option opt8 = new Option("v", "version", true, "p2p version, int, default 1");
     opt8.setRequired(false);
+    Option opt9 = new Option("ma", "min-active-connection", true, "min active connection number, int, default 2");
+    opt5.setRequired(false);
 
     Options group = new Options();
     group.addOption(opt1);
@@ -239,6 +245,7 @@ public class StartApp {
     group.addOption(opt6);
     group.addOption(opt7);
     group.addOption(opt8);
+    group.addOption(opt9);
     return group;
   }
 

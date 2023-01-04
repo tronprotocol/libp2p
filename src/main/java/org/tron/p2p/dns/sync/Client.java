@@ -44,7 +44,7 @@ public class Client {
   public Client() {
     this.cache = CacheBuilder.newBuilder()
         .maximumSize(cacheLimit)
-        .expireAfterWrite(1, TimeUnit.HOURS)
+        .expireAfterWrite(48, TimeUnit.HOURS)
         .recordStats()
         .build();
     trees = new HashMap<>();
