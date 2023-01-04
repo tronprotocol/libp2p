@@ -218,23 +218,16 @@ public class StartApp {
 
     Option opt1 = new Option("s", "seed-nodes", true,
         "seed node(s), required, ip:port[,ip:port[...]]");
-    opt1.setRequired(false);
     Option opt2 = new Option("t", "trust-ips", true, "trust ip(s), ip[,ip[...]]");
-    opt2.setRequired(false);
     Option opt3 = new Option("a", "active-nodes", true, "active node(s), ip:port[,ip:port[...]]");
-    opt3.setRequired(false);
     Option opt4 = new Option("M", "max-connection", true, "max connection number, int, default 50");
-    opt4.setRequired(false);
     Option opt5 = new Option("m", "min-connection", true, "min connection number, int, default 8");
-    opt5.setRequired(false);
     Option opt6 = new Option("d", "discover", true, "enable p2p discover, 0/1, default 1");
-    opt6.setRequired(false);
     Option opt7 = new Option("p", "port", true, "UDP & TCP port, int, default 18888");
-    opt7.setRequired(false);
     Option opt8 = new Option("v", "version", true, "p2p version, int, default 1");
-    opt8.setRequired(false);
-    Option opt9 = new Option("ma", "min-active-connection", true, "min active connection number, int, default 2");
-    opt5.setRequired(false);
+    Option opt9 = new Option("ma", "min-active-connection", true,
+        "min active connection number, int, default 2");
+    Option opt10 = new Option("h", "help", true, "print help message");
 
     Options group = new Options();
     group.addOption(opt1);
@@ -246,6 +239,7 @@ public class StartApp {
     group.addOption(opt7);
     group.addOption(opt8);
     group.addOption(opt9);
+    group.addOption(opt10);
     return group;
   }
 
@@ -308,25 +302,35 @@ public class StartApp {
       options.addOption(option);
     }
 
+    if (options.hasOption("h")) {
+      printHelpMessage(kadOptions, dnsReadOptions, dnsPublishOptions);
+      System.exit(0);
+    }
+
     CommandLine cli;
     CommandLineParser cliParser = new DefaultParser();
 
     try {
       cli = cliParser.parse(options, args);
     } catch (ParseException e) {
-      log.error("Parse cli failed", e);
-      HelpFormatter helpFormatter = new HelpFormatter();
-      helpFormatter.setWidth(100);
-      helpFormatter.printHelp(">>>>>> available cli options:", kadOptions);
-      helpFormatter.setSyntaxPrefix("\n");
-      helpFormatter.printHelp("available dns read cli options:", dnsReadOptions);
-      helpFormatter.setSyntaxPrefix("\n");
-      helpFormatter.printHelp("available dns publish cli options:", dnsPublishOptions);
-      helpFormatter.setSyntaxPrefix("\n");
+      log.error("Parse cli failed", e.getMessage());
+      printHelpMessage(kadOptions, dnsReadOptions, dnsPublishOptions);
       throw e;
     }
 
     return cli;
+  }
+
+  private static void printHelpMessage(Options kadOptions, Options dnsReadOptions,
+      Options dnsPublishOptions) {
+    HelpFormatter helpFormatter = new HelpFormatter();
+    helpFormatter.setWidth(100);
+    helpFormatter.printHelp(">>>>>> available cli options:", kadOptions);
+    helpFormatter.setSyntaxPrefix("\n");
+    helpFormatter.printHelp("available dns read cli options:", dnsReadOptions);
+    helpFormatter.setSyntaxPrefix("\n");
+    helpFormatter.printHelp("available dns publish cli options:", dnsPublishOptions);
+    helpFormatter.setSyntaxPrefix("\n");
   }
 
   private static List<InetSocketAddress> parse(String paras) {

@@ -199,6 +199,7 @@ public class AwsClient implements Publish {
             List<DnsNode> dnsNodes = nodesEntry.getNodes();
             serverNodes.addAll(dnsNodes);
           } catch (DnsException e) {
+            log.error("Parse nodeEntry failed", e);
             //ignore
           }
         }
