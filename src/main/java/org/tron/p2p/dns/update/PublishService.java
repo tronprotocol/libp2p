@@ -77,9 +77,10 @@ public class PublishService {
       return false;
     }
     if (config.getDnsType() == DnsType.AliYun &&
-        (StringUtils.isEmpty(config.getAliDnsEndpoint()) ||
-            StringUtils.isEmpty(config.getAccessKeyId()) ||
-            StringUtils.isEmpty(config.getAccessKeySecret()))) {
+        (StringUtils.isEmpty(config.getAccessKeyId()) ||
+            StringUtils.isEmpty(config.getAccessKeySecret()) ||
+            StringUtils.isEmpty(config.getAliDnsEndpoint())
+        )) {
       log.error("The configuration items related to the Aliyun dns server cannot be empty");
       return false;
     }

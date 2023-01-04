@@ -107,7 +107,7 @@ public class AwsClient implements Publish {
     checkZone(domain);
 
     Map<String, RecordSet> existing = collectRecords(domain);
-    log.info("Find {} TXT records for {}", existing.size(), domain);
+    log.info("Find {} TXT records, {} nodes for {}", existing.size(), serverNodes.size(), domain);
 
     tree.setSeq(this.lastSeq + 1);
     tree.sign(); //seq changed, wo need to sign again
@@ -189,6 +189,7 @@ public class AwsClient implements Publish {
         existing.put(name, recordSet);
 
         String content = StringUtils.join(values, "");
+        content = StringUtils.strip(content, "\"");
         if (rootDomain.equalsIgnoreCase(name)) {
           rootContent = content;
         }
@@ -199,8 +200,8 @@ public class AwsClient implements Publish {
             List<DnsNode> dnsNodes = nodesEntry.getNodes();
             serverNodes.addAll(dnsNodes);
           } catch (DnsException e) {
-            log.error("Parse nodeEntry failed", e);
             //ignore
+            log.error("Parse nodeEntry failed", e.getMessage());
           }
         }
         log.info("Find name: {}", name);
@@ -222,7 +223,6 @@ public class AwsClient implements Publish {
     }
 
     if (rootContent != null) {
-      rootContent = StringUtils.strip(rootContent, "\"");
       RootEntry rootEntry = RootEntry.parseEntry(rootContent);
       this.lastSeq = rootEntry.getSeq();
     }
