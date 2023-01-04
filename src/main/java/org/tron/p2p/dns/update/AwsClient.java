@@ -48,6 +48,8 @@ public class AwsClient implements Publish {
   private Route53Client route53Client;
   private String zoneId;
   private Set<DnsNode> serverNodes;
+  private static final String symbol = "\"";
+  private static final String postfix = ".";
 
   public AwsClient(final String accessKey, final String accessKeySecret,
       final String zoneId, final Region region) throws DnsException {
@@ -92,7 +94,7 @@ public class AwsClient implements Publish {
           return hostedZone.id().split("/")[2];
         }
       }
-      if (!response.isTruncated()) {
+      if (Boolean.FALSE.equals(response.isTruncated())) {
         break;
       }
       request.dnsName(response.dnsName());
@@ -166,7 +168,7 @@ public class AwsClient implements Publish {
     int page = 0;
 
     String rootContent = null;
-    Set<DnsNode> serverNodes = new HashSet<>();
+    Set<DnsNode> collectServerNodes = new HashSet<>();
     while (true) {
       log.info("Loading existing TXT records from name:{} zoneId:{} page:{}", rootDomain, zoneId,
           page);
@@ -185,11 +187,11 @@ public class AwsClient implements Publish {
         }
         RecordSet recordSet = new RecordSet(values.toArray(new String[0]),
             resourceRecordSet.ttl());
-        String name = StringUtils.stripEnd(resourceRecordSet.name(), ".");
+        String name = StringUtils.stripEnd(resourceRecordSet.name(), postfix);
         existing.put(name, recordSet);
 
         String content = StringUtils.join(values, "");
-        content = StringUtils.strip(content, "\"");
+        content = StringUtils.strip(content, symbol);
         if (rootDomain.equalsIgnoreCase(name)) {
           rootContent = content;
         }
@@ -198,16 +200,16 @@ public class AwsClient implements Publish {
           try {
             nodesEntry = NodesEntry.parseEntry(content);
             List<DnsNode> dnsNodes = nodesEntry.getNodes();
-            serverNodes.addAll(dnsNodes);
+            collectServerNodes.addAll(dnsNodes);
           } catch (DnsException e) {
             //ignore
-            log.error("Parse nodeEntry failed", e.getMessage());
+            log.error("Parse nodeEntry failed: {}", e.getMessage());
           }
         }
         log.info("Find name: {}", name);
       }
 
-      if (!response.isTruncated()) {
+      if (Boolean.FALSE.equals(response.isTruncated())) {
         break;
       }
       // Set the cursor to the next batch. From the AWS docs:
@@ -226,7 +228,7 @@ public class AwsClient implements Publish {
       RootEntry rootEntry = RootEntry.parseEntry(rootContent);
       this.lastSeq = rootEntry.getSeq();
     }
-    this.serverNodes = serverNodes;
+    this.serverNodes = collectServerNodes;
     return existing;
   }
 
@@ -306,9 +308,10 @@ public class AwsClient implements Publish {
           log.info("Updating {} from [{}] to [{}]", path, preValue, newValue);
           if (path.equalsIgnoreCase(domain)) {
             try {
-              RootEntry oldRoot = RootEntry.parseEntry(preValue);
-              RootEntry newRoot = RootEntry.parseEntry(newValue);
-              log.info("Updating root from [{}] to [{}]", oldRoot.getDnsRoot(), newRoot.getDnsRoot());
+              RootEntry oldRoot = RootEntry.parseEntry(StringUtils.strip(preValue, symbol));
+              RootEntry newRoot = RootEntry.parseEntry(StringUtils.strip(newValue, symbol));
+              log.info("Updating root from [{}] to [{}]", oldRoot.getDnsRoot(),
+                  newRoot.getDnsRoot());
             } catch (DnsException e) {
               //ignore
             }
@@ -372,7 +375,8 @@ public class AwsClient implements Publish {
     List<List<Change>> batchChanges = new ArrayList<>();
 
     List<Change> subChanges = new ArrayList<>();
-    int batchSize = 0, batchCount = 0;
+    int batchSize = 0;
+    int batchCount = 0;
     for (Change change : changes) {
       int changeCount = getChangeCount(change);
       int changeSize = getChangeSize(change) * changeCount;
@@ -456,18 +460,18 @@ public class AwsClient implements Publish {
   private String splitTxt(String value) {
     StringBuilder sb = new StringBuilder();
     while (value.length() > 253) {
-      sb.append("\"" + value.substring(0, 253) + "\"");
+      sb.append(symbol).append(value, 0, 253).append(symbol);
       value = value.substring(253);
     }
     if (value.length() > 0) {
-      sb.append("\"" + value + "\"");
+      sb.append(symbol).append(value).append(symbol);
     }
     return sb.toString();
   }
 
   private boolean isSubdomain(String sub, String root) {
-    String subNoSuffix = StringUtils.stripEnd(sub, ".");
-    String rootNoSuffix = StringUtils.stripEnd(root, ".");
+    String subNoSuffix = StringUtils.stripEnd(sub, postfix);
+    String rootNoSuffix = StringUtils.stripEnd(root, postfix);
     return subNoSuffix.endsWith(rootNoSuffix);
   }
 
