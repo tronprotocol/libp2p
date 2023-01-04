@@ -227,7 +227,7 @@ public class StartApp {
     Option opt8 = new Option("v", "version", true, "p2p version, int, default 1");
     Option opt9 = new Option("ma", "min-active-connection", true,
         "min active connection number, int, default 2");
-    Option opt10 = new Option("h", "help", true, "print help message");
+    Option opt10 = new Option("h", "help", false, "print help message");
 
     Options group = new Options();
     group.addOption(opt1);
@@ -302,22 +302,21 @@ public class StartApp {
       options.addOption(option);
     }
 
-    if (options.hasOption("h")) {
-      printHelpMessage(kadOptions, dnsReadOptions, dnsPublishOptions);
-      System.exit(0);
-    }
-
     CommandLine cli;
     CommandLineParser cliParser = new DefaultParser();
 
     try {
       cli = cliParser.parse(options, args);
     } catch (ParseException e) {
-      log.error("Parse cli failed", e.getMessage());
+      log.error("Parse cli failed", e);
       printHelpMessage(kadOptions, dnsReadOptions, dnsPublishOptions);
       throw e;
     }
 
+    if (cli.hasOption("help")) {
+      printHelpMessage(kadOptions, dnsReadOptions, dnsPublishOptions);
+      System.exit(0);
+    }
     return cli;
   }
 
