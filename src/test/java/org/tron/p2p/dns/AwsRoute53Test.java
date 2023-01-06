@@ -1,7 +1,6 @@
 package org.tron.p2p.dns;
 
 
-import java.math.BigInteger;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -9,14 +8,10 @@ import java.util.List;
 import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
-import org.tron.p2p.dns.sync.Client;
-import org.tron.p2p.dns.tree.Algorithm;
-import org.tron.p2p.dns.tree.Entry;
 import org.tron.p2p.dns.tree.Tree;
 import org.tron.p2p.dns.update.AwsClient;
 import org.tron.p2p.dns.update.AwsClient.RecordSet;
 import org.tron.p2p.exception.DnsException;
-import org.tron.p2p.utils.ByteArray;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.route53.model.Change;
 import software.amazon.awssdk.services.route53.model.ChangeAction;
@@ -28,7 +23,7 @@ public class AwsRoute53Test {
 
     Map<String, RecordSet> existing = new HashMap<>();
     existing.put("n", new RecordSet(new String[] {
-        "enrtree-root:v1 e=2KFJOGVXDQTXXUGBH7GS7NAAAI l=FDXN3SN67NA5DKA4J2GOK7BVQI seq=0 sig=v_-J_q_9ICQg5ztExFvLQhDBGMb0lZPJLhe3ts9LAcgqhOhtT3YFJsl8BWNDSwGtamUdR-9xl88_w-X42SVpjwE"},
+        "enrtree-root:CjoKGlVKQU9JQlMyUFlZMjJYUU1WRlNXT1RZSlhVEhpGRFhOM1NONjdOQTVES0E0SjJHT0s3QlZRSRgIEldBTE5aWHEyRkk5Ui1ubjdHQk9HdWJBRFVPakZ2MWp5TjZiUHJtSWNTNks0ZE0wc1dKMUwzT2paWFRGei1KcldDenZZVHJId2RMSTlUczRPZ2Q4TXlJUnM"},
         AwsClient.rootTTL));
     existing.put("2kfjogvxdqtxxugbh7gs7naaai.n", new RecordSet(new String[] {
         "enr:-HW4QO1ml1DdXLeZLsUxewnthhUy8eROqkDyoMTyavfks9JlYQIlMFEUoM78PovJDPQrAkrb3LRJ-",
@@ -39,7 +34,7 @@ public class AwsRoute53Test {
 
     Map<String, String> newRecords = new HashMap<>();
     newRecords.put("n",
-        "enrtree-root:v1 e=JWXYDBPXYWG6FX3GMDIBFA6CJ4 l=C7HRFPF3BLGF3YR4DY5KX3SMBE seq=1 sig=o908WmNp7LibOfPsr4btQwatZJ5URBr2ZAuxvK4UWHlsB9sUOTJQaGAlLPVAhM__XJesCHxLISo94z5Z2a463gA");
+        "enrtree-root:CjoKGkZEWE4zU042N05BNURLQTRKMkdPSzdCVlFJEhpGRFhOM1NONjdOQTVES0E0SjJHT0s3QlZRSRgJElc5aDU4d1cyajUzdlBMeHNBSGN1cDMtV0ZEM2lvZUk4SkJrZkdYSk93dmI0R0lHR01pQVAxRkJVVGc4bHlORERleXJkck9uSDdSbUNUUnJRVGxqUm9UaHM");
     newRecords.put("c7hrfpf3blgf3yr4dy5kx3smbe.n",
         "enrtree://AM5FCQLWIZX2QFPNJAP7VUERCCRNGRHWZG3YYHIUV7BVDQ5FDPRT2@morenodes.example.org");
     newRecords.put("jwxydbpxywg6fx3gmdibfa6cj4.n",
@@ -80,7 +75,7 @@ public class AwsRoute53Test {
 
         publish.newTXTChange(ChangeAction.UPSERT, "n",
             AwsClient.rootTTL,
-            "\"enrtree-root:v1 e=JWXYDBPXYWG6FX3GMDIBFA6CJ4 l=C7HRFPF3BLGF3YR4DY5KX3SMBE seq=1 sig=o908WmNp7LibOfPsr4btQwatZJ5URBr2ZAuxvK4UWHlsB9sUOTJQaGAlLPVAhM__XJesCHxLISo94z5Z2a463gA\""),
+            "\"enrtree-root:CjoKGkZEWE4zU042N05BNURLQTRKMkdPSzdCVlFJEhpGRFhOM1NONjdOQTVES0E0SjJHT0s3QlZRSRgJElc5aDU4d1cyajUzdlBMeHNBSGN1cDMtV0ZEM2lvZUk4SkJrZkdYSk93dmI0R0lHR01pQVAxRkJVVGc4bHlORERleXJkck9uSDdSbUNUUnJRVGxqUm9UaHM\""),
 
         publish.newTXTChange(ChangeAction.DELETE, "2kfjogvxdqtxxugbh7gs7naaai.n",
             3333,

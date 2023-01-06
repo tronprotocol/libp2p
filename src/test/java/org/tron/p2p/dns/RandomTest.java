@@ -9,7 +9,6 @@ import org.tron.p2p.P2pConfig;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.dns.sync.Client;
 import org.tron.p2p.dns.sync.RandomIterator;
-import org.tron.p2p.dns.tree.Tree;
 
 public class RandomTest {
 
