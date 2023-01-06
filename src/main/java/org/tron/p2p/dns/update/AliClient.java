@@ -40,7 +40,7 @@ public class AliClient implements Publish {
           domainName);
       t.setSeq(this.lastSeq + 1);
       t.sign(); //seq changed, wo need to sign again
-      Map<String, String> records = t.toTXT(domainName);
+      Map<String, String> records = t.toTXT(null);
       submitChanges(domainName, records, existing);
     } catch (Exception e) {
       throw new DnsException(DnsException.TypeEnum.DEPLOY_DOMAIN_FAILED, e);
@@ -304,33 +304,5 @@ public class AliClient implements Publish {
       return false;
     }
     return true;
-  }
-
-  public static void main(String[] args) {
-    try {
-      AliClient client = new AliClient("alidns.aliyuncs.com",
-          "", "");
-
-      //String oldRecId = client.getRecId("dnsdisc.com", "test1");
-//
-//      client.updateRecord(oldRecId, "test", "12345678");
-//
-//      client.addRecord("dnsdisc.com", "test2", "1234567890", 600);
-      client.update("dnsdisc.com", "test2", "1234567890", 86400);
-
-      //client.deleteRecord(oldRecId);
-
-      Map<String, DescribeDomainRecordsResponseBodyDomainRecordsRecord> records =
-          client.collectRecords("dnsdisc.com");
-      for (Map.Entry<String, DescribeDomainRecordsResponseBodyDomainRecordsRecord> entry : records.entrySet()) {
-        log.info("key: {}, value: {}", entry.getKey(), entry.getValue().getValue());
-      }
-
-      //log.info("new record id: {}", recordId);
-
-    } catch (Exception e) {
-      e.printStackTrace();
-      log.info(e.getMessage());
-    }
   }
 }

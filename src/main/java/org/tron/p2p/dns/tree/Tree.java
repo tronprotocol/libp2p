@@ -152,7 +152,11 @@ public class Tree {
   // hash => lower(hash).domain
   public Map<String, String> toTXT(String rootDomain) {
     Map<String, String> dnsRecords = new HashMap<>();
-    dnsRecords.put(rootDomain, rootEntry.toFormat());
+    if (StringUtils.isNoneEmpty(rootDomain)) {
+      dnsRecords.put(rootDomain, rootEntry.toFormat());
+    } else {
+      dnsRecords.put("@", rootEntry.toFormat());
+    }
     for (Map.Entry<String, Entry> item : entries.entrySet()) {
       String hash = item.getKey();
       String newKey = StringUtils.isNoneEmpty(rootDomain) ? hash + "." + rootDomain : hash;
