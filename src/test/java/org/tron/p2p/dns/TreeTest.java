@@ -133,7 +133,7 @@ public class TreeTest {
 
     Tree tree = new Tree();
     try {
-      tree = tree.makeTree(seq, enrList, linkList, null);
+      tree.makeTree(seq, enrList, linkList, null);
     } catch (DnsException e) {
       Assert.fail();
     }

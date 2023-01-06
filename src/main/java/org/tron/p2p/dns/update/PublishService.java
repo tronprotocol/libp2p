@@ -8,7 +8,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.tron.p2p.P2pConfig;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
@@ -23,13 +22,13 @@ public class PublishService {
   private ScheduledExecutorService publisher = Executors.newSingleThreadScheduledExecutor();
 
   public void init() {
-    if (checkConfig(Parameter.p2pConfig)) {
+    if (checkConfig(Parameter.p2pConfig.getPublishConfig())) {
       publisher.scheduleWithFixedDelay(this::startPublish, 300, publishDelay, TimeUnit.SECONDS);
     }
   }
 
   private void startPublish() {
-    P2pConfig config = Parameter.p2pConfig;
+    PublishConfig config = Parameter.p2pConfig.getPublishConfig();
     try {
       Publish publish;
       if (config.getDnsType() == DnsType.AliYun) {
@@ -44,7 +43,7 @@ public class PublishService {
       }
       Tree tree = new Tree();
       List<String> nodes = getNodes();
-      tree = tree.makeTree(1, nodes, config.getKnownEnrTreeUrls(), config.getDnsPrivate());
+      tree.makeTree(1, nodes, config.getKnownEnrTreeUrls(), config.getDnsPrivate());
       publish.deploy(config.getDnsDomain(), tree);
     } catch (Exception e) {
       log.error("Failed to publish dns", e);
@@ -62,9 +61,8 @@ public class PublishService {
     return Tree.merge(dnsNodes);
   }
 
-  private boolean checkConfig(P2pConfig config) {
-    //we must enable discover service before we can publish dns service
-    if (!config.isDiscoverEnable() || !config.isDnsPublishEnable()) {
+  private boolean checkConfig(PublishConfig config) {
+    if (!config.isDnsPublishEnable()) {
       log.info("Discover service is disable or dns publish service is disable");
       return false;
     }

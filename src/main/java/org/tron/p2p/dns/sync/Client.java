@@ -3,11 +3,11 @@ package org.tron.p2p.dns.sync;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.protobuf.InvalidProtocolBufferException;
 import java.net.UnknownHostException;
 import java.security.SignatureException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -31,24 +31,21 @@ import org.xbill.DNS.TextParseException;
 @Slf4j(topic = "net")
 public class Client {
 
-  public final static int recheckInterval = 60; //seconds, should be smaller than rootTTL
-  public final static int cacheLimit = 1000;
+  public final static int recheckInterval = 60 * 60; //seconds, should be smaller than rootTTL
+  public final static int cacheLimit = 2000;
   public final static int randomRetryTimes = 10;
   private Cache<String, Entry> cache;
   @Getter
-  private Map<String, Tree> trees;
-  private Map<String, ClientTree> clientTrees;
+  private Map<String, Tree> trees = new ConcurrentHashMap();
+  private Map<String, ClientTree> clientTrees = new HashMap<>();
 
   private ScheduledExecutorService syncer = Executors.newSingleThreadScheduledExecutor();
 
   public Client() {
     this.cache = CacheBuilder.newBuilder()
         .maximumSize(cacheLimit)
-        .expireAfterWrite(48, TimeUnit.HOURS)
         .recordStats()
         .build();
-    trees = new HashMap<>();
-    clientTrees = new HashMap<>();
   }
 
   public void init() {
@@ -82,13 +79,25 @@ public class Client {
     if (clientTree.getLinkEntry() == null) {
       clientTree.setLinkEntry(loc);
     }
-    clientTree.syncAll(tree.getEntries());
+    if (tree.getEntries().isEmpty()) {
+      // when sync tree first time, we can get the entries dynamically
+      clientTree.syncAll(tree.getEntries());
+    } else {
+      Map<String, Entry> tmpEntries = new HashMap<>();
+      clientTree.syncAll(tmpEntries);
+      // we update the entries after sync finishes
+      tree.setEntries(tmpEntries);
+    }
+
     tree.setRootEntry(clientTree.getRoot());
-    log.info("SyncTree {} complete", urlScheme);
+    log.info(
+        "SyncTree {} complete, LinkEntry size:{}, NodesEntry size:{}, BranchEntry size:{}, DnsNode size:{}",
+        urlScheme, tree.getLinksEntry().size(), tree.getNodesEntry().size(),
+        tree.getBranchesEntry().size(), tree.getDnsNodes().size());
   }
 
   public RootEntry resolveRoot(LinkEntry linkEntry) throws TextParseException, DnsException,
-      SignatureException, UnknownHostException, InvalidProtocolBufferException {
+      SignatureException, UnknownHostException {
     //do not put root in cache
     TXTRecord txtRecord = LookUpTxt.lookUpTxt(linkEntry.getDomain());
     if (txtRecord == null) {

@@ -36,8 +36,15 @@ public class Tree {
   @Setter
   private String privateKey;
 
+  private List<DnsNode> dnsNodes;
+
   public Tree() {
+    init();
+  }
+
+  private void init() {
     this.entries = new ConcurrentHashMap<>();
+    this.dnsNodes = new ArrayList<>();
   }
 
   private Entry build(List<Entry> leafs) {
@@ -70,7 +77,7 @@ public class Tree {
     return build(subtrees);
   }
 
-  public Tree makeTree(int seq, List<String> enrs, List<String> links, String privateKey)
+  public void makeTree(int seq, List<String> enrs, List<String> links, String privateKey)
       throws DnsException {
     List<Entry> nodesEntryList = new ArrayList<>();
     for (String enr : enrs) {
@@ -82,23 +89,22 @@ public class Tree {
       linkEntryList.add(LinkEntry.parseEntry(link));
     }
 
-    Tree tree = new Tree();
+    init();
 
-    Entry eRoot = tree.build(nodesEntryList);
+    Entry eRoot = build(nodesEntryList);
     String eRootStr = Algorithm.encode32AndTruncate(eRoot.toString());
-    tree.getEntries().put(eRootStr, eRoot);
+    entries.put(eRootStr, eRoot);
 
-    Entry lRoot = tree.build(linkEntryList);
+    Entry lRoot = build(linkEntryList);
     String lRootStr = Algorithm.encode32AndTruncate(lRoot.toString());
-    tree.getEntries().put(lRootStr, lRoot);
+    entries.put(lRootStr, lRoot);
 
-    tree.setRootEntry(new RootEntry(eRootStr, lRootStr, seq));
+    setRootEntry(new RootEntry(eRootStr, lRootStr, seq));
 
     if (StringUtils.isNotEmpty(privateKey)) {
-      tree.setPrivateKey(privateKey);
-      tree.sign();
+      setPrivateKey(privateKey);
+      sign();
     }
-    return tree;
   }
 
   public void sign() throws DnsException {
@@ -197,23 +203,22 @@ public class Tree {
   }
 
   public List<DnsNode> getDnsNodes() {
-    List<String> nodesEntryList = getNodesEntry();
-    List<DnsNode> nodes = new ArrayList<>();
-    for (String represent : nodesEntryList) {
-      String joinStr = represent.substring(Entry.enrPrefix.length());
-      List<DnsNode> subNodes;
-      try {
-        subNodes = DnsNode.decompress(joinStr);
-      } catch (InvalidProtocolBufferException | UnknownHostException e) {
-        log.error("", e);
-        continue;
+    if (dnsNodes.isEmpty()) {
+      List<String> nodesEntryList = getNodesEntry();
+      List<DnsNode> nodes = new ArrayList<>();
+      for (String represent : nodesEntryList) {
+        String joinStr = represent.substring(Entry.enrPrefix.length());
+        List<DnsNode> subNodes;
+        try {
+          subNodes = DnsNode.decompress(joinStr);
+        } catch (InvalidProtocolBufferException | UnknownHostException e) {
+          log.error("", e);
+          continue;
+        }
+        nodes.addAll(subNodes);
       }
-      nodes.addAll(subNodes);
+      dnsNodes = nodes;
     }
-    return nodes;
+    return dnsNodes;
   }
-
-//  public List<DnsNode> getDnsNodes() {
-//    return getNodes();
-//  }
 }

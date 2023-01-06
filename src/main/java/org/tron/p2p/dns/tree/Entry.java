@@ -8,5 +8,5 @@ public interface Entry {
   String branchPrefix = "enrtree-branch:";
   String enrPrefix = "enr:";
 
-//  Entry parseEntry(String e);
+  //T parseEntry(String e) throws Exception;
 }

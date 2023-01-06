@@ -21,6 +21,7 @@ import org.tron.p2p.P2pConfig;
 import org.tron.p2p.P2pService;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.dns.update.DnsType;
+import org.tron.p2p.dns.update.PublishConfig;
 import org.tron.p2p.utils.ByteArray;
 import software.amazon.awssdk.regions.Region;
 
@@ -28,6 +29,7 @@ import software.amazon.awssdk.regions.Region;
 public class StartApp {
 
   public static void main(String[] args) {
+    StartApp app = new StartApp();
     Parameter.version = 1;
 
     P2pService p2pService = new P2pService();
@@ -35,18 +37,18 @@ public class StartApp {
 
     CommandLine cli = null;
     try {
-      cli = parseCli(args);
+      cli = app.parseCli(args);
     } catch (ParseException e) {
       System.exit(0);
     }
 
     if (cli.hasOption("s")) {
-      Parameter.p2pConfig.setSeedNodes(parse(cli.getOptionValue("s")));
+      Parameter.p2pConfig.setSeedNodes(app.parseInetSocketAddressList(cli.getOptionValue("s")));
       log.info("Seed nodes {}", Parameter.p2pConfig.getSeedNodes());
     }
 
     if (cli.hasOption("a")) {
-      Parameter.p2pConfig.setActiveNodes(parse(cli.getOptionValue("a")));
+      Parameter.p2pConfig.setActiveNodes(app.parseInetSocketAddressList(cli.getOptionValue("a")));
       log.info("Active nodes {}", Parameter.p2pConfig.getActiveNodes());
     }
 
@@ -96,7 +98,7 @@ public class StartApp {
       log.info("Local ipv6: {}", Parameter.p2pConfig.getIpv6());
     }
 
-    checkDnsOption(cli);
+    app.checkDnsOption(cli);
 
     p2pService.start(Parameter.p2pConfig);
 
@@ -107,6 +109,40 @@ public class StartApp {
         break;
       }
     }
+  }
+
+  private CommandLine parseCli(String[] args) throws ParseException {
+    Options kadOptions = getKadOptions();
+    Options dnsReadOptions = getDnsReadOption();
+    Options dnsPublishOptions = getDnsPublishOption();
+
+    Options options = new Options();
+    for (Option option : kadOptions.getOptions()) {
+      options.addOption(option);
+    }
+    for (Option option : dnsReadOptions.getOptions()) {
+      options.addOption(option);
+    }
+    for (Option option : dnsPublishOptions.getOptions()) {
+      options.addOption(option);
+    }
+
+    CommandLine cli;
+    CommandLineParser cliParser = new DefaultParser();
+
+    try {
+      cli = cliParser.parse(options, args);
+    } catch (ParseException e) {
+      log.error("Parse cli failed", e);
+      printHelpMessage(kadOptions, dnsReadOptions, dnsPublishOptions);
+      throw e;
+    }
+
+    if (cli.hasOption("help")) {
+      printHelpMessage(kadOptions, dnsReadOptions, dnsPublishOptions);
+      System.exit(0);
+    }
+    return cli;
   }
 
   private static final String configPublish = "publish";
@@ -120,16 +156,17 @@ public class StartApp {
   private static final String configAwsRegion = "aws-region";
   private static final String configAliEndPoint = "aliyun-dns-endpoint";
 
-  private static void checkDnsOption(CommandLine cli) {
+  private void checkDnsOption(CommandLine cli) {
     if (cli.hasOption("u")) {
       Parameter.p2pConfig.setEnrTreeUrls(Arrays.asList(cli.getOptionValue("u").split(",")));
     }
 
+    PublishConfig publishConfig = new PublishConfig();
     if (cli.hasOption(configPublish)) {
-      Parameter.p2pConfig.setDnsPublishEnable(true);
+      publishConfig.setDnsPublishEnable(true);
     }
 
-    if (Parameter.p2pConfig.isDnsPublishEnable()) {
+    if (publishConfig.isDnsPublishEnable()) {
       if (cli.hasOption(configDnsPrivate)) {
         String privateKey = cli.getOptionValue(configDnsPrivate);
         if (privateKey.length() != 64) {
@@ -142,19 +179,19 @@ public class StartApp {
           log.error("Check {}, must be hex string of 64", configDnsPrivate);
           System.exit(0);
         }
-        Parameter.p2pConfig.setDnsPrivate(privateKey);
+        publishConfig.setDnsPrivate(privateKey);
       } else {
         log.error("Check {}, must not be null", configDnsPrivate);
         System.exit(0);
       }
 
       if (cli.hasOption(configKnownUrls)) {
-        Parameter.p2pConfig.setKnownEnrTreeUrls(
+        publishConfig.setKnownEnrTreeUrls(
             Arrays.asList(cli.getOptionValue(configKnownUrls).split(",")));
       }
 
       if (cli.hasOption(configDomain)) {
-        Parameter.p2pConfig.setDnsDomain(cli.getOptionValue(configDomain));
+        publishConfig.setDnsDomain(cli.getOptionValue(configDomain));
       } else {
         log.error("Check {}, must not be null", configDomain);
         System.exit(0);
@@ -167,9 +204,9 @@ public class StartApp {
           System.exit(0);
         }
         if (serverType.equalsIgnoreCase("aws")) {
-          Parameter.p2pConfig.setDnsType(DnsType.AwsRoute53);
+          publishConfig.setDnsType(DnsType.AwsRoute53);
         } else {
-          Parameter.p2pConfig.setDnsType(DnsType.AliYun);
+          publishConfig.setDnsType(DnsType.AliYun);
         }
       } else {
         log.error("Check {}, must not be null", configServerType);
@@ -180,20 +217,20 @@ public class StartApp {
         log.error("Check {}, must not be null", configAccessId);
         System.exit(0);
       } else {
-        Parameter.p2pConfig.setAccessKeyId(cli.getOptionValue(configAccessId));
+        publishConfig.setAccessKeyId(cli.getOptionValue(configAccessId));
       }
 
       if (!cli.hasOption(configAccessSecret)) {
         log.error("Check {}, must not be null", configAccessSecret);
         System.exit(0);
       } else {
-        Parameter.p2pConfig.setAccessKeySecret(cli.getOptionValue(configAccessSecret));
+        publishConfig.setAccessKeySecret(cli.getOptionValue(configAccessSecret));
       }
 
-      if (Parameter.p2pConfig.getDnsType() == DnsType.AwsRoute53) {
-        // this parameter is allowed to be null
+      if (publishConfig.getDnsType() == DnsType.AwsRoute53) {
+        // host-zone-id can be null
         if (cli.hasOption(configHostZoneId)) {
-          Parameter.p2pConfig.setAwsHostZoneId(cli.getOptionValue(configHostZoneId));
+          publishConfig.setAwsHostZoneId(cli.getOptionValue(configHostZoneId));
         }
 
         if (!cli.hasOption(configAwsRegion)) {
@@ -201,20 +238,21 @@ public class StartApp {
           System.exit(0);
         } else {
           String region = cli.getOptionValue(configAwsRegion);
-          Parameter.p2pConfig.setAwsRegion(Region.of(region));
+          publishConfig.setAwsRegion(Region.of(region));
         }
       } else {
         if (!cli.hasOption(configAliEndPoint)) {
           log.error("Check {}, must not be null", configAliEndPoint);
           System.exit(0);
         } else {
-          Parameter.p2pConfig.setAliDnsEndpoint(cli.getOptionValue(configAliEndPoint));
+          publishConfig.setAliDnsEndpoint(cli.getOptionValue(configAliEndPoint));
         }
       }
     }
+    Parameter.p2pConfig.setPublishConfig(publishConfig);
   }
 
-  private static Options getKadOptions() {
+  private Options getKadOptions() {
 
     Option opt1 = new Option("s", "seed-nodes", true,
         "seed node(s), required, ip:port[,ip:port[...]]");
@@ -243,7 +281,7 @@ public class StartApp {
     return group;
   }
 
-  private static Options getDnsReadOption() {
+  private Options getDnsReadOption() {
     Option opt = new Option("u", "url-schemes", true,
         "dns urls to get nodes, url format enrtree://{pubkey}@{domain}. url[,url[...]]");
     Options group = new Options();
@@ -251,7 +289,7 @@ public class StartApp {
     return group;
   }
 
-  private static Options getDnsPublishOption() {
+  private Options getDnsPublishOption() {
     Option opt1 = new Option(configPublish, configPublish, false, "enable dns publish");
     Option opt2 = new Option(null, configDnsPrivate, true,
         "dns private key used to publish, required, hex string of length 64");
@@ -286,41 +324,7 @@ public class StartApp {
     return group;
   }
 
-  private static CommandLine parseCli(String[] args) throws ParseException {
-    Options kadOptions = getKadOptions();
-    Options dnsReadOptions = getDnsReadOption();
-    Options dnsPublishOptions = getDnsPublishOption();
-
-    Options options = new Options();
-    for (Option option : kadOptions.getOptions()) {
-      options.addOption(option);
-    }
-    for (Option option : dnsReadOptions.getOptions()) {
-      options.addOption(option);
-    }
-    for (Option option : dnsPublishOptions.getOptions()) {
-      options.addOption(option);
-    }
-
-    CommandLine cli;
-    CommandLineParser cliParser = new DefaultParser();
-
-    try {
-      cli = cliParser.parse(options, args);
-    } catch (ParseException e) {
-      log.error("Parse cli failed", e);
-      printHelpMessage(kadOptions, dnsReadOptions, dnsPublishOptions);
-      throw e;
-    }
-
-    if (cli.hasOption("help")) {
-      printHelpMessage(kadOptions, dnsReadOptions, dnsPublishOptions);
-      System.exit(0);
-    }
-    return cli;
-  }
-
-  private static void printHelpMessage(Options kadOptions, Options dnsReadOptions,
+  private void printHelpMessage(Options kadOptions, Options dnsReadOptions,
       Options dnsPublishOptions) {
     HelpFormatter helpFormatter = new HelpFormatter();
     helpFormatter.setWidth(100);
@@ -332,7 +336,7 @@ public class StartApp {
     helpFormatter.setSyntaxPrefix("\n");
   }
 
-  private static List<InetSocketAddress> parse(String paras) {
+  private List<InetSocketAddress> parseInetSocketAddressList(String paras) {
     List<InetSocketAddress> nodes = new ArrayList<>();
     for (String para : paras.split(",")) {
       int index = para.lastIndexOf(":");

@@ -151,15 +151,14 @@ public class ConnPoolService extends P2pEventHandler {
 
     if (lackSize > 0) {
       List<DnsNode> dnsNodes = DnsManager.getDnsNodes();
-      log.info("DnsNodes size:{}", dnsNodes.size());
+      log.debug("DnsNodes size:{}", dnsNodes.size());
       List<DnsNode> filtered = new ArrayList<>();
       for (DnsNode node : dnsNodes) {
         if (validNode(node, nodesInUse, inetInUse)) {
           filtered.add((DnsNode) node.clone());
         }
       }
-      Collections.sort(filtered);
-      //Collections.shuffle(filtered);
+      Collections.shuffle(filtered);
       List<DnsNode> newNodes = CollectionUtils.truncate(filtered, lackSize);
       connectNodes.addAll(newNodes);
     }

@@ -112,7 +112,7 @@ public class AwsRoute53Test {
 
     Tree tree = new Tree();
     try {
-      tree = tree.makeTree(1, enrList, linkList, AlgorithmTest.privateKey);
+      tree.makeTree(1, enrList, linkList, AlgorithmTest.privateKey);
     } catch (DnsException e) {
       Assert.fail();
     }

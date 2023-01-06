@@ -5,9 +5,8 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
-import org.tron.p2p.dns.update.DnsType;
+import org.tron.p2p.dns.update.PublishConfig;
 import org.tron.p2p.utils.NetUtil;
-import software.amazon.awssdk.regions.Region;
 
 @Data
 public class P2pConfig {
@@ -31,14 +30,5 @@ public class P2pConfig {
   private List<String> enrTreeUrls = new ArrayList<>();
 
   //dns publish config
-  private boolean dnsPublishEnable = false;
-  private String dnsPrivate = null;
-  private List<String> knownEnrTreeUrls = new ArrayList<>();
-  private String dnsDomain = null;
-  private DnsType dnsType = null;
-  private String accessKeyId = null;
-  private String accessKeySecret = null;
-  private String aliDnsEndpoint = null; //for aliYun
-  private String awsHostZoneId = null; //for aws
-  private Region awsRegion = null; //for aws
+  private PublishConfig publishConfig = new PublishConfig();
 }
