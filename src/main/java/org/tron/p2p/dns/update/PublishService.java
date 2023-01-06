@@ -63,7 +63,7 @@ public class PublishService {
 
   private boolean checkConfig(PublishConfig config) {
     if (!config.isDnsPublishEnable()) {
-      log.info("Discover service is disable or dns publish service is disable");
+      log.info("Dns publish service is disable");
       return false;
     }
     if (config.getDnsType() == null) {
