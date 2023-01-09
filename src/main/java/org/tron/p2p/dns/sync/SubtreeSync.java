@@ -58,12 +58,12 @@ public class SubtreeSync {
     Entry entry = client.resolveEntry(linkEntry.getDomain(), hash);
     if (entry instanceof NodesEntry) {
       if (link) {
-        throw new DnsException(TypeEnum.ENR_IN_LINK_TREE, "");
+        throw new DnsException(TypeEnum.NODES_IN_LINK_TREE, "");
       }
       leaves++;
     } else if (entry instanceof LinkEntry) {
       if (!link) {
-        throw new DnsException(TypeEnum.LINK_IN_ENR_TREE, "");
+        throw new DnsException(TypeEnum.LINK_IN_NODES_TREE, "");
       }
       leaves++;
     } else if (entry instanceof BranchEntry) {

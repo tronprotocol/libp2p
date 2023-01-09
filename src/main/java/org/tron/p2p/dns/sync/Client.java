@@ -84,16 +84,21 @@ public class Client {
       clientTree.syncAll(tree.getEntries());
     } else {
       Map<String, Entry> tmpEntries = new HashMap<>();
-      clientTree.syncAll(tmpEntries);
-      // we update the entries after sync finishes
+      boolean[] isRootUpdate = clientTree.syncAll(tmpEntries);
+      if (!isRootUpdate[0]) {
+        tmpEntries.putAll(tree.getLinksMap());
+      }
+      if (!isRootUpdate[1]) {
+        tmpEntries.putAll(tree.getNodesMap());
+      }
+      // we update the entries after sync finishes, ignore branch difference
       tree.setEntries(tmpEntries);
     }
 
     tree.setRootEntry(clientTree.getRoot());
-    log.info(
-        "SyncTree {} complete, LinkEntry size:{}, NodesEntry size:{}, BranchEntry size:{}, DnsNode size:{}",
+    log.info("SyncTree {} complete, LinkEntry size:{}, NodesEntry size:{}, DnsNode size:{}",
         urlScheme, tree.getLinksEntry().size(), tree.getNodesEntry().size(),
-        tree.getBranchesEntry().size(), tree.getDnsNodes().size());
+        tree.getDnsNodes().size());
   }
 
   public RootEntry resolveRoot(LinkEntry linkEntry) throws TextParseException, DnsException,

@@ -31,7 +31,6 @@ public class Tree {
   @Setter
   private RootEntry rootEntry;
   @Getter
-  @Setter
   private Map<String, Entry> entries;
   @Setter
   private String privateKey;
@@ -184,6 +183,14 @@ public class Tree {
     return linkList;
   }
 
+  public Map<String, Entry> getLinksMap() {
+    Map<String, Entry> linksMap = new HashMap<>();
+    entries.entrySet().stream()
+        .filter(p -> p.getValue() instanceof LinkEntry)
+        .forEach(p -> linksMap.put(p.getKey(), p.getValue()));
+    return linksMap;
+  }
+
   public List<String> getBranchesEntry() {
     List<String> branches = new ArrayList<>();
     for (Entry entry : entries.values()) {
@@ -206,22 +213,39 @@ public class Tree {
     return nodesEntryList;
   }
 
+  public Map<String, Entry> getNodesMap() {
+    Map<String, Entry> nodesMap = new HashMap<>();
+    entries.entrySet().stream()
+        .filter(p -> p.getValue() instanceof NodesEntry)
+        .forEach(p -> nodesMap.put(p.getKey(), p.getValue()));
+    return nodesMap;
+  }
+
+  private void updateDnsNodes() {
+    List<String> nodesEntryList = getNodesEntry();
+    List<DnsNode> nodes = new ArrayList<>();
+    for (String represent : nodesEntryList) {
+      String joinStr = represent.substring(Entry.nodesPrefix.length());
+      List<DnsNode> subNodes;
+      try {
+        subNodes = DnsNode.decompress(joinStr);
+      } catch (InvalidProtocolBufferException | UnknownHostException e) {
+        log.error("", e);
+        continue;
+      }
+      nodes.addAll(subNodes);
+    }
+    dnsNodes = nodes;
+  }
+
+  public void setEntries(Map<String, Entry> entries) {
+    this.entries = entries;
+    updateDnsNodes();
+  }
+
   public List<DnsNode> getDnsNodes() {
     if (dnsNodes.isEmpty()) {
-      List<String> nodesEntryList = getNodesEntry();
-      List<DnsNode> nodes = new ArrayList<>();
-      for (String represent : nodesEntryList) {
-        String joinStr = represent.substring(Entry.nodesPrefix.length());
-        List<DnsNode> subNodes;
-        try {
-          subNodes = DnsNode.decompress(joinStr);
-        } catch (InvalidProtocolBufferException | UnknownHostException e) {
-          log.error("", e);
-          continue;
-        }
-        nodes.addAll(subNodes);
-      }
-      dnsNodes = nodes;
+      updateDnsNodes();
     }
     return dnsNodes;
   }

@@ -28,7 +28,7 @@ public class NodesEntry implements Entry {
     try {
       nodeList = DnsNode.decompress(content);
     } catch (InvalidProtocolBufferException | UnknownHostException ex) {
-      throw new DnsException(TypeEnum.INVALID_ENR, ex);
+      throw new DnsException(TypeEnum.INVALID_NODES, ex);
     }
     return new NodesEntry(e, nodeList);
   }

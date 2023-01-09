@@ -76,7 +76,7 @@ public class AlgorithmTest {
     builder.setLRoot(ByteString.copyFrom("FDXN3SN67NA5DKA4J2GOK7BVQI".getBytes()));
     builder.setSeq(3447);
 
-    //String msg = "enrtree-root:v1 e=VXJIDGQECCIIYNY3GZEJSFSG6U l=FDXN3SN67NA5DKA4J2GOK7BVQI seq=3447";
+    //String eth_msg = "enrtree-root:v1 e=VXJIDGQECCIIYNY3GZEJSFSG6U l=FDXN3SN67NA5DKA4J2GOK7BVQI seq=3447";
     String msg = builder.toString();
     byte[] sig = Algorithm.sigData(builder.toString(), privateKey);
     Assert.assertEquals(65, sig.length);

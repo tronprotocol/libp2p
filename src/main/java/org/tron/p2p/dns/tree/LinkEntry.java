@@ -38,7 +38,7 @@ public class LinkEntry implements Entry {
     }
     String[] items = e.substring(linkPrefix.length()).split("@");
     if (items.length != 2) {
-      throw new DnsException(TypeEnum.NO_PUBKEY, "scheme url:" + e);
+      throw new DnsException(TypeEnum.NO_PUBLIC_KEY, "scheme url:" + e);
     }
     String base32PublicKey = items[0];
 
@@ -47,7 +47,7 @@ public class LinkEntry implements Entry {
       String unCompressPublicKey = Algorithm.decompressPubKey(ByteArray.toHexString(data));
       return new LinkEntry(e, items[1], unCompressPublicKey);
     } catch (RuntimeException exception) {
-      throw new DnsException(TypeEnum.BAD_PUBKEY, "bad public key:" + base32PublicKey);
+      throw new DnsException(TypeEnum.BAD_PUBLIC_KEY, "bad public key:" + base32PublicKey);
     }
   }
 

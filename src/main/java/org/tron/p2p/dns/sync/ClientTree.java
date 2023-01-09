@@ -60,11 +60,13 @@ public class ClientTree {
     random = new Random();
   }
 
-  public void syncAll(Map<String, Entry> entries) throws DnsException, UnknownHostException,
+  public boolean[] syncAll(Map<String, Entry> entries)
+      throws DnsException, UnknownHostException,
       SignatureException, TextParseException {
-    updateRoot();
+    boolean[] isRootUpdate = updateRoot();
     linkSync.resolveAll(entries);
     enrSync.resolveAll(entries);
+    return isRootUpdate;
   }
 
   // retrieves a single entry of the tree. The Node return value is non-nil if the entry was a node.
@@ -135,26 +137,29 @@ public class ClientTree {
   }
 
   // updateRoot ensures that the given tree has an up-to-date root.
-  private void updateRoot()
+  private boolean[] updateRoot()
       throws TextParseException, DnsException, SignatureException, UnknownHostException {
     log.info("UpdateRoot {}", linkEntry.getDomain());
     lastValidateTime = System.currentTimeMillis();
     RootEntry rootEntry = client.resolveRoot(linkEntry);
     if (rootEntry == null) {
-      return;
+      return new boolean[] {false, false};
     }
     if (rootEntry.getSeq() <= lastSeq) {
       log.info("The seq of url doesn't change, url:[{}], seq:{}", linkEntry.getRepresent(),
           lastSeq);
-      return;
+      return new boolean[] {false, false};
     }
 
     root = rootEntry;
     lastSeq = rootEntry.getSeq();
 
+    boolean updateLRoot = false;
+    boolean updateERoot = false;
     if (linkSync == null || !rootEntry.getLRoot().equals(linkSync.root)) {
       linkSync = new SubtreeSync(client, linkEntry, rootEntry.getLRoot(), true);
       curLinks = new HashSet<>();//clear all links
+      updateLRoot = true;
     } else {
       // if lroot is not changed, wo do not to sync the link tree
       log.info("The lroot of url doesn't change, url:[{}], lroot:[{}]", linkEntry.getRepresent(),
@@ -163,11 +168,13 @@ public class ClientTree {
 
     if (enrSync == null || !rootEntry.getERoot().equals(enrSync.root)) {
       enrSync = new SubtreeSync(client, linkEntry, rootEntry.getERoot(), false);
+      updateERoot = true;
     } else {
       // if eroot is not changed, wo do not to sync the enr tree
       log.info("The eroot of url doesn't change, url:[{}], eroot:[{}]", linkEntry.getRepresent(),
           enrSync.root);
     }
+    return new boolean[] {updateLRoot, updateERoot};
   }
 
   private boolean rootUpdateDue() {
