@@ -80,8 +80,8 @@ public class LookUpTxt {
       log.error("Failed to lookUp name:{}", name);
       return null;
     }
-    for (Record record : records) {
-      txt = (TXTRecord) record;
+    for (Record item : records) {
+      txt = (TXTRecord) item;
     }
     return txt;
   }

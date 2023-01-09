@@ -31,15 +31,15 @@ import org.xbill.DNS.TextParseException;
 @Slf4j(topic = "net")
 public class Client {
 
-  public final static int recheckInterval = 60 * 60; //seconds, should be smaller than rootTTL
-  public final static int cacheLimit = 2000;
-  public final static int randomRetryTimes = 10;
+  public static final int recheckInterval = 60 * 60; //seconds, should be smaller than rootTTL
+  public static final int cacheLimit = 2000;
+  public static final int randomRetryTimes = 10;
   private Cache<String, Entry> cache;
   @Getter
-  private Map<String, Tree> trees = new ConcurrentHashMap();
-  private Map<String, ClientTree> clientTrees = new HashMap<>();
+  private final Map<String, Tree> trees = new ConcurrentHashMap<>();
+  private final Map<String, ClientTree> clientTrees = new HashMap<>();
 
-  private ScheduledExecutorService syncer = Executors.newSingleThreadScheduledExecutor();
+  private final ScheduledExecutorService syncer = Executors.newSingleThreadScheduledExecutor();
 
   public Client() {
     this.cache = CacheBuilder.newBuilder()
@@ -49,14 +49,14 @@ public class Client {
   }
 
   public void init() {
-    if (!Parameter.p2pConfig.getEnrTreeUrls().isEmpty()) {
+    if (!Parameter.p2pConfig.getTreeUrls().isEmpty()) {
       syncer.scheduleWithFixedDelay(this::startSync, 5, recheckInterval,
           TimeUnit.SECONDS);
     }
   }
 
   public void startSync() {
-    for (String urlScheme : Parameter.p2pConfig.getEnrTreeUrls()) {
+    for (String urlScheme : Parameter.p2pConfig.getTreeUrls()) {
       ClientTree clientTree = clientTrees.getOrDefault(urlScheme, new ClientTree(this));
       Tree tree = trees.getOrDefault(urlScheme, new Tree());
       trees.put(urlScheme, tree);
@@ -143,7 +143,7 @@ public class Client {
       entry = BranchEntry.parseEntry(txt);
     } else if (txt.startsWith(Entry.linkPrefix)) {
       entry = LinkEntry.parseEntry(txt);
-    } else if (txt.startsWith(Entry.enrPrefix)) {
+    } else if (txt.startsWith(Entry.nodesPrefix)) {
       entry = NodesEntry.parseEntry(txt);
     }
 
@@ -163,7 +163,7 @@ public class Client {
 
   public RandomIterator newIterator() {
     RandomIterator randomIterator = new RandomIterator(this);
-    for (String urlScheme : Parameter.p2pConfig.getEnrTreeUrls()) {
+    for (String urlScheme : Parameter.p2pConfig.getTreeUrls()) {
       try {
         randomIterator.addTree(urlScheme);
       } catch (DnsException e) {

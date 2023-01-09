@@ -1,11 +1,13 @@
 package org.tron.p2p.dns;
 
 
+import com.google.protobuf.ByteString;
 import java.math.BigInteger;
 import java.security.SignatureException;
 import org.junit.Assert;
 import org.junit.Test;
 import org.tron.p2p.dns.tree.Algorithm;
+import org.tron.p2p.protos.Discover.DnsRoot.TreeRoot;
 import org.tron.p2p.utils.ByteArray;
 
 public class AlgorithmTest {
@@ -38,11 +40,11 @@ public class AlgorithmTest {
 
   @Test
   public void testEncode32() {
-    String content = "enrtree://AM5FCQLWIZX2QFPNJAP7VUERCCRNGRHWZG3YYHIUV7BVDQ5FDPRT2@morenodes.example.org";
+    String content = "tree://AM5FCQLWIZX2QFPNJAP7VUERCCRNGRHWZG3YYHIUV7BVDQ5FDPRT2@morenodes.example.org";
     String base32 = Algorithm.encode32(content.getBytes());
     Assert.assertArrayEquals(content.getBytes(), Algorithm.decode32(base32));
 
-    Assert.assertEquals("C7HRFPF3BLGF3YR4DY5KX3SMBE", Algorithm.encode32AndTruncate(content));
+    Assert.assertEquals("USBZA4IGXFNVDBBQACEK3FGLWM", Algorithm.encode32AndTruncate(content));
   }
 
   @Test
@@ -68,13 +70,19 @@ public class AlgorithmTest {
   }
 
   @Test
-  public void testRecoverPubkey() {
-    String msg = "enrtree-root:v1 e=VXJIDGQECCIIYNY3GZEJSFSG6U l=FDXN3SN67NA5DKA4J2GOK7BVQI seq=3447";
-    byte[] sig = Algorithm.sigData(msg, privateKey);
+  public void testRecoverPublicKey() {
+    TreeRoot.Builder builder = TreeRoot.newBuilder();
+    builder.setERoot(ByteString.copyFrom("VXJIDGQECCIIYNY3GZEJSFSG6U".getBytes()));
+    builder.setLRoot(ByteString.copyFrom("FDXN3SN67NA5DKA4J2GOK7BVQI".getBytes()));
+    builder.setSeq(3447);
+
+    //String msg = "enrtree-root:v1 e=VXJIDGQECCIIYNY3GZEJSFSG6U l=FDXN3SN67NA5DKA4J2GOK7BVQI seq=3447";
+    String msg = builder.toString();
+    byte[] sig = Algorithm.sigData(builder.toString(), privateKey);
     Assert.assertEquals(65, sig.length);
     String base64Sig = Algorithm.encode64(sig);
     Assert.assertEquals(
-        "sRAWqxdvpzS1UmNP1nt7iLuyiJUJgzvCw-635SLfg7A7OqjkI-bfwD-nYz-wdD5Qb8FwAOke37KgIZ9xTxo7BBs",
+        "_Zfgv2g7IUzjhqkMGCPZuPT_HAA01hTxiKAa3D1dyokk8_OKee-Jy2dSNo-nqEr6WOFkxv3A9ukYuiJRsf2v8hs",
         base64Sig);
 
     byte[] sigData;

@@ -23,7 +23,7 @@ public class NodesEntry implements Entry {
   }
 
   public static NodesEntry parseEntry(String e) throws DnsException {
-    String content = e.substring(enrPrefix.length());
+    String content = e.substring(nodesPrefix.length());
     List<DnsNode> nodeList;
     try {
       nodeList = DnsNode.decompress(content);

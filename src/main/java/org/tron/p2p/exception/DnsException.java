@@ -3,6 +3,7 @@ package org.tron.p2p.exception;
 
 public class DnsException extends Exception {
 
+  private static final long serialVersionUID = 9096335228978001485L;
   private final DnsException.TypeEnum type;
 
   public DnsException(DnsException.TypeEnum type, String errMsg) {
@@ -48,8 +49,8 @@ public class DnsException extends Exception {
 
     OTHER_ERROR(15, "other error");
 
-    private Integer value;
-    private String desc;
+    private final Integer value;
+    private final String desc;
 
     TypeEnum(Integer value, String desc) {
       this.value = value;

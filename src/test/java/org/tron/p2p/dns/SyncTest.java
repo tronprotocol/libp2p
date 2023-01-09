@@ -16,17 +16,17 @@ public class SyncTest {
   @Test
   public void testSync() {
     Parameter.p2pConfig = new P2pConfig();
-    List<String> enrTreeUrls = new ArrayList<>();
-    enrTreeUrls.add(
-        "enrtree://APFGGTFOBVE2ZNAB3CSMNNX6RRK3ODIRLP2AA5U4YFAA6MSYZUYTQ@shasta.nftderby1.net");
-    Parameter.p2pConfig.setEnrTreeUrls(enrTreeUrls);
+    List<String> treeUrls = new ArrayList<>();
+    treeUrls.add(
+        "tree://APFGGTFOBVE2ZNAB3CSMNNX6RRK3ODIRLP2AA5U4YFAA6MSYZUYTQ@shasta.nftderby1.net");
+    Parameter.p2pConfig.setTreeUrls(treeUrls);
 
     Client syncClient = new Client();
 
     ClientTree clientTree = new ClientTree(syncClient);
     Tree tree = new Tree();
     try {
-      syncClient.syncTree(Parameter.p2pConfig.getEnrTreeUrls().get(0), clientTree, tree);
+      syncClient.syncTree(Parameter.p2pConfig.getTreeUrls().get(0), clientTree, tree);
     } catch (Exception e) {
       Assert.fail();
     }

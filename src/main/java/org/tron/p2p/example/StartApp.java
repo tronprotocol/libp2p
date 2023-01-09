@@ -158,7 +158,7 @@ public class StartApp {
 
   private void checkDnsOption(CommandLine cli) {
     if (cli.hasOption("u")) {
-      Parameter.p2pConfig.setEnrTreeUrls(Arrays.asList(cli.getOptionValue("u").split(",")));
+      Parameter.p2pConfig.setTreeUrls(Arrays.asList(cli.getOptionValue("u").split(",")));
     }
 
     PublishConfig publishConfig = new PublishConfig();
@@ -186,7 +186,7 @@ public class StartApp {
       }
 
       if (cli.hasOption(configKnownUrls)) {
-        publishConfig.setKnownEnrTreeUrls(
+        publishConfig.setKnownTreeUrls(
             Arrays.asList(cli.getOptionValue(configKnownUrls).split(",")));
       }
 
@@ -200,7 +200,7 @@ public class StartApp {
       if (cli.hasOption(configServerType)) {
         String serverType = cli.getOptionValue(configServerType);
         if (!serverType.equalsIgnoreCase("aws") && !serverType.equalsIgnoreCase("aliyun")) {
-          log.error("Check {}, must be \"aws\" or \"aliyun\"", configServerType);
+          log.error("Check {}, must be aws or aliyun", configServerType);
           System.exit(0);
         }
         if (serverType.equalsIgnoreCase("aws")) {
@@ -283,7 +283,7 @@ public class StartApp {
 
   private Options getDnsReadOption() {
     Option opt = new Option("u", "url-schemes", true,
-        "dns urls to get nodes, url format enrtree://{pubkey}@{domain}. url[,url[...]]");
+        "dns url(s) to get nodes, url format tree://{pubkey}@{domain}, url[,url[...]]");
     Options group = new Options();
     group.addOption(opt);
     return group;
@@ -294,11 +294,11 @@ public class StartApp {
     Option opt2 = new Option(null, configDnsPrivate, true,
         "dns private key used to publish, required, hex string of length 64");
     Option opt3 = new Option(null, configKnownUrls, true,
-        "known dns urls to publish, url format enrtree://{pubkey}@{domain}, optional, url[,url[...]]");
+        "known dns urls to publish, url format tree://{pubkey}@{domain}, optional, url[,url[...]]");
     Option opt4 = new Option(null, configDomain, true,
         "dns domain to publish nodes, required, string");
     Option opt5 = new Option(null, configServerType, true,
-        "dns server to publish, required, only \"aws\" or \"aliyun\" is support");
+        "dns server to publish, required, only aws or aliyun is support");
     Option opt6 = new Option(null, configAccessId, true,
         "access key id of aws or aliyun api, required, string");
     Option opt7 = new Option(null, configAccessSecret, true,
@@ -327,8 +327,7 @@ public class StartApp {
   private void printHelpMessage(Options kadOptions, Options dnsReadOptions,
       Options dnsPublishOptions) {
     HelpFormatter helpFormatter = new HelpFormatter();
-    helpFormatter.setWidth(100);
-    helpFormatter.printHelp(">>>>>> available cli options:", kadOptions);
+    helpFormatter.printHelp("available p2p discovery cli options:", kadOptions);
     helpFormatter.setSyntaxPrefix("\n");
     helpFormatter.printHelp("available dns read cli options:", dnsReadOptions);
     helpFormatter.setSyntaxPrefix("\n");

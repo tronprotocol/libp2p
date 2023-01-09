@@ -111,7 +111,7 @@ public class Tree {
     if (StringUtils.isEmpty(privateKey)) {
       return;
     }
-    byte[] sig = Algorithm.sigData(rootEntry.toString(), privateKey);
+    byte[] sig = Algorithm.sigData(rootEntry.toString(), privateKey); //message don't include prefix
     rootEntry.setSignature(sig);
 
     BigInteger publicKeyInt = Algorithm.generateKeyPair(privateKey).getPublicKey();
@@ -137,14 +137,14 @@ public class Tree {
     List<DnsNode> sub = new ArrayList<>();
     for (DnsNode dnsNode : nodes) {
       if ((networkA > -1 && dnsNode.getNetworkA() != networkA) || sub.size() >= MaxMergeSize) {
-        enrs.add(Entry.enrPrefix + DnsNode.compress(sub));
+        enrs.add(Entry.nodesPrefix + DnsNode.compress(sub));
         sub.clear();
       }
       sub.add(dnsNode);
       networkA = dnsNode.getNetworkA();
     }
     if (!sub.isEmpty()) {
-      enrs.add(Entry.enrPrefix + DnsNode.compress(sub));
+      enrs.add(Entry.nodesPrefix + DnsNode.compress(sub));
     }
     return enrs;
   }
@@ -211,7 +211,7 @@ public class Tree {
       List<String> nodesEntryList = getNodesEntry();
       List<DnsNode> nodes = new ArrayList<>();
       for (String represent : nodesEntryList) {
-        String joinStr = represent.substring(Entry.enrPrefix.length());
+        String joinStr = represent.substring(Entry.nodesPrefix.length());
         List<DnsNode> subNodes;
         try {
           subNodes = DnsNode.decompress(joinStr);

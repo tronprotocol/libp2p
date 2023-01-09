@@ -43,7 +43,7 @@ public class PublishService {
       }
       Tree tree = new Tree();
       List<String> nodes = getNodes();
-      tree.makeTree(1, nodes, config.getKnownEnrTreeUrls(), config.getDnsPrivate());
+      tree.makeTree(1, nodes, config.getKnownTreeUrls(), config.getDnsPrivate());
       publish.deploy(config.getDnsDomain(), tree);
     } catch (Exception e) {
       log.error("Failed to publish dns", e);

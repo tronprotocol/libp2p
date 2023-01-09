@@ -15,12 +15,12 @@ public class RandomTest {
   @Test
   public void testRandomIterator() {
     Parameter.p2pConfig = new P2pConfig();
-    List<String> enrTreeUrls = new ArrayList<>();
-    enrTreeUrls.add(
-        "enrtree://APFGGTFOBVE2ZNAB3CSMNNX6RRK3ODIRLP2AA5U4YFAA6MSYZUYTQ@nile.nftderby1.net");
-    enrTreeUrls.add(
-        "enrtree://APFGGTFOBVE2ZNAB3CSMNNX6RRK3ODIRLP2AA5U4YFAA6MSYZUYTQ@shasta.nftderby1.net");
-    Parameter.p2pConfig.setEnrTreeUrls(enrTreeUrls);
+    List<String> treeUrls = new ArrayList<>();
+    treeUrls.add(
+        "tree://APFGGTFOBVE2ZNAB3CSMNNX6RRK3ODIRLP2AA5U4YFAA6MSYZUYTQ@nile.nftderby1.net");
+    treeUrls.add(
+        "tree://APFGGTFOBVE2ZNAB3CSMNNX6RRK3ODIRLP2AA5U4YFAA6MSYZUYTQ@shasta.nftderby1.net");
+    Parameter.p2pConfig.setTreeUrls(treeUrls);
 
     Client syncClient = new Client();
 

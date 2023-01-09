@@ -30,4 +30,4 @@ shareddata.*
 /.settings/
 /.apt_generated/
 
-/src/test/java/org/tron/p2p/dns/TmpTest.java
+/src/test/java/org/tron/p2p/dns/PublishTest.java

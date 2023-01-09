@@ -22,6 +22,7 @@ import org.tron.p2p.utils.ByteArray;
 @Slf4j(topic = "net")
 public class DnsNode extends Node implements Comparable<DnsNode> {
 
+  private static final long serialVersionUID = 6689513341024130226L;
   private String v4Hex = Constant.ipV4Hex;
   private String v6Hex = Constant.ipV6Hex;
 

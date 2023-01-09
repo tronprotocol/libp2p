@@ -11,7 +11,7 @@ public class PublishConfig {
 
   private boolean dnsPublishEnable = false;
   private String dnsPrivate = null;
-  private List<String> knownEnrTreeUrls = new ArrayList<>();
+  private List<String> knownTreeUrls = new ArrayList<>();
   private String dnsDomain = null;
   private DnsType dnsType = null;
   private String accessKeyId = null;

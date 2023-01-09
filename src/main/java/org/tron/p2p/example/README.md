@@ -6,14 +6,48 @@ $ nohup java -jar libp2p.jar [options] >> start.log 2>&1 &
 
 available cli options:
 ```bash
- -a,--active-nodes <arg>       active node(s), ip:port[,ip:port[...]]
- -d,--discover <arg>           enable p2p discover, 0/1, default 1
- -M,--max-connection <arg>     max connection number, int, default 50
- -m,--min-connection <arg>     minConnections, default 8
- -p,--port <arg>               UDP & TCP port, int, default 18888
- -s,--seed-nodes <arg>         seed node(s), required, ip:port[,ip:port[...]]
- -t,--trust-ips <arg>          trust ip(s), ip[,ip[...]]
- -v,--version <arg>            p2p version, int, default 1
+usage: available p2p discovery cli options:
+ -a,--active-nodes <arg>             active node(s),
+                                     ip:port[,ip:port[...]]
+ -d,--discover <arg>                 enable p2p discover, 0/1, default 1
+ -h,--help                           print help message
+ -M,--max-connection <arg>           max connection number, int, default
+                                     50
+ -m,--min-connection <arg>           min connection number, int, default 8
+ -ma,--min-active-connection <arg>   min active connection number, int,
+                                     default 2
+ -p,--port <arg>                     UDP & TCP port, int, default 18888
+ -s,--seed-nodes <arg>               seed node(s), required,
+                                     ip:port[,ip:port[...]]
+ -t,--trust-ips <arg>                trust ip(s), ip[,ip[...]]
+ -v,--version <arg>                  p2p version, int, default 1
+
+available dns read cli options:
+ -u,--url-schemes <arg>   dns urls to get nodes, url format
+                          tree://{pubkey}@{domain}. url[,url[...]]
+
+available dns publish cli options:
+    --access-key-id <arg>         access key id of aws or aliyun api,
+                                  required, string
+    --access-key-secret <arg>     access key secret of aws or aliyun api,
+                                  required, string
+    --aliyun-dns-endpoint <arg>   if server-type is aliyun, it's endpoint
+                                  of aws dns server, required, string
+    --aws-region <arg>            if server-type is aws, it's region of
+                                  aws api, such as "eu-south-1", required,
+                                  string
+    --dns-private <arg>           dns private key used to publish,
+                                  required, hex string of length 64
+    --domain <arg>                dns domain to publish nodes, required,
+                                  string
+    --host-zone-id <arg>          if server-type is aws, it's host zone id
+                                  of aws's domain, optional, string
+    --known-urls <arg>            known dns urls to publish, url format
+                                  tree://{pubkey}@{domain}, optional,
+                                  url[,url[...]]
+ -publish,--publish               enable dns publish
+    --server-type <arg>           dns server to publish, required, only
+                                  aws or aliyun is support
 ```
 For details please check [StartApp](https://github.com/tronprotocol/libp2p/blob/main/src/main/java/org/tron/p2p/example/StartApp.java).
 

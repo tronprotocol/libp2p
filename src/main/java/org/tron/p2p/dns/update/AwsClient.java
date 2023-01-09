@@ -129,7 +129,7 @@ public class AwsClient implements Publish {
     if ((existing.size() == 0 || changes.size() / (double) existing.size() >= changeThreshold)
         && (serverNodes.isEmpty()
         || (addNodeSize + deleteNodeSize) / (double) serverNodes.size() >= changeThreshold)) {
-      String comment = String.format("Enrtree update of %s at seq %d", domain, tree.getSeq());
+      String comment = String.format("Tree update of %s at seq %d", domain, tree.getSeq());
       log.info(comment);
       submitChanges(changes, comment);
     } else {
@@ -195,7 +195,7 @@ public class AwsClient implements Publish {
         if (rootDomain.equalsIgnoreCase(name)) {
           rootContent = content;
         }
-        if (content.startsWith(org.tron.p2p.dns.tree.Entry.enrPrefix)) {
+        if (content.startsWith(org.tron.p2p.dns.tree.Entry.nodesPrefix)) {
           NodesEntry nodesEntry;
           try {
             nodesEntry = NodesEntry.parseEntry(content);

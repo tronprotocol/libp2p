@@ -30,9 +30,9 @@ public class P2pService {
   }
 
   public void close() {
+    DnsManager.close();
     NodeManager.close();
     ChannelManager.close();
-    DnsManager.close();
     log.info("P2p service closed");
   }
 

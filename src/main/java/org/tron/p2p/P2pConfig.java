@@ -27,7 +27,7 @@ public class P2pConfig {
   private boolean disconnectionPolicyEnable = false;
 
   //dns read config
-  private List<String> enrTreeUrls = new ArrayList<>();
+  private List<String> treeUrls = new ArrayList<>();
 
   //dns publish config
   private PublishConfig publishConfig = new PublishConfig();
