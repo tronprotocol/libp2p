@@ -1,7 +1,6 @@
 package org.tron.p2p.dns.tree;
 
 
-import java.math.BigInteger;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.exception.DnsException;
@@ -12,43 +11,40 @@ import org.tron.p2p.utils.ByteArray;
 public class LinkEntry implements Entry {
 
   @Getter
-  private String represent;
+  private final String represent;
   @Getter
-  private String domain;
+  private final String domain;
   @Getter
-  private String unCompressPublicKey; //hex string
+  private final String unCompressHexPublicKey;
 
-  public LinkEntry(String represent, String domain, String unCompressPublicKey) {
+  public LinkEntry(String represent, String domain, String unCompressHexPublicKey) {
     this.represent = represent;
     this.domain = domain;
-    this.unCompressPublicKey = unCompressPublicKey;
+    this.unCompressHexPublicKey = unCompressHexPublicKey;
   }
 
-  public LinkEntry(String domain, String unCompressPublicKey) {
-    byte[] pubKey = ByteArray.fromHexString(unCompressPublicKey);
-    this.represent = Algorithm.compressPubKey(new BigInteger(pubKey)) + "@" + domain;
-    this.domain = domain;
-    this.unCompressPublicKey = unCompressPublicKey;
-  }
-
-  public static LinkEntry parseEntry(String e) throws DnsException {
-    if (!e.startsWith(linkPrefix)) {
+  public static LinkEntry parseEntry(String treeRepresent) throws DnsException {
+    if (!treeRepresent.startsWith(linkPrefix)) {
       throw new DnsException(TypeEnum.INVALID_SCHEME_URL,
-          "scheme url must starts with :[" + Entry.linkPrefix + "], but get " + e);
+          "scheme url must starts with :[" + Entry.linkPrefix + "], but get " + treeRepresent);
     }
-    String[] items = e.substring(linkPrefix.length()).split("@");
+    String[] items = treeRepresent.substring(linkPrefix.length()).split("@");
     if (items.length != 2) {
-      throw new DnsException(TypeEnum.NO_PUBLIC_KEY, "scheme url:" + e);
+      throw new DnsException(TypeEnum.NO_PUBLIC_KEY, "scheme url:" + treeRepresent);
     }
     String base32PublicKey = items[0];
 
     try {
       byte[] data = Algorithm.decode32(base32PublicKey);
       String unCompressPublicKey = Algorithm.decompressPubKey(ByteArray.toHexString(data));
-      return new LinkEntry(e, items[1], unCompressPublicKey);
+      return new LinkEntry(treeRepresent, items[1], unCompressPublicKey);
     } catch (RuntimeException exception) {
       throw new DnsException(TypeEnum.BAD_PUBLIC_KEY, "bad public key:" + base32PublicKey);
     }
+  }
+
+  public static String buildRepresent(String base32PubKey, String domain) {
+    return linkPrefix + base32PubKey + "@" + domain;
   }
 
   @Override

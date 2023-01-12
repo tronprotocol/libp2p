@@ -12,6 +12,7 @@ import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.dns.DnsNode;
+import org.tron.p2p.dns.tree.LinkEntry;
 import org.tron.p2p.dns.tree.NodesEntry;
 import org.tron.p2p.dns.tree.RootEntry;
 import org.tron.p2p.dns.tree.Tree;
@@ -41,6 +42,9 @@ import software.amazon.awssdk.services.route53.model.ResourceRecordSet;
 @Slf4j(topic = "net")
 public class AwsClient implements Publish {
 
+  // Route53 limits change sets to 32k of 'RDATA size'. Change sets are also limited to
+  // 1000 items. UPSERTs count double.
+  // https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html#limits-api-requests-changeresourcerecordsets
   public static final int route53ChangeSizeLimit = 32000;
   public static final int route53ChangeCountLimit = 1000;
   public static final int maxRetryLimit = 60;
@@ -110,6 +114,8 @@ public class AwsClient implements Publish {
 
     Map<String, RecordSet> existing = collectRecords(domain);
     log.info("Find {} TXT records, {} nodes for {}", existing.size(), serverNodes.size(), domain);
+    String represent = LinkEntry.buildRepresent(tree.getBase32PublicKey(), domain);
+    log.info("Trying to publish {}", represent);
 
     tree.setSeq(this.lastSeq + 1);
     tree.sign(); //seq changed, wo need to sign again

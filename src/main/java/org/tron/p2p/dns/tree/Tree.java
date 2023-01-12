@@ -32,8 +32,9 @@ public class Tree {
   private RootEntry rootEntry;
   @Getter
   private Map<String, Entry> entries;
-  @Setter
   private String privateKey;
+  @Getter
+  private String base32PublicKey;
 
   private List<DnsNode> dnsNodes;
 
@@ -101,7 +102,7 @@ public class Tree {
     setRootEntry(new RootEntry(eRootStr, lRootStr, seq));
 
     if (StringUtils.isNotEmpty(privateKey)) {
-      setPrivateKey(privateKey);
+      this.privateKey = privateKey;
       sign();
     }
   }
@@ -114,12 +115,12 @@ public class Tree {
     rootEntry.setSignature(sig);
 
     BigInteger publicKeyInt = Algorithm.generateKeyPair(privateKey).getPublicKey();
-    String publicKey = ByteArray.toHexString(publicKeyInt.toByteArray());
+    String unCompressPublicKey = ByteArray.toHexString(publicKeyInt.toByteArray());
 
     //verify ourselves
     boolean verified;
     try {
-      verified = Algorithm.verifySignature(publicKey, rootEntry.toString(),
+      verified = Algorithm.verifySignature(unCompressPublicKey, rootEntry.toString(),
           rootEntry.getSignature());
     } catch (SignatureException e) {
       throw new DnsException(TypeEnum.INVALID_SIGNATURE, e);
@@ -127,6 +128,8 @@ public class Tree {
     if (!verified) {
       throw new DnsException(TypeEnum.INVALID_SIGNATURE, "");
     }
+    String hexPub = Algorithm.compressPubKey(publicKeyInt);
+    this.base32PublicKey = Algorithm.encode32(ByteArray.fromHexString(hexPub));
   }
 
   public static List<String> merge(List<DnsNode> nodes) {

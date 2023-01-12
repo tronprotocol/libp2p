@@ -19,9 +19,11 @@ public class AlgorithmTest {
     BigInteger publicKeyInt = Algorithm.generateKeyPair(privateKey).getPublicKey();
 
     String publicKey = ByteArray.toHexString(publicKeyInt.toByteArray());
-    String puKeyCompress = Algorithm.compressPubKey(publicKeyInt);
-    String uncompressPubkey = Algorithm.decompressPubKey(puKeyCompress);
-    Assert.assertEquals(publicKey, uncompressPubkey);
+    String pubKeyCompressHex = Algorithm.compressPubKey(publicKeyInt);
+    String base32PubKey = Algorithm.encode32(ByteArray.fromHexString(pubKeyCompressHex));
+    Assert.assertEquals("APFGGTFOBVE2ZNAB3CSMNNX6RRK3ODIRLP2AA5U4YFAA6MSYZUYTQ", base32PubKey);
+    String unCompressPubKey = Algorithm.decompressPubKey(pubKeyCompressHex);
+    Assert.assertEquals(publicKey, unCompressPubKey);
   }
 
   @Test

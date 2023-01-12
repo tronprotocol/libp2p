@@ -25,6 +25,9 @@ public class ImportUsing {
     P2pConfig config = new P2pConfig();
     initConfig(config);
 
+    //if you use dns discovery, you can use following config
+    initConfig2(config);
+
     // register p2p event handler
     MyP2pEventHandler myP2pEventHandler = new MyP2pEventHandler();
     try {
@@ -121,6 +124,13 @@ public class ImportUsing {
     config.setMaxConnectionsWithSameIp(2);
   }
 
+  private void initConfig2(P2pConfig config) {
+    config.setDiscoverEnable(false);
+    String[] urls = new String[] {
+        "tree://APFGGTFOBVE2ZNAB3CSMNNX6RRK3ODIRLP2AA5U4YFAA6MSYZUYTQ@nodes.example.org"};
+    config.setTreeUrls(Arrays.asList(urls));
+  }
+
   public class MyP2pEventHandler extends P2pEventHandler {
 
     public MyP2pEventHandler() {
@@ -156,11 +166,11 @@ public class ImportUsing {
 
   public enum MessageTypes {
 
-    FIRST((byte)0x00),
+    FIRST((byte) 0x00),
 
-    TEST((byte)0x01),
+    TEST((byte) 0x01),
 
-    LAST((byte)0x8f);
+    LAST((byte) 0x8f);
 
     private final byte type;
 
@@ -186,8 +196,10 @@ public class ImportUsing {
   }
 
   public class TestMessage {
+
     protected MessageTypes type;
     protected byte[] data;
+
     public TestMessage(byte[] data) {
       this.type = MessageTypes.TEST;
       this.data = data;

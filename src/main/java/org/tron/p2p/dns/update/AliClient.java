@@ -6,6 +6,7 @@ import com.aliyun.alidns20150109.models.DescribeDomainRecordsResponseBody.Descri
 import com.aliyun.teaopenapi.models.Config;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.tron.p2p.dns.tree.LinkEntry;
 import org.tron.p2p.dns.tree.RootEntry;
 import org.tron.p2p.dns.tree.Tree;
 import org.tron.p2p.exception.DnsException;
@@ -38,6 +39,8 @@ public class AliClient implements Publish {
     try {
       Map<String, DescribeDomainRecordsResponseBodyDomainRecordsRecord> existing = collectRecords(
           domainName);
+      String represent = LinkEntry.buildRepresent(t.getBase32PublicKey(), domainName);
+      log.info("Trying to publish {}", represent);
       t.setSeq(this.lastSeq + 1);
       t.sign(); //seq changed, wo need to sign again
       Map<String, String> records = t.toTXT(null);

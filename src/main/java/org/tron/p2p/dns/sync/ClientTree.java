@@ -137,7 +137,7 @@ public class ClientTree {
   }
 
   // updateRoot ensures that the given tree has an up-to-date root.
-  private boolean[] updateRoot()
+  private synchronized boolean[] updateRoot()
       throws TextParseException, DnsException, SignatureException, UnknownHostException {
     log.info("UpdateRoot {}", linkEntry.getDomain());
     lastValidateTime = System.currentTimeMillis();

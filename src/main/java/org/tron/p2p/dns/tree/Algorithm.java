@@ -23,11 +23,15 @@ public class Algorithm {
   private static final int truncateLength = 26;
   public static final String padding = "=";
 
+  /**
+   * return compress public key with hex
+   */
   public static String compressPubKey(BigInteger pubKey) {
     String pubKeyYPrefix = pubKey.testBit(0) ? "03" : "02";
     String pubKeyHex = pubKey.toString(16);
     String pubKeyX = pubKeyHex.substring(0, 64);
-    return pubKeyYPrefix + pubKeyX;
+    String hexPub = pubKeyYPrefix + pubKeyX;
+    return hexPub;
   }
 
   public static String decompressPubKey(String hexPubKey) {
@@ -119,7 +123,8 @@ public class Algorithm {
   }
 
   public static String encode32(byte[] content) {
-    return new String(Base32.encode(content), StandardCharsets.UTF_8);
+    String base32Content = new String(Base32.encode(content), StandardCharsets.UTF_8);
+    return StringUtils.stripEnd(base32Content, padding);
   }
 
   /**
