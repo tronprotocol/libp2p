@@ -70,7 +70,7 @@ public class ClientTree {
   }
 
   // retrieves a single entry of the tree. The Node return value is non-nil if the entry was a node.
-  public DnsNode syncRandom()
+  public synchronized DnsNode syncRandom()
       throws DnsException, SignatureException, TextParseException, UnknownHostException {
     if (rootUpdateDue()) {
       updateRoot();
@@ -137,7 +137,7 @@ public class ClientTree {
   }
 
   // updateRoot ensures that the given tree has an up-to-date root.
-  private synchronized boolean[] updateRoot()
+  private boolean[] updateRoot()
       throws TextParseException, DnsException, SignatureException, UnknownHostException {
     log.info("UpdateRoot {}", linkEntry.getDomain());
     lastValidateTime = System.currentTimeMillis();

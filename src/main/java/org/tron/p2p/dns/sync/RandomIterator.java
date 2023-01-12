@@ -4,9 +4,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -19,7 +21,7 @@ import org.tron.p2p.exception.DnsException;
 public class RandomIterator implements Iterator<DnsNode> {
 
   private final Client client;
-  private HashMap<String, ClientTree> clientTrees;
+  private Map<String, ClientTree> clientTrees;
   @Getter
   private DnsNode cur;
   private final LinkCache linkCache;
@@ -27,7 +29,7 @@ public class RandomIterator implements Iterator<DnsNode> {
 
   public RandomIterator(Client client) {
     this.client = client;
-    clientTrees = new HashMap<>();
+    clientTrees = new ConcurrentHashMap<>();
     linkCache = new LinkCache();
     random = new Random();
   }
