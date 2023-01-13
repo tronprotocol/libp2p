@@ -36,15 +36,12 @@ public class Tree {
   @Getter
   private String base32PublicKey;
 
-  private List<DnsNode> dnsNodes;
-
   public Tree() {
     init();
   }
 
   private void init() {
     this.entries = new ConcurrentHashMap<>();
-    this.dnsNodes = new ArrayList<>();
   }
 
   private Entry build(List<Entry> leafs) {
@@ -224,11 +221,18 @@ public class Tree {
     return nodesMap;
   }
 
-  private void updateDnsNodes() {
+  public void setEntries(Map<String, Entry> entries) {
+    this.entries = entries;
+  }
+
+  /**
+   * get nodes from entries dynamically. when sync first time, entries change as time
+   */
+  public List<DnsNode> getDnsNodes() {
     List<String> nodesEntryList = getNodesEntry();
     List<DnsNode> nodes = new ArrayList<>();
-    for (String represent : nodesEntryList) {
-      String joinStr = represent.substring(Entry.nodesPrefix.length());
+    for (String nodesEntry : nodesEntryList) {
+      String joinStr = nodesEntry.substring(Entry.nodesPrefix.length());
       List<DnsNode> subNodes;
       try {
         subNodes = DnsNode.decompress(joinStr);
@@ -238,18 +242,6 @@ public class Tree {
       }
       nodes.addAll(subNodes);
     }
-    dnsNodes = nodes;
-  }
-
-  public void setEntries(Map<String, Entry> entries) {
-    this.entries = entries;
-    updateDnsNodes();
-  }
-
-  public List<DnsNode> getDnsNodes() {
-    if (dnsNodes.isEmpty()) {
-      updateDnsNodes();
-    }
-    return dnsNodes;
+    return nodes;
   }
 }
