@@ -28,7 +28,7 @@ public class PacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
       UdpEvent event = new UdpEvent(Message.parse(encoded), packet.sender());
       out.add(event);
     } catch (Exception e) {
-      log.error("Parse msg failed, type {}, len {}, address {}", encoded[0], encoded.length,
+      log.info("Parse msg failed, type {}, len {}, address {}", encoded[0], encoded.length,
           packet.sender());
     }
   }
