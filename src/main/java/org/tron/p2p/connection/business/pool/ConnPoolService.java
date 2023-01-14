@@ -206,8 +206,9 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   public void close() {
+    List<Channel> channels = new ArrayList<>(activePeers);
     try {
-      activePeers.forEach(p -> {
+      channels.forEach(p -> {
         if (!p.isDisconnect()) {
           p.close();
         }
