@@ -81,6 +81,7 @@ public class ConnPoolService extends P2pEventHandler {
     List<Node> connectNodes = new ArrayList<>();
 
     //collect already used nodes in channelManager
+    Set<InetSocketAddress> inetSocketAddresses = new HashSet<>();
     Set<InetAddress> addressInUse = new HashSet<>();
     Set<String> nodesInUse = new HashSet<>();
     ChannelManager.getChannels().values().forEach(channel -> {
@@ -88,11 +89,13 @@ public class ConnPoolService extends P2pEventHandler {
         nodesInUse.add(channel.getNodeId());
       }
       addressInUse.add(channel.getInetAddress());
+      inetSocketAddresses.add(channel.getInetSocketAddress());
     });
 
     p2pConfig.getActiveNodes().forEach(address -> {
       if (!addressInUse.contains(address.getAddress())) {
         addressInUse.add(address.getAddress());
+        inetSocketAddresses.add(address);
         Node node = new Node(address); //use a random NodeId for config activeNodes
         connectNodes.add(node);
       }
@@ -107,7 +110,7 @@ public class ConnPoolService extends P2pEventHandler {
     if (lackSize > 0) {
       nodesInUse.add(Hex.toHexString(p2pConfig.getNodeID()));
       List<Node> connectableNodes = NodeManager.getConnectableNodes();
-      List<Node> newNodes = getNodes(nodesInUse, connectNodes, connectableNodes, lackSize);
+      List<Node> newNodes = getNodes(inetSocketAddresses, nodesInUse, connectNodes, connectableNodes, lackSize);
       connectNodes.addAll(newNodes);
     }
 
@@ -119,8 +122,8 @@ public class ConnPoolService extends P2pEventHandler {
     });
   }
 
-  public List<Node> getNodes(Set<String> nodesInUse, List<Node> connectNodes,
-      List<Node> connectableNodes, int limit) {
+  public List<Node> getNodes(Set<InetSocketAddress> inetSocketAddresses, Set<String> nodesInUse,
+                             List<Node> connectNodes, List<Node> connectableNodes, int limit) {
     List<Node> filtered = new ArrayList<>();
     Set<InetSocketAddress> connectAddress = new HashSet<>();
     for (Node n : connectNodes) {
@@ -128,7 +131,8 @@ public class ConnPoolService extends P2pEventHandler {
     }
     long now = System.currentTimeMillis();
     for (Node node : connectableNodes) {
-      InetAddress inetAddress = node.getInetSocketAddress().getAddress();
+      InetSocketAddress inetSocketAddress = node.getInetSocketAddress();
+      InetAddress inetAddress = inetSocketAddress.getAddress();
       Long forbiddenTime = ChannelManager.getBannedNodes().getIfPresent(inetAddress);
       if ((node.getHost().equals(p2pConfig.getIp()) && node.getPort() == p2pConfig.getPort())
           || (forbiddenTime != null && now <= forbiddenTime)
@@ -136,11 +140,13 @@ public class ConnPoolService extends P2pEventHandler {
           >= p2pConfig.getMaxConnectionsWithSameIp())
           || (node.getId() != null && nodesInUse.contains(node.getHexId()))
           || (peerClientCache.getIfPresent(inetAddress) != null)
-          || connectAddress.contains(node.getInetSocketAddress())) {
+          || connectAddress.contains(node.getInetSocketAddress())
+          || inetSocketAddresses.contains(inetSocketAddress)) {
         continue;
       }
       // sometimes error occurs if update_time changes when sort, so we copy it
       filtered.add((Node) node.clone());
+      inetSocketAddresses.add(inetSocketAddress);
     }
 
     //order by updateTime desc.
