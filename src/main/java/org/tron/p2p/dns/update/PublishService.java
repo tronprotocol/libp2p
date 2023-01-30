@@ -22,7 +22,8 @@ public class PublishService {
   private ScheduledExecutorService publisher = Executors.newSingleThreadScheduledExecutor();
 
   public void init() {
-    if (checkConfig(Parameter.p2pConfig.getPublishConfig())) {
+    boolean supportV4 = Parameter.p2pConfig.getIp() != null;
+    if (checkConfig(supportV4, Parameter.p2pConfig.getPublishConfig())) {
       publisher.scheduleWithFixedDelay(this::startPublish, 300, publishDelay, TimeUnit.SECONDS);
     }
   }
@@ -54,6 +55,9 @@ public class PublishService {
     List<Node> nodes = NodeManager.getConnectableNodes();
     List<DnsNode> dnsNodes = new ArrayList<>();
     for (Node node : nodes) {
+      if (node.getInetSocketAddressV6() != null) {
+        log.debug(node.format());
+      }
       DnsNode dnsNode = new DnsNode(node.getId(), node.getHostV4(), node.getHostV6(),
           node.getPort());
       dnsNodes.add(dnsNode);
@@ -61,9 +65,13 @@ public class PublishService {
     return Tree.merge(dnsNodes);
   }
 
-  private boolean checkConfig(PublishConfig config) {
+  private boolean checkConfig(boolean supportV4, PublishConfig config) {
     if (!config.isDnsPublishEnable()) {
       log.info("Dns publish service is disable");
+      return false;
+    }
+    if (!supportV4) {
+      log.error("Must have IP v4 connection to publish dns service");
       return false;
     }
     if (config.getDnsType() == null) {

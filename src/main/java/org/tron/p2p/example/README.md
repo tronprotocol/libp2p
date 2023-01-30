@@ -240,11 +240,20 @@ Set discover seed nodes
 ```bash
 List<InetSocketAddress> seedNodeList = new ArrayList<>();
 seedNodeList.add(new InetSocketAddress("13.124.62.58", 18888));
-seedNodeList.add(new InetSocketAddress("18.196.99.16", 18888));
+seedNodeList.add(new InetSocketAddress("2600:1f13:908:1b00:e1fd:5a84:251c:a32a", 18888));
+seedNodeList.add(new InetSocketAddress("127.0.0.4", 18888));
 config.setSeedNodes(seedNodeList);
 ```
 
 Set active nodes
+```bash
+List<InetSocketAddress> activeNodeList = new ArrayList<>();
+activeNodeList.add(new InetSocketAddress("127.0.0.2", 18888));
+activeNodeList.add(new InetSocketAddress("127.0.0.3", 18888));
+config.setActiveNodes(activeNodeList);
+```
+
+Set trust ips
 
 ```bash
 List<InetAddress> trustNodeList = new ArrayList<>();
@@ -397,6 +406,6 @@ p2pService.start(config);
 ```
 
 For details please
-check [ImportUsing](https://github.com/tronprotocol/libp2p/blob/main/src/main/java/org/tron/p2p/example/ImportUsing.java)
+check [ImportUsing](https://github.com/tronprotocol/libp2p/blob/main/src/main/java/org/tron/p2p/example/ImportUsing.java), [DnsExample1](https://github.com/tronprotocol/libp2p/blob/main/src/main/java/org/tron/p2p/example/DnsExample1.java), [DnsExample2](https://github.com/tronprotocol/libp2p/blob/main/src/main/java/org/tron/p2p/example/DnsExample2.java)
 
 

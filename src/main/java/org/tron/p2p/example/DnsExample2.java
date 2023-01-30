@@ -1,8 +1,8 @@
 package org.tron.p2p.example;
 
-import java.net.InetAddress;
+
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -18,7 +18,7 @@ import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.stats.P2pStats;
 import org.tron.p2p.utils.ByteArray;
 
-public class ImportUsing {
+public class DnsExample2 {
 
   private P2pService p2pService = new P2pService();
   private Map<InetSocketAddress, Channel> channels = new ConcurrentHashMap<>();
@@ -26,7 +26,9 @@ public class ImportUsing {
   public void startP2pService() {
     // config p2p parameters
     P2pConfig config = new P2pConfig();
-    initConfig(config);
+
+    //if you use dns discovery, you can use following config
+    initDnsSyncConfig(config);
 
     // register p2p event handler
     MyP2pEventHandler myP2pEventHandler = new MyP2pEventHandler();
@@ -81,45 +83,14 @@ public class ImportUsing {
     return p2pService.getConnectableNodes();
   }
 
-  private void initConfig(P2pConfig config) {
-    // set p2p version
-    config.setNetworkId(11111);
+  private void initDnsSyncConfig(P2pConfig config) {
+    // generally, discovery service is not needed if you only use dns nodes independently to establish tcp connections
+    config.setDiscoverEnable(false);
 
-    // set tcp and udp listen port
-    config.setPort(18888);
-
-    // turn node discovery on or off
-    config.setDiscoverEnable(true);
-
-    // set discover seed nodes
-    List<InetSocketAddress> seedNodeList = new ArrayList<>();
-    seedNodeList.add(new InetSocketAddress("13.124.62.58", 18888));
-    seedNodeList.add(new InetSocketAddress("2600:1f13:908:1b00:e1fd:5a84:251c:a32a", 18888));
-    seedNodeList.add(new InetSocketAddress("127.0.0.4", 18888));
-    config.setSeedNodes(seedNodeList);
-
-    // set active nodes
-    List<InetSocketAddress> activeNodeList = new ArrayList<>();
-    activeNodeList.add(new InetSocketAddress("127.0.0.2", 18888));
-    activeNodeList.add(new InetSocketAddress("127.0.0.3", 18888));
-    config.setActiveNodes(activeNodeList);
-
-    // set trust nodes
-    List<InetAddress> trustNodeList = new ArrayList<>();
-    trustNodeList.add((new InetSocketAddress("127.0.0.2", 18888)).getAddress());
-    config.setTrustNodes(trustNodeList);
-
-    // set the minimum number of connections
-    config.setMinConnections(8);
-
-    // set the minimum number of actively established connections
-    config.setMinActiveConnections(2);
-
-    // set the maximum number of connections
-    config.setMaxConnections(30);
-
-    // set the maximum number of connections with the same IP
-    config.setMaxConnectionsWithSameIp(2);
+    // config your known tree urls
+    String[] urls = new String[] {
+        "tree://APFGGTFOBVE2ZNAB3CSMNNX6RRK3ODIRLP2AA5U4YFAA6MSYZUYTQ@nodes.example.org"};
+    config.setTreeUrls(Arrays.asList(urls));
   }
 
   private class MyP2pEventHandler extends P2pEventHandler {
@@ -195,7 +166,5 @@ public class ImportUsing {
       this.type = MessageTypes.TEST;
       this.data = data;
     }
-
   }
-
 }

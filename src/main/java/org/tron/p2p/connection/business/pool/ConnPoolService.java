@@ -151,7 +151,7 @@ public class ConnPoolService extends P2pEventHandler {
 
     if (lackSize > 0) {
       List<DnsNode> dnsNodes = DnsManager.getDnsNodes();
-      log.debug("DnsNodes size:{}", dnsNodes.size());
+      log.debug("Compatible dns nodes size:{}", dnsNodes.size());
       List<DnsNode> filtered = new ArrayList<>();
       for (DnsNode node : dnsNodes) {
         if (validNode(node, nodesInUse, inetInUse)) {
