@@ -48,7 +48,7 @@ dependencies {
 Or if you are using the jar files as your dependencies:
 ```bash
 dependencies {
-    implementation fileTree(dir:'your path', include: '*.jar')
+    complie fileTree(dir:'libs', include: 'libp2p-0.2.0.jar')
 }
 ```
 
