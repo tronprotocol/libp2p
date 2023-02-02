@@ -56,7 +56,7 @@ public class KeepAliveService implements MessageProcess {
         channel.send(new PongMessage());
         break;
       case KEEP_ALIVE_PONG:
-        channel.updateLatency(System.currentTimeMillis() - channel.pingSent);
+        channel.updateAvgLatency(System.currentTimeMillis() - channel.pingSent);
         channel.waitForPong = false;
         break;
       default:

@@ -29,8 +29,6 @@ import org.tron.p2p.discover.Node;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.stats.TrafficStats;
 import org.tron.p2p.utils.ByteArray;
-import org.tron.p2p.utils.ProtoUtil;
-import org.xerial.snappy.Snappy;
 
 @Slf4j(topic = "net")
 public class Channel {
@@ -73,7 +71,7 @@ public class Channel {
   @Getter
   private boolean discoveryMode;
   @Getter
-  private long latency;
+  private long avgLatency;
   private long count;
 
   public void init(ChannelPipeline pipeline, String nodeId, boolean discoveryMode) {
@@ -112,6 +110,7 @@ public class Channel {
   public void setHelloMessage(HelloMessage helloMessage) {
     this.helloMessage = helloMessage;
     this.node = helloMessage.getFrom();
+    this.nodeId = node.getHexId(); //update node id from handshake
     this.version = helloMessage.getVersion();
   }
 
@@ -170,10 +169,10 @@ public class Channel {
     }
   }
 
-  public void updateLatency(long latency) {
-    long total = this.latency * this.count;
+  public void updateAvgLatency(long latency) {
+    long total = this.avgLatency * this.count;
     this.count++;
-    this.latency = (total + latency) / this.count;
+    this.avgLatency = (total + latency) / this.count;
   }
 
   @Override

@@ -12,9 +12,9 @@ message KeepAliveMessage {
 message HelloMessage {
   Endpoint from = 1;
   int32 version = 2;
-  int32 networkId = 3;
-  int32 code = 4;
-  int64 timestamp = 5;
+  int32 code = 3;
+  int64 timestamp = 4;
+  int32 networkId = 5;
 }
 
 message StatusMessage {
