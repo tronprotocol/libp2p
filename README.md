@@ -28,7 +28,7 @@ then run the following command to start the node:
 ```bash
 $ nohup java -jar libp2p.jar [options] >> start.log 2>&1 &
 ```
-See the manual for details on [options](https://github.com/tronprotocol/libp2p/tree/main/src/main/java/org/tron/p2p/example/README.md)
+See the manual for details on [options](https://github.com/tronprotocol/libp2p/tree/develop/src/main/java/org/tron/p2p/example/README.md)
 
 ## How to include the dependency
 ### Gradle Setting
