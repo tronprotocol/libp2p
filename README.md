@@ -69,4 +69,4 @@ dependencies {
 ```
 
 ## Example
-For some examples please check our [example package](https://github.com/tronprotocol/libp2p/tree/main/src/main/java/org/tron/p2p/example). 
+For some examples please check our [example package](https://github.com/tronprotocol/libp2p/tree/develop/src/main/java/org/tron/p2p/example). 
