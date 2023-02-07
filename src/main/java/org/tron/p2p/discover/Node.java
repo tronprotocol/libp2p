@@ -19,12 +19,12 @@ public class Node implements Serializable, Cloneable {
   private byte[] id;
 
   @Getter
-  private String hostV4;
+  protected String hostV4;
 
   @Getter
-  private String hostV6;
+  protected String hostV6;
 
-  private int port;
+  protected int port;
 
   @Setter
   private int bindPort;
@@ -152,9 +152,14 @@ public class Node implements Serializable, Cloneable {
       + ", id=" + Hex.toHexString(id) + '}';
   }
 
+  public String format() {
+    return "Node{" + " hostV4='" + hostV4 + '\'' + ", hostV6='" + hostV6 + '\'' + ", port=" + port
+        + '}';
+  }
+
   @Override
   public int hashCode() {
-    return this.toString().hashCode();
+    return this.format().hashCode();
   }
 
   @Override

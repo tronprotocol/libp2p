@@ -20,6 +20,7 @@ public class HandshakeService implements MessageProcess {
   @Override
   public void processMessage(Channel channel, Message message) {
     HelloMessage msg = (HelloMessage) message;
+    log.debug("Receive message from {}, {}", channel.getInetSocketAddress(), message);
 
     if (channel.isFinishHandshake()) {
       log.warn("Close channel {}, handshake is finished", channel.getInetSocketAddress());
@@ -43,18 +44,20 @@ public class HandshakeService implements MessageProcess {
 
     if (channel.isActive()) {
       if (msg.getCode() != DisconnectCode.NORMAL.getValue()
-        || msg.getNetworkId() != networkId) {
-        log.info("Handshake failed {}, code: {}, version: {}",
-          channel.getInetSocketAddress(),
-          msg.getCode(),
-          msg.getNetworkId());
+          || (msg.getNetworkId() != networkId && msg.getVersion() != networkId)) {
+        //v0.1 have version, v0.2 both have version and networkId
+        log.info("Handshake failed {}, code: {}, networkId:{}, version: {}",
+            channel.getInetSocketAddress(),
+            msg.getCode(),
+            msg.getNetworkId(),
+            msg.getVersion());
         channel.close();
         return;
       }
     } else {
-      if (msg.getNetworkId() != networkId) {
-        log.info("Peer {} different p2p version, peer->{}, me->{}",
-          channel.getInetSocketAddress(), msg.getNetworkId(), networkId);
+      if (msg.getNetworkId() != networkId && msg.getVersion() != networkId) {
+        log.info("Peer {} different p2p networkId, peer networkId->{}, peer version->{}, me->{}",
+            channel.getInetSocketAddress(), msg.getNetworkId(), msg.getVersion(), networkId);
         sendHelloMsg(channel, DisconnectCode.DIFFERENT_VERSION);
         channel.close();
         return;
@@ -62,7 +65,7 @@ public class HandshakeService implements MessageProcess {
       sendHelloMsg(channel, DisconnectCode.NORMAL);
     }
     channel.setFinishHandshake(true);
-    channel.updateLatency(System.currentTimeMillis() - channel.getStartTime());
+    channel.updateAvgLatency(System.currentTimeMillis() - channel.getStartTime());
     Parameter.handlerList.forEach(h -> h.onConnect(channel));
   }
 

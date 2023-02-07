@@ -26,6 +26,7 @@ public class HelloMessage extends Message {
     Discover.Endpoint endpoint = Parameter.getHomeNode();
     this.helloMessage = Connect.HelloMessage.newBuilder()
       .setFrom(endpoint)
+      .setVersion(Parameter.p2pConfig.getNetworkId())
       .setNetworkId(Parameter.p2pConfig.getNetworkId())
       .setCode(code.getValue())
       .setTimestamp(System.currentTimeMillis()).build();
