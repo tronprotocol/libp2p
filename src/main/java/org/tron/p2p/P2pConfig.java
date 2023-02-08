@@ -25,6 +25,7 @@ public class P2pConfig {
   private int maxConnectionsWithSameIp = 2;
   private boolean discoverEnable = true;
   private boolean disconnectionPolicyEnable = false;
+  private boolean nodeDetectEnable = false;
 
   //dns read config
   private List<String> treeUrls = new ArrayList<>();

@@ -29,6 +29,7 @@ public class HelloMessage extends Message {
       .setVersion(Parameter.p2pConfig.getNetworkId())
       .setNetworkId(Parameter.p2pConfig.getNetworkId())
       .setCode(code.getValue())
+      .setVersion(Parameter.version)
       .setTimestamp(System.currentTimeMillis()).build();
     this.data = helloMessage.toByteArray();
   }

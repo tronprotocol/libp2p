@@ -55,9 +55,10 @@ public class HandshakeService implements MessageProcess {
         return;
       }
     } else {
-      if (msg.getNetworkId() != networkId && msg.getVersion() != networkId) {
-        log.info("Peer {} different p2p networkId, peer networkId->{}, peer version->{}, me->{}",
-            channel.getInetSocketAddress(), msg.getNetworkId(), msg.getVersion(), networkId);
+
+      if (msg.getNetworkId() != networkId) {
+        log.info("Peer {} different network id, peer->{}, me->{}",
+          channel.getInetSocketAddress(), msg.getNetworkId(), networkId);
         sendHelloMsg(channel, DisconnectCode.DIFFERENT_VERSION);
         channel.close();
         return;
