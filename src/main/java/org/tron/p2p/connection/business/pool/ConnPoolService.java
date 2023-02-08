@@ -159,7 +159,8 @@ public class ConnPoolService extends P2pEventHandler {
       return;
     }
 
-    Collection<Channel> peers = activePeers.stream()
+    List<Channel> channels = new ArrayList<>(activePeers);
+    Collection<Channel> peers = channels.stream()
         .filter(peer -> !peer.isDisconnect())
         .filter(peer -> !peer.isTrustPeer())
         .filter(peer -> !peer.isActive())
@@ -211,8 +212,9 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   public void close() {
+    List<Channel> channels = new ArrayList<>(activePeers);
     try {
-      activePeers.forEach(p -> {
+      channels.forEach(p -> {
         if (!p.isDisconnect()) {
           p.close();
         }
