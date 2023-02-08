@@ -33,6 +33,7 @@ import org.tron.p2p.dns.DnsManager;
 import org.tron.p2p.dns.DnsNode;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.utils.CollectionUtils;
+import org.tron.p2p.utils.NetUtil;
 
 @Slf4j(topic = "net")
 public class ConnPoolService extends P2pEventHandler {
@@ -155,7 +156,9 @@ public class ConnPoolService extends P2pEventHandler {
       List<DnsNode> filtered = new ArrayList<>();
       for (DnsNode node : dnsNodes) {
         if (validNode(node, nodesInUse, inetInUse)) {
-          filtered.add((DnsNode) node.clone());
+          DnsNode copyNode = (DnsNode) node.clone();
+          copyNode.setId(NetUtil.getNodeId());
+          filtered.add(copyNode);
         }
       }
       Collections.shuffle(filtered);
