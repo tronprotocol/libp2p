@@ -5,10 +5,12 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
+import org.tron.p2p.dns.update.PublishConfig;
 import org.tron.p2p.utils.NetUtil;
 
 @Data
 public class P2pConfig {
+
   private List<InetSocketAddress> seedNodes = new ArrayList<>();
   private List<InetSocketAddress> activeNodes = new ArrayList<>();
   private List<InetAddress> trustNodes = new ArrayList<>();
@@ -24,4 +26,10 @@ public class P2pConfig {
   private boolean discoverEnable = true;
   private boolean disconnectionPolicyEnable = false;
   private boolean nodeDetectEnable = false;
+
+  //dns read config
+  private List<String> treeUrls = new ArrayList<>();
+
+  //dns publish config
+  private PublishConfig publishConfig = new PublishConfig();
 }

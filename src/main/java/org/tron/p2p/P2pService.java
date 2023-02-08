@@ -1,13 +1,17 @@
 package org.tron.p2p;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
+import org.tron.p2p.dns.DnsManager;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.stats.P2pStats;
 import org.tron.p2p.stats.StatsManager;
@@ -21,10 +25,12 @@ public class P2pService {
     Parameter.p2pConfig = p2pConfig;
     NodeManager.init();
     ChannelManager.init();
+    DnsManager.init();
     log.info("P2p service started");
   }
 
   public void close() {
+    DnsManager.close();
     NodeManager.close();
     ChannelManager.close();
     log.info("P2p service closed");
@@ -47,11 +53,17 @@ public class P2pService {
   }
 
   public List<Node> getConnectableNodes() {
-    return NodeManager.getConnectableNodes();
+    Set<Node> nodes = new HashSet<>();
+    nodes.addAll(NodeManager.getConnectableNodes());
+    nodes.addAll(DnsManager.getDnsNodes());
+    return new ArrayList<>(nodes);
   }
 
   public List<Node> getAllNodes() {
-    return NodeManager.getAllNodes();
+    Set<Node> nodes = new HashSet<>();
+    nodes.addAll(NodeManager.getAllNodes());
+    nodes.addAll(DnsManager.getDnsNodes());
+    return new ArrayList<>(nodes);
   }
 
   public void updateNodeId(Channel channel, String nodeId) {

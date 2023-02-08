@@ -1,5 +1,8 @@
 # libp2p
-libp2p is a p2p network SDK implemented in java language. The functional modules that have been implemented so far include node discovery, connection management, and so on. Subsequent versions will implement more functions.
+libp2p is a p2p network SDK implemented in java language. The functional modules that have been implemented so far include
+* node discovery by p2p, include ipv4 and ipv6,
+* tcp connection management,
+* publish nodes on dns domain and node discovery by dns.
 
 # Build
 Building libp2p requires `git` and `Oracle JDK 1.8` to be installed, other JDK versions are not supported yet. Make sure you operate on `Linux` and `MacOS` operating systems.
@@ -25,7 +28,7 @@ then run the following command to start the node:
 ```bash
 $ nohup java -jar libp2p.jar [options] >> start.log 2>&1 &
 ```
-See the manual for details on [options](https://github.com/tronprotocol/libp2p/tree/main/src/main/java/org/tron/p2p/example/README.md)
+See the manual for details on [options](https://github.com/tronprotocol/libp2p/tree/develop/src/main/java/org/tron/p2p/example/README.md)
 
 ## How to include the dependency
 ### Gradle Setting
@@ -39,31 +42,31 @@ repositories {
 Then add the required packages as dependencies. Please add dependencies locally.
 ```bash
 dependencies {
-	implementation 'com.github.tronprotocol:libp2p:release-v0.1.0'
+    implementation group: 'com.github.tronprotocol', name: 'libp2p', version: 'release-v0.2.0'
 }
 ```
 Or if you are using the jar files as your dependencies:
 ```bash
 dependencies {
-    implementation fileTree(dir:'your path', include: '*.jar')
+    implementation fileTree(dir:'libs', include: 'libp2p.jar')
 }
 ```
 
 ### Maven Setting
 ```bash
 <repositories>
-	<repository>
-		<id>jitpack.io</id>
-		<url>https://jitpack.io</url>
-	</repository>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
 </repositories>
 
 <dependency>
-	<groupId>com.github.tronprotocol</groupId>
-	<artifactId>libp2p</artifactId>
-	<version>release-v0.1.0</version>
+    <groupId>com.github.tronprotocol</groupId>
+    <artifactId>libp2p</artifactId>
+    <version>release-v0.1.0</version>
 </dependency>
 ```
 
 ## Example
-For some examples please check our [example package](https://github.com/tronprotocol/libp2p/tree/main/src/main/java/org/tron/p2p/example). 
+For some examples please check our [example package](https://github.com/tronprotocol/libp2p/tree/develop/src/main/java/org/tron/p2p/example). 
