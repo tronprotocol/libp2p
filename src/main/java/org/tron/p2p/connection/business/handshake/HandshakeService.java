@@ -53,7 +53,7 @@ public class HandshakeService implements MessageProcess {
       }
     } else {
       if (msg.getNetworkId() != networkId) {
-        log.info("Peer {} different p2p version, peer->{}, me->{}",
+        log.info("Peer {} different network id, peer->{}, me->{}",
           channel.getInetSocketAddress(), msg.getNetworkId(), networkId);
         sendHelloMsg(channel, DisconnectCode.DIFFERENT_VERSION);
         channel.close();

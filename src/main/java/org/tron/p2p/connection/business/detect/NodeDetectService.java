@@ -4,6 +4,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.business.MessageProcess;
 import org.tron.p2p.connection.message.Message;
@@ -48,6 +49,9 @@ public class NodeDetectService implements MessageProcess {
 
 
   public void init(PeerClient peerClient) {
+    if (!Parameter.p2pConfig.isNodeDetectEnable()) {
+      return;
+    }
     this.peerClient = peerClient;
     executor.scheduleWithFixedDelay(() -> {
       try {
