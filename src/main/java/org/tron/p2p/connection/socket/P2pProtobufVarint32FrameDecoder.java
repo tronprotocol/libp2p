@@ -73,8 +73,9 @@ public class P2pProtobufVarint32FrameDecoder extends ByteToMessageDecoder {
     in.markReaderIndex();
     int preIndex = in.readerIndex();
     int length = readRawVarint32(in);
-    if (in.readableBytes() == 0) {
-      log.warn("Receive empty msg, may be not proto, host : {}", ctx.channel().remoteAddress());
+    if (in.readableBytes() == 0 || length > maxMsgLength) {
+      log.warn("Receive empty msg or big msg, not proto, host: {}, readableBytes: {}, length: {}",
+          ctx.channel().remoteAddress(), in.readableBytes(), length);
       in.clear();
       channel.close();
       return;

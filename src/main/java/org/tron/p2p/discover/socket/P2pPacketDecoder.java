@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.discover.message.Message;
 
 @Slf4j(topic = "net")
-public class PacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
+public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
 
   private static final int MAXSIZE = 2048;
 

@@ -59,7 +59,7 @@ public class DiscoverServer {
                 ch.pipeline().addLast(TrafficStats.udp);
                 ch.pipeline().addLast(new ProtobufVarint32LengthFieldPrepender());
                 ch.pipeline().addLast(new ProtobufVarint32FrameDecoder());
-                ch.pipeline().addLast(new PacketDecoder());
+                ch.pipeline().addLast(new P2pPacketDecoder());
                 MessageHandler messageHandler = new MessageHandler(ch, eventHandler);
                 eventHandler.setMessageSender(messageHandler);
                 ch.pipeline().addLast(messageHandler);
