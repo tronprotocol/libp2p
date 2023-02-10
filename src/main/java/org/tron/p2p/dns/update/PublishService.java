@@ -53,6 +53,7 @@ public class PublishService {
 
   private List<String> getNodes() throws UnknownHostException {
     List<Node> nodes = NodeManager.getConnectableNodes();
+    nodes.add(NodeManager.getHomeNode());
     List<DnsNode> dnsNodes = new ArrayList<>();
     for (Node node : nodes) {
       if (node.getInetSocketAddressV6() != null) {
