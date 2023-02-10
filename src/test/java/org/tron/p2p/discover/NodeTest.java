@@ -1,18 +1,15 @@
 package org.tron.p2p.discover;
 
-import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.Socket;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.utils.NetUtil;
-
-import java.net.InetSocketAddress;
 
 public class NodeTest {
 
@@ -93,8 +90,11 @@ public class NodeTest {
 
   @Test
   public void testLanIpV6() {
-    System.out.println(Inet4Address.getLoopbackAddress().getHostAddress());
-    System.out.println(Inet6Address.getLoopbackAddress().getHostAddress());
-
+    try {
+      System.out.println("ipv4:" + Inet4Address.getLocalHost());
+      System.out.println("ipv6:" + Inet6Address.getLocalHost());
+    } catch (UnknownHostException e) {
+      e.printStackTrace();
+    }
   }
 }
