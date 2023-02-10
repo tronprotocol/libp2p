@@ -90,7 +90,7 @@ public class NodeTest {
 
   @Test
   public void testLanIpV6() {
-    try (Socket s = new Socket("ipv6.google.com", 80)) {
+    try (Socket s = new Socket("2607:f8b0:400a:807::200e", 80)) { //ipv6.google.com
       String nodeLanIpV6 = s.getLocalAddress().getHostAddress();
       System.out.println("nodeLanIpV6:" + nodeLanIpV6);
     } catch (IOException e) {
