@@ -1,6 +1,9 @@
 package org.tron.p2p.discover;
 
 import java.io.IOException;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
 import java.net.Socket;
 import org.junit.Assert;
 import org.junit.Before;
@@ -90,11 +93,8 @@ public class NodeTest {
 
   @Test
   public void testLanIpV6() {
-    try (Socket s = new Socket("2607:f8b0:400a:807::200e", 80)) { //ipv6.google.com
-      String nodeLanIpV6 = s.getLocalAddress().getHostAddress();
-      System.out.println("nodeLanIpV6:" + nodeLanIpV6);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    System.out.println(Inet4Address.getLoopbackAddress().getHostAddress());
+    System.out.println(Inet6Address.getLoopbackAddress().getHostAddress());
+
   }
 }
