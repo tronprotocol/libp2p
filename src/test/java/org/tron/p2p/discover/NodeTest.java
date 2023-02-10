@@ -1,5 +1,7 @@
 package org.tron.p2p.discover;
 
+import java.io.IOException;
+import java.net.Socket;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -84,5 +86,15 @@ public class NodeTest {
 
     Node node4 = new Node(NetUtil.getNodeId(), null, null, 10002);
     Assert.assertNull(node4.getPreferInetSocketAddress());
+  }
+
+  @Test
+  public void testLanIpV6() {
+    try (Socket s = new Socket("ipv6.google.com", 80)) {
+      String nodeLanIpV6 = s.getLocalAddress().getHostAddress();
+      System.out.println("nodeLanIpV6:" + nodeLanIpV6);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 }
