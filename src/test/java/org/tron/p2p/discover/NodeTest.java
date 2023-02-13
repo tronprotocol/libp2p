@@ -87,14 +87,4 @@ public class NodeTest {
     Node node4 = new Node(NetUtil.getNodeId(), null, null, 10002);
     Assert.assertNull(node4.getPreferInetSocketAddress());
   }
-
-  @Test
-  public void testLanIpV6() {
-    try {
-      System.out.println("ipv4:" + Inet4Address.getLocalHost());
-      System.out.println("ipv6:" + Inet6Address.getLocalHost());
-    } catch (UnknownHostException e) {
-      e.printStackTrace();
-    }
-  }
 }
