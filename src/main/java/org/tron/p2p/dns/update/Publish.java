@@ -11,6 +11,8 @@ public interface Publish<T> {
 
   double changeThreshold = 0.1;
 
+  void testConnect() throws Exception;
+
   void deploy(String domainName, Tree t) throws Exception;
 
   boolean deleteDomain(String domainName) throws Exception;

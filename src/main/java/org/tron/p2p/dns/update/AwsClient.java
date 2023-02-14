@@ -107,6 +107,19 @@ public class AwsClient implements Publish {
     return null;
   }
 
+  @Override
+  public void testConnect() throws Exception {
+    ListHostedZonesByNameRequest.Builder request = ListHostedZonesByNameRequest.builder();
+    while (true) {
+      ListHostedZonesByNameResponse response = route53Client.listHostedZonesByName(request.build());
+      if (Boolean.FALSE.equals(response.isTruncated())) {
+        break;
+      }
+      request.dnsName(response.dnsName());
+      request.hostedZoneId(response.nextHostedZoneId());
+    }
+  }
+
   // uploads the given tree to Route53.
   @Override
   public void deploy(String domain, Tree tree) throws Exception {

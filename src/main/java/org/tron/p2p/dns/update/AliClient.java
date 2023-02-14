@@ -35,6 +35,10 @@ public class AliClient implements Publish {
   }
 
   @Override
+  public void testConnect() throws Exception {
+  }
+
+  @Override
   public void deploy(String domainName, Tree t) throws DnsException {
     try {
       Map<String, DescribeDomainRecordsResponseBodyDomainRecordsRecord> existing = collectRecords(

@@ -20,28 +20,41 @@ public class PublishService {
   private static final long publishDelay = 1 * 60 * 60;
 
   private ScheduledExecutorService publisher = Executors.newSingleThreadScheduledExecutor();
+  private Publish publish;
 
   public void init() {
     boolean supportV4 = Parameter.p2pConfig.getIp() != null;
-    if (checkConfig(supportV4, Parameter.p2pConfig.getPublishConfig())) {
+    PublishConfig publishConfig = Parameter.p2pConfig.getPublishConfig();
+    if (checkConfig(supportV4, publishConfig)) {
+      try {
+        publish = getPublish(publishConfig);
+        publish.testConnect();
+      } catch (Exception e) {
+        log.error("Init PublishService failed", e);
+        return;
+      }
       publisher.scheduleWithFixedDelay(this::startPublish, 300, publishDelay, TimeUnit.SECONDS);
     }
+  }
+
+  private Publish getPublish(PublishConfig config) throws Exception {
+    Publish publish;
+    if (config.getDnsType() == DnsType.AliYun) {
+      publish = new AliClient(config.getAliDnsEndpoint(),
+          config.getAccessKeyId(),
+          config.getAccessKeySecret());
+    } else {
+      publish = new AwsClient(config.getAccessKeyId(),
+          config.getAccessKeySecret(),
+          config.getAwsHostZoneId(),
+          config.getAwsRegion());
+    }
+    return publish;
   }
 
   private void startPublish() {
     PublishConfig config = Parameter.p2pConfig.getPublishConfig();
     try {
-      Publish publish;
-      if (config.getDnsType() == DnsType.AliYun) {
-        publish = new AliClient(config.getAliDnsEndpoint(),
-            config.getAccessKeyId(),
-            config.getAccessKeySecret());
-      } else {
-        publish = new AwsClient(config.getAccessKeyId(),
-            config.getAccessKeySecret(),
-            config.getAwsHostZoneId(),
-            config.getAwsRegion());
-      }
       Tree tree = new Tree();
       List<String> nodes = getNodes();
       tree.makeTree(1, nodes, config.getKnownTreeUrls(), config.getDnsPrivate());
