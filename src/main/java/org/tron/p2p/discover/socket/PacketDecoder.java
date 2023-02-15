@@ -7,6 +7,7 @@ import io.netty.channel.socket.DatagramPacket;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.discover.message.Message;
+import org.tron.p2p.exception.P2pException;
 
 @Slf4j(topic = "net")
 public class PacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
@@ -27,9 +28,17 @@ public class PacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
     try {
       UdpEvent event = new UdpEvent(Message.parse(encoded), packet.sender());
       out.add(event);
+    } catch (P2pException pe) {
+      if (pe.getType().equals(P2pException.TypeEnum.BAD_MESSAGE)) {
+        log.error("Message validation failed, type {}, len {}, address {}", encoded[0],
+            encoded.length, packet.sender());
+      } else {
+        log.info("Parse msg failed, type {}, len {}, address {}", encoded[0], encoded.length,
+            packet.sender());
+      }
     } catch (Exception e) {
-      log.info("Parse msg failed, type {}, len {}, address {}", encoded[0], encoded.length,
-          packet.sender());
+      log.error("An exception occurred while parsing the message, type {}, len {}, address {}",
+          encoded[0], encoded.length, packet.sender(), e);
     }
   }
 }
