@@ -37,8 +37,8 @@ public class PacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
             packet.sender());
       }
     } catch (Exception e) {
-      log.error("Parse msg failed, type {}, len {}, address {}", encoded[0], encoded.length,
-          packet.sender(), e);
+      log.error("An exception occurred while parsing the message, type {}, len {}, address {}",
+          encoded[0], encoded.length, packet.sender(), e);
     }
   }
 }
