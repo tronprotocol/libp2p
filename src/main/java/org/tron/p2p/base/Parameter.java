@@ -19,7 +19,6 @@ import org.tron.p2p.utils.ByteArray;
 public class Parameter {
 
   public static int version = 1;
-
   public static final int TCP_NETTY_WORK_THREAD_NUM = 0;
 
   public static final int UDP_NETTY_WORK_THREAD_NUM = 1;

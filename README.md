@@ -36,7 +36,7 @@ Add repo setting:
 ```bash
 repositories {
     ...
-    maven { url 'https://jitpack.io' }
+    mavenCentral()
 }
 ```
 Then add the required packages as dependencies. Please add dependencies locally.
@@ -56,15 +56,16 @@ dependencies {
 ```bash
 <repositories>
     <repository>
-        <id>jitpack.io</id>
-        <url>https://jitpack.io</url>
+        <id>central-repos</id>
+        <name>Central Repository</name>
+        <url>https://repo.maven.apache.org/maven2</url>
     </repository>
 </repositories>
 
 <dependency>
-    <groupId>com.github.tronprotocol</groupId>
+    <groupId>io.github.tronprotocol</groupId>
     <artifactId>libp2p</artifactId>
-    <version>release-v0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 

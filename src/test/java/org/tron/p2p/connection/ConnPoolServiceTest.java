@@ -77,6 +77,7 @@ public class ConnPoolServiceTest {
     connectableNodes.add(node2);
 
     ConnPoolService connPoolService = new ConnPoolService();
+
     List<Node> nodes = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes,
         2);
     Assert.assertEquals(2, nodes.size());
@@ -85,6 +86,7 @@ public class ConnPoolServiceTest {
     int limit = 1;
     List<Node> nodes2 = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes,
         limit);
+
     Assert.assertEquals(limit, nodes2.size());
   }
 
