@@ -104,6 +104,7 @@ public class ConnPoolService extends P2pEventHandler {
         nodesInUse.add(channel.getNodeId());
       }
       addressInUse.add(channel.getInetAddress());
+      inetInUse.add(channel.getInetSocketAddress());
       addNode(inetInUse, channel.getNode());
     });
 
@@ -158,6 +159,7 @@ public class ConnPoolService extends P2pEventHandler {
         if (validNode(node, nodesInUse, inetInUse)) {
           DnsNode copyNode = (DnsNode) node.clone();
           copyNode.setId(NetUtil.getNodeId());
+          inetInUse.add(copyNode.getPreferInetSocketAddress());
           filtered.add(copyNode);
         }
       }

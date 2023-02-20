@@ -45,12 +45,22 @@ public class DnsManager {
     Set<DnsNode> nodes = new HashSet<>();
     for (Map.Entry<String, Tree> entry : syncClient.getTrees().entrySet()) {
       Tree tree = entry.getValue();
-      log.debug("tree:{} node size:{}", entry.getKey(), tree.getDnsNodes().size());
+      int v4Size = 0, v6Size = 0;
       List<DnsNode> dnsNodes = tree.getDnsNodes();
+      List<DnsNode> ipv6Nodes = new ArrayList<>();
       for (DnsNode dnsNode : dnsNodes) {
-        if (dnsNode.getInetSocketAddressV6() != null) {
-          log.debug(dnsNode.format());
+        if (dnsNode.getInetSocketAddressV4() != null) {
+          v4Size += 1;
         }
+        if (dnsNode.getInetSocketAddressV6() != null) {
+          v6Size += 1;
+          ipv6Nodes.add(dnsNode);
+        }
+      }
+      log.debug("Tree {} node size:{}, v4 node size:{}, v6 node size:{}", entry.getKey(),
+          tree.getDnsNodes().size(), v4Size, v6Size);
+      if (ipv6Nodes.size() > 0) {
+        log.debug("Node with ipv6: {}", ipv6Nodes);
       }
       List<DnsNode> connectAbleNodes = dnsNodes.stream()
           .filter(node -> node.getPreferInetSocketAddress() != null)

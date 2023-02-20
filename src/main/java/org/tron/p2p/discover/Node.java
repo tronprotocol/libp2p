@@ -149,7 +149,7 @@ public class Node implements Serializable, Cloneable {
   @Override
   public String toString() {
     return "Node{" + " hostV4='" + hostV4 + '\'' + ", hostV6='" + hostV6 + '\'' + ", port=" + port
-      + ", id=" + Hex.toHexString(id) + '}';
+        + ", id=\'" + (id == null ? "null" : Hex.toHexString(id)) + "\'}";
   }
 
   public String format() {
