@@ -13,7 +13,7 @@ import org.tron.p2p.exception.P2pException.TypeEnum;
 @Data
 public class Parameter {
 
-  public static final int TCP_NETTY_WORK_THREAD_NUM = 100;
+  public static final int TCP_NETTY_WORK_THREAD_NUM = 0;
 
   public static final int UDP_NETTY_WORK_THREAD_NUM = 1;
 
