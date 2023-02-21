@@ -42,14 +42,12 @@ repositories {
 Then add the required packages as dependencies. Please add dependencies locally.
 ```bash
 dependencies {
-    implementation group: 'com.github.tronprotocol', name: 'libp2p', version: 'release-v0.2.0'
 	compile group: 'io.github.tronprotocol', name: 'libp2p', version: '0.1.2'
 }
 ```
 Or if you are using the jar files as your dependencies:
 ```bash
 dependencies {
-    implementation fileTree(dir:'libs', include: 'libp2p.jar')
     compile fileTree(dir:'your path', include: '*.jar')
 }
 ```
@@ -57,16 +55,6 @@ dependencies {
 ### Maven Setting
 ```bash
 <repositories>
-    <repository>
-        <id>jitpack.io</id>
-        <url>https://jitpack.io</url>
-    </repository>
-</repositories>
-
-<dependency>
-    <groupId>com.github.tronprotocol</groupId>
-    <artifactId>libp2p</artifactId>
-    <version>release-v0.1.0</version>
 	<repository>
 		<id>central-repos</id>
         <name>Central Repository</name>
