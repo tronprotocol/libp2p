@@ -112,7 +112,6 @@ public class ConnPoolService extends P2pEventHandler {
         addressInUse.add(address.getAddress());
         inetSocketAddresses.add(address);
         Node node = new Node(address); //use a random NodeId for config activeNodes
-        connectNodes.add(node);
         if (node.getPreferInetSocketAddress() != null) {
           addressInUse.add(address.getAddress());
           connectNodes.add(node);
