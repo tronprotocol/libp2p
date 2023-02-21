@@ -142,7 +142,7 @@ public class ConnPoolService extends P2pEventHandler {
 
     if (lackSize > 0) {
       List<Node> connectableNodes = NodeManager.getConnectableNodes();
-      // inetInUse doesn't change is function getNodes
+      // nodesInUse and inetInUse don't change in method `getNodes`
       List<Node> newNodes = getNodes(nodesInUse, inetInUse, connectableNodes, lackSize);
       connectNodes.addAll(newNodes);
       for (Node node : newNodes) {
