@@ -42,7 +42,7 @@ repositories {
 Then add the required packages as dependencies. Please add dependencies locally.
 ```bash
 dependencies {
-    implementation group: 'com.github.tronprotocol', name: 'libp2p', version: 'release-v0.2.0'
+    implementation group: 'io.github.tronprotocol', name: 'libp2p', version: '0.2.0'
 }
 ```
 Or if you are using the jar files as your dependencies:
