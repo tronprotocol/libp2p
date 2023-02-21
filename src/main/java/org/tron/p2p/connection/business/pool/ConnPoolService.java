@@ -95,8 +95,8 @@ public class ConnPoolService extends P2pEventHandler {
     List<Node> connectNodes = new ArrayList<>();
 
     //collect already used nodes in channelManager
+    Set<InetSocketAddress> inetSocketAddresses = new HashSet<>();
     Set<InetAddress> addressInUse = new HashSet<>();
-    Set<InetSocketAddress> inetInUse = new HashSet<>();
     Set<String> nodesInUse = new HashSet<>();
     nodesInUse.add(Hex.toHexString(p2pConfig.getNodeID()));
     ChannelManager.getChannels().values().forEach(channel -> {
@@ -104,20 +104,22 @@ public class ConnPoolService extends P2pEventHandler {
         nodesInUse.add(channel.getNodeId());
       }
       addressInUse.add(channel.getInetAddress());
-      addNode(inetInUse, channel.getNode());
+      addNode(inetSocketAddresses, channel.getNode());
     });
 
     p2pConfig.getActiveNodes().forEach(address -> {
       if (!addressInUse.contains(address.getAddress())) {
+        addressInUse.add(address.getAddress());
+        inetSocketAddresses.add(address);
         Node node = new Node(address); //use a random NodeId for config activeNodes
+        connectNodes.add(node);
         if (node.getPreferInetSocketAddress() != null) {
           addressInUse.add(address.getAddress());
-          inetInUse.add(address);
           connectNodes.add(node);
         }
       }
     });
-    addNode(inetInUse, new Node(Parameter.p2pConfig.getNodeID(), Parameter.p2pConfig.getIp(),
+    addNode(inetSocketAddresses, new Node(Parameter.p2pConfig.getNodeID(), Parameter.p2pConfig.getIp(),
         Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort()));
 
     //calculate lackSize exclude config activeNodes
@@ -127,10 +129,10 @@ public class ConnPoolService extends P2pEventHandler {
     if (lackSize > 0) {
       List<Node> connectableNodes = ChannelManager.getNodeDetectService().getConnectableNodes();
       for (Node node : connectableNodes) {
-        if (validNode(node, nodesInUse, inetInUse)) {
+        if (validNode(node, nodesInUse, inetSocketAddresses)) {
           connectNodes.add(node);
           nodesInUse.add(node.getHexId());
-          inetInUse.add(node.getPreferInetSocketAddress());
+          inetSocketAddresses.add(node.getPreferInetSocketAddress());
           lackSize -= 1;
           if (lackSize <= 0) {
             break;
@@ -141,11 +143,11 @@ public class ConnPoolService extends P2pEventHandler {
 
     if (lackSize > 0) {
       List<Node> connectableNodes = NodeManager.getConnectableNodes();
-      List<Node> newNodes = getNodes(nodesInUse, inetInUse, connectableNodes, lackSize);
+      List<Node> newNodes = getNodes(inetSocketAddresses, nodesInUse, connectableNodes, lackSize);
       connectNodes.addAll(newNodes);
       for (Node node : newNodes) {
         nodesInUse.add(node.getHexId());
-        inetInUse.add(node.getPreferInetSocketAddress());
+        inetSocketAddresses.add(node.getPreferInetSocketAddress());
       }
       lackSize -= newNodes.size();
     }
@@ -155,7 +157,7 @@ public class ConnPoolService extends P2pEventHandler {
       log.debug("Compatible dns nodes size:{}", dnsNodes.size());
       List<DnsNode> filtered = new ArrayList<>();
       for (DnsNode node : dnsNodes) {
-        if (validNode(node, nodesInUse, inetInUse)) {
+        if (validNode(node, nodesInUse, inetSocketAddresses)) {
           DnsNode copyNode = (DnsNode) node.clone();
           copyNode.setId(NetUtil.getNodeId());
           filtered.add(copyNode);
@@ -168,22 +170,20 @@ public class ConnPoolService extends P2pEventHandler {
 
     //log.info("Lack size:{}, connectNodes size:{}", size, connectNodes.size());
     //establish tcp connection with chose nodes by peerClient
-    {
-      connectNodes.forEach(n -> {
-        log.info("Connect to peer {}", n.getPreferInetSocketAddress());
-        peerClient.connectAsync(n, false);
-        peerClientCache.put(n.getPreferInetSocketAddress().getAddress(),
-            System.currentTimeMillis());
-      });
-    }
+    connectNodes.forEach(n -> {
+      log.info("Connect to peer {}", n.getPreferInetSocketAddress());
+      peerClient.connectAsync(n, false);
+      peerClientCache.put(n.getPreferInetSocketAddress().getAddress(),
+              System.currentTimeMillis());
+    });
   }
 
-  public List<Node> getNodes(Set<String> nodesInUse, Set<InetSocketAddress> inetInUse,
-      List<Node> connectableNodes, int limit) {
+  public List<Node> getNodes(Set<InetSocketAddress> inetSocketAddresses, Set<String> nodesInUse,
+                             List<Node> connectableNodes, int limit) {
     List<Node> filtered = new ArrayList<>();
 
     for (Node node : connectableNodes) {
-      if (validNode(node, nodesInUse, inetInUse)) {
+      if (validNode(node, nodesInUse, inetSocketAddresses)) {
         filtered.add((Node) node.clone());
       }
     }

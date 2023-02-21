@@ -11,7 +11,6 @@ import org.tron.p2p.utils.NetUtil;
 
 @Data
 public class P2pConfig {
-
   private List<InetSocketAddress> seedNodes = new CopyOnWriteArrayList<>();
   private List<InetSocketAddress> activeNodes = new CopyOnWriteArrayList<>();
   private List<InetAddress> trustNodes = new CopyOnWriteArrayList<>();

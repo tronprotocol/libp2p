@@ -48,8 +48,9 @@ public class ConnPoolServiceTest {
     connectableNodes.add(NodeManager.getHomeNode());
 
     ConnPoolService connPoolService = new ConnPoolService();
-    List<Node> nodes = connPoolService.getNodes(new HashSet<>(), inetInUse, connectableNodes,
-        1);
+
+    List<Node> nodes = connPoolService.getNodes(inetInUse, new HashSet<>(), connectableNodes, 1);
+
     Assert.assertEquals(0, nodes.size());
 
     nodes = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes,
@@ -82,9 +83,15 @@ public class ConnPoolServiceTest {
     Assert.assertEquals(2, nodes.size());
     Assert.assertTrue(nodes.get(0).getUpdateTime() > nodes.get(1).getUpdateTime());
 
+//    int limit = 1;
+//    List<Node> nodes2 = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes,
+//        limit);
+//    List<Node> nodes = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), new ArrayList<>(), connectableNodes, 2);
+//    Assert.assertEquals(2, nodes.size());
+//    Assert.assertTrue(nodes.get(0).getUpdateTime() > nodes.get(1).getUpdateTime());
+
     int limit = 1;
-    List<Node> nodes2 = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes,
-        limit);
+    List<Node> nodes2 = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes, limit);
     Assert.assertEquals(limit, nodes2.size());
   }
 
@@ -119,7 +126,7 @@ public class ConnPoolServiceTest {
     Set<String> nodesInUse = new HashSet<>();
     nodesInUse.add(node.getHexId());
     ConnPoolService connPoolService = new ConnPoolService();
-    List<Node> nodes = connPoolService.getNodes(nodesInUse, new HashSet<>(), connectableNodes, 1);
+    List<Node> nodes = connPoolService.getNodes(new HashSet<>(), nodesInUse, connectableNodes, 1);
     Assert.assertEquals(0, nodes.size());
   }
 
