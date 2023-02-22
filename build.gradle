@@ -1,24 +1,10 @@
 group 'io.github.tronprotocol'
 version '0.2.0'
 
-buildscript {
-    repositories {
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
-    }
-    dependencies {
-        classpath "io.github.gradle-nexus:publish-plugin:1.1.0"
-    }
-}
-
 apply plugin: 'java'
 apply plugin: 'com.google.protobuf'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'application'
-apply plugin: 'maven-publish'
-apply plugin: 'signing'
-apply plugin: "io.github.gradle-nexus.publish-plugin"
 
 def protobufVersion = "3.19.2"
 
@@ -163,66 +149,6 @@ javadoc {
 }
 artifacts {
     archives javadocJar, sourcesJar
-}
-
-publishing {
-
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            artifact sourcesJar
-            artifact javadocJar
-            pom {
-                name = 'libp2p'
-                description = 'libp2p is a p2p network SDK implemented in java language.'
-                url = 'https://github.com/tronprotocol/libp2p'
-                licenses {
-                    license {
-                        name = 'The Apache Software License, Version 2.0'
-                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    }
-                }
-                developers {
-                    developer {
-                        name = 'chengtx01'
-                        email = 'ctxhorse@gmail.com'
-                    }
-                    developer {
-                        name = 'jiangyuanshu'
-                        email = '317787106@qq.com'
-                    }
-                    developer {
-                        name = 'wubin01'
-                        email = 'wb_bupt@163.com'
-                    }
-                }
-                scm {
-                    url = 'https://github.com/tronprotocol/libp2p'
-                    connection = 'scm:git:git://github.com/tronprotocol/libp2p.git'
-                    developerConnection = 'scm:git:ssh://git@github.com:tronprotocol/libp2p.git'
-                }
-            }
-        }
-    }
-}
-
-nexusPublishing {
-    repositories {
-        sonatype {
-            //only for users registered in Sonatype after 24 Feb 2021
-            nexusUrl = uri("https://s01.oss.sonatype.org/service/local/")
-            snapshotRepositoryUrl = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-            username = "${sonatypeUsername}"
-            password = "${sonatypePassword}"
-        }
-    }
-}
-
-
-signing {
-    // https://discuss.gradle.org/t/use-of-signing-plugin-with-gpg-agent-fails-with-gradle-5-x/38351/2
-    useGpgCmd()
-    sign publishing.publications.mavenJava
 }
 
 
