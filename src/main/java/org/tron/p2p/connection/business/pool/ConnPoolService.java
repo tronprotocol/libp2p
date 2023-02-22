@@ -184,7 +184,6 @@ public class ConnPoolService extends P2pEventHandler {
 
   public List<Node> getNodes(Set<String> nodesInUse, Set<InetSocketAddress> inetInUse,
       List<Node> connectableNodes, int limit) {
-
     List<Node> filtered = new ArrayList<>();
     Set<InetSocketAddress> dynamicInetInUse = new HashSet<>(inetInUse);
     for (Node node : connectableNodes) {
