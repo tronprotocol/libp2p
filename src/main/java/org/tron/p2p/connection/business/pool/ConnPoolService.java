@@ -129,7 +129,7 @@ public class ConnPoolService extends P2pEventHandler {
       List<Node> connectableNodes = ChannelManager.getNodeDetectService().getConnectableNodes();
       for (Node node : connectableNodes) {
         // nodesInUse and inetInUse don't change in method `validNode`
-        if (validNode(node, nodesInUse, inetInUse, inetInUse)) {
+        if (validNode(node, nodesInUse, inetInUse, null)) {
           connectNodes.add(node);
           nodesInUse.add(node.getHexId());
           inetInUse.add(node.getPreferInetSocketAddress());
@@ -158,7 +158,7 @@ public class ConnPoolService extends P2pEventHandler {
       log.debug("Compatible dns nodes size:{}", dnsNodes.size());
       List<DnsNode> filtered = new ArrayList<>();
       for (DnsNode node : dnsNodes) {
-        if (validNode(node, nodesInUse, inetInUse, inetInUse)) {
+        if (validNode(node, nodesInUse, inetInUse, null)) {
           DnsNode copyNode = (DnsNode) node.clone();
           copyNode.setId(NetUtil.getNodeId());
           inetInUse.add(copyNode.getPreferInetSocketAddress());
@@ -209,7 +209,7 @@ public class ConnPoolService extends P2pEventHandler {
         || (node.getId() != null && nodesInUse.contains(node.getHexId()))
         || (peerClientCache.getIfPresent(inetAddress) != null)
         || inetInUse.contains(inetSocketAddress)
-        || dynamicInet.contains(inetSocketAddress)) {
+        || (dynamicInet != null && dynamicInet.contains(inetSocketAddress))) {
       return false;
     }
     return true;
