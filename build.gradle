@@ -1,10 +1,24 @@
-group 'org.tron'
+group 'io.github.tronprotocol'
 version '0.2.0'
+
+buildscript {
+    repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "io.github.gradle-nexus:publish-plugin:1.1.0"
+    }
+}
 
 apply plugin: 'java'
 apply plugin: 'com.google.protobuf'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'application'
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
+apply plugin: "io.github.gradle-nexus.publish-plugin"
 
 def protobufVersion = "3.19.2"
 
@@ -108,6 +122,107 @@ shadowJar {
 
 clean.doFirst {
     delete "src/main/java/org/tron/p2p/protos"
+}
+
+compileJava {
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+    [compileJava]*.options*.encoding = 'UTF-8'
+}
+compileTestJava {
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+    [compileTestJava]*.options*.encoding = 'UTF-8'
+}
+
+task sourcesJar(type: Jar) {
+    archiveClassifier.set('sources')
+    from sourceSets.main.allJava
+}
+
+task javadocJar(type: Jar) {
+    archiveClassifier.set('javadoc')
+    from javadoc.destinationDir
+}
+
+javadoc {
+    description = "Generates project-level javadoc for use in -javadoc jar"
+
+    options.memberLevel = org.gradle.external.javadoc.JavadocMemberLevel.PROTECTED
+    options.author = true
+    options.version = true
+    options.header = project.name
+    options.addStringOption('Xdoclint:none', '-quiet')
+
+    // suppress warnings due to cross-module @see and @link references;
+    // note that global 'api' task does display all warnings.
+    logging.captureStandardError LogLevel.INFO
+    logging.captureStandardOutput LogLevel.INFO // suppress "## warnings" message
+    options.encoding = "UTF-8"
+    options.charSet = 'UTF-8'
+}
+artifacts {
+    archives javadocJar, sourcesJar
+}
+
+publishing {
+
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifact sourcesJar
+            artifact javadocJar
+            pom {
+                name = 'libp2p'
+                description = 'libp2p is a p2p network SDK implemented in java language.'
+                url = 'https://github.com/tronprotocol/libp2p'
+                licenses {
+                    license {
+                        name = 'The Apache Software License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        name = 'chengtx01'
+                        email = 'ctxhorse@gmail.com'
+                    }
+                    developer {
+                        name = 'jiangyuanshu'
+                        email = '317787106@qq.com'
+                    }
+                    developer {
+                        name = 'wubin01'
+                        email = 'wb_bupt@163.com'
+                    }
+                }
+                scm {
+                    url = 'https://github.com/tronprotocol/libp2p'
+                    connection = 'scm:git:git://github.com/tronprotocol/libp2p.git'
+                    developerConnection = 'scm:git:ssh://git@github.com:tronprotocol/libp2p.git'
+                }
+            }
+        }
+    }
+}
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            //only for users registered in Sonatype after 24 Feb 2021
+            nexusUrl = uri("https://s01.oss.sonatype.org/service/local/")
+            snapshotRepositoryUrl = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+            username = "${sonatypeUsername}"
+            password = "${sonatypePassword}"
+        }
+    }
+}
+
+
+signing {
+    // https://discuss.gradle.org/t/use-of-signing-plugin-with-gpg-agent-fails-with-gradle-5-x/38351/2
+    useGpgCmd()
+    sign publishing.publications.mavenJava
 }
 
 
