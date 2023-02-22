@@ -37,8 +37,14 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
         if (channel.isDiscoveryMode()) {
           ChannelManager.getNodeDetectService().notifyDisconnect(channel);
         } else {
-          log.info("Close channel:{}", channel.getInetSocketAddress());
-          ChannelManager.notifyDisconnect(channel);
+          try {
+            log.info("Close channel:{}", channel.getInetSocketAddress());
+            ChannelManager.notifyDisconnect(channel);
+          } finally {
+            if (channel.getInetSocketAddress() != null && channel.isActive()) {
+              ChannelManager.triggerConnect(channel.getInetSocketAddress());
+            }
+          }
         }
       });
 

@@ -12,6 +12,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
+import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.discover.Node;
 
 @Slf4j(topic = "net")
@@ -53,6 +54,9 @@ public class PeerClient {
             log.warn("Connect to peer {} fail, cause:{}", node.getPreferInetSocketAddress(),
                 future.cause().getMessage());
             future.channel().close();
+            if (!discoveryMode) {
+              ChannelManager.triggerConnect(node.getPreferInetSocketAddress());
+            }
           }
         });
   }
