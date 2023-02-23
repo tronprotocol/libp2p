@@ -52,11 +52,13 @@ public class ConnPoolService extends P2pEventHandler {
 
   public P2pConfig p2pConfig = Parameter.p2pConfig;
   private PeerClient peerClient;
+  private List<InetSocketAddress> configActiveNodes = new ArrayList<>();
 
   public ConnPoolService() {
     this.messageTypes = new HashSet<>(); //no message type registers
     try {
       Parameter.addP2pEventHandle(this);
+      configActiveNodes.addAll(p2pConfig.getActiveNodes());
     } catch (P2pException e) {
     }
   }
@@ -124,9 +126,13 @@ public class ConnPoolService extends P2pEventHandler {
         Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort()));
 
     //calculate lackSize exclude config activeNodes
+    int activeLackSize = p2pConfig.getMinActiveConnections() - activePeersCount.get();
     int size = Math.max(
         p2pConfig.getMinConnections() - connectingPeersCount.get() - passivePeersCount.get(),
-        p2pConfig.getMinActiveConnections() - activePeersCount.get());
+        activeLackSize);
+    if (p2pConfig.getMinConnections() <= activePeers.size() && activeLackSize <= 0) {
+      size = 0;
+    }
     int lackSize = size;
     if (lackSize > 0) {
       List<Node> connectableNodes = ChannelManager.getNodeDetectService().getConnectableNodes();
@@ -179,7 +185,7 @@ public class ConnPoolService extends P2pEventHandler {
         peerClient.connectAsync(n, false);
         peerClientCache.put(n.getPreferInetSocketAddress().getAddress(),
             System.currentTimeMillis());
-        if (!p2pConfig.getActiveNodes().contains(n.getPreferInetSocketAddress())) {
+        if (!configActiveNodes.contains(n.getPreferInetSocketAddress())) {
           connectingPeersCount.incrementAndGet();
         }
       });
@@ -244,7 +250,7 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   public void triggerConnect(InetSocketAddress address) {
-    if (p2pConfig.getActiveNodes().contains(address)) {
+    if (configActiveNodes.contains(address)) {
       return;
     }
     connectingPeersCount.decrementAndGet();
