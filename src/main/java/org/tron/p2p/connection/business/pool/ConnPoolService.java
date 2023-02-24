@@ -177,7 +177,8 @@ public class ConnPoolService extends P2pEventHandler {
       connectNodes.addAll(newNodes);
     }
 
-    log.debug("Lack size:{}, connectNodes size:{}", size, connectNodes.size());
+    log.info("Lack size:{}, connectNodes size:{}, is disconnect trigger: {}",
+        size, connectNodes.size(), isFilterActiveNodes);
     //establish tcp connection with chose nodes by peerClient
     {
       connectNodes.forEach(n -> {
