@@ -23,7 +23,6 @@ import org.tron.p2p.base.Parameter;
 import org.tron.p2p.dns.update.DnsType;
 import org.tron.p2p.dns.update.PublishConfig;
 import org.tron.p2p.utils.ByteArray;
-import software.amazon.awssdk.regions.Region;
 
 @Slf4j(topic = "net")
 public class StartApp {
@@ -238,7 +237,7 @@ public class StartApp {
           System.exit(0);
         } else {
           String region = cli.getOptionValue(configAwsRegion);
-          publishConfig.setAwsRegion(Region.of(region));
+          publishConfig.setAwsRegion(region);
         }
       } else {
         if (!cli.hasOption(configAliEndPoint)) {

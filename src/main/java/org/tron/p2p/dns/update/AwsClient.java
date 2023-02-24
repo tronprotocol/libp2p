@@ -56,7 +56,7 @@ public class AwsClient implements Publish {
   private static final String postfix = ".";
 
   public AwsClient(final String accessKey, final String accessKeySecret,
-      final String zoneId, final Region region) throws DnsException {
+      final String zoneId, final String region) throws DnsException {
     if (StringUtils.isEmpty(accessKey) || StringUtils.isEmpty(accessKeySecret)) {
       throw new DnsException(TypeEnum.DEPLOY_DOMAIN_FAILED,
           "Need Route53 Access Key ID and secret to proceed");
@@ -75,7 +75,7 @@ public class AwsClient implements Publish {
         });
     route53Client = Route53Client.builder()
         .credentialsProvider(staticCredentialsProvider)
-        .region(region)
+        .region(Region.of(region))
         .build();
     this.zoneId = zoneId;
     this.serverNodes = new HashSet<>();

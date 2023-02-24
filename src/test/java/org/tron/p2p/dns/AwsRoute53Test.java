@@ -12,7 +12,6 @@ import org.tron.p2p.dns.tree.Tree;
 import org.tron.p2p.dns.update.AwsClient;
 import org.tron.p2p.dns.update.AwsClient.RecordSet;
 import org.tron.p2p.exception.DnsException;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.route53.model.Change;
 import software.amazon.awssdk.services.route53.model.ChangeAction;
 
@@ -49,7 +48,7 @@ public class AwsRoute53Test {
     AwsClient publish;
     try {
       publish = new AwsClient("random1", "random2", "random3",
-          Region.US_EAST_1);
+          "us-east-1");
     } catch (DnsException e) {
       Assert.fail();
       return;
