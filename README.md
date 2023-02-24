@@ -71,3 +71,10 @@ dependencies {
 
 ## Example
 For some examples please check our [example package](https://github.com/tronprotocol/libp2p/tree/develop/src/main/java/org/tron/p2p/example). 
+
+# Integrity Check
+* After February 21, 2023， releases are signed the gpg key:
+  ```
+  pub: 1254 F859 D2B1 BD9F 66E7 107D F859 BCB4 4A28 290B
+  uid: build@tron.network
+  ```

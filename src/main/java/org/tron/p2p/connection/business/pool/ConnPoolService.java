@@ -110,10 +110,10 @@ public class ConnPoolService extends P2pEventHandler {
 
     p2pConfig.getActiveNodes().forEach(address -> {
       if (!addressInUse.contains(address.getAddress())) {
+        addressInUse.add(address.getAddress());
+        inetInUse.add(address);
         Node node = new Node(address); //use a random NodeId for config activeNodes
         if (node.getPreferInetSocketAddress() != null) {
-          addressInUse.add(address.getAddress());
-          inetInUse.add(address);
           connectNodes.add(node);
         }
       }
@@ -128,6 +128,7 @@ public class ConnPoolService extends P2pEventHandler {
     if (lackSize > 0) {
       List<Node> connectableNodes = ChannelManager.getNodeDetectService().getConnectableNodes();
       for (Node node : connectableNodes) {
+        // nodesInUse and inetInUse don't change in method `validNode`
         if (validNode(node, nodesInUse, inetInUse, null)) {
           connectNodes.add(node);
           nodesInUse.add(node.getHexId());
@@ -182,12 +183,10 @@ public class ConnPoolService extends P2pEventHandler {
     }
   }
 
-
   public List<Node> getNodes(Set<String> nodesInUse, Set<InetSocketAddress> inetInUse,
       List<Node> connectableNodes, int limit) {
-
-    Set<InetSocketAddress> dynamicInetInUse = new HashSet<>(inetInUse);
     List<Node> filtered = new ArrayList<>();
+    Set<InetSocketAddress> dynamicInetInUse = new HashSet<>(inetInUse);
     for (Node node : connectableNodes) {
       if (validNode(node, nodesInUse, inetInUse, dynamicInetInUse)) {
         filtered.add((Node) node.clone());
