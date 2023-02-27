@@ -71,7 +71,7 @@ public class ConnPoolService extends P2pEventHandler {
       } catch (Exception t) {
         log.error("Exception in poolLoopExecutor worker", t);
       }
-    }, 100, 3600, TimeUnit.MILLISECONDS);
+    }, 200, 3600, TimeUnit.MILLISECONDS);
 
     if (p2pConfig.isDisconnectionPolicyEnable()) {
       disconnectExecutor.scheduleWithFixedDelay(() -> {
@@ -126,7 +126,7 @@ public class ConnPoolService extends P2pEventHandler {
         Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort()));
 
     //calculate lackSize exclude config activeNodes
-    int activeLackSize = p2pConfig.getMinActiveConnections() - activePeersCount.get();
+    int activeLackSize = p2pConfig.getMinActiveConnections() - connectingPeersCount.get();
     int size = Math.max(
         p2pConfig.getMinConnections() - connectingPeersCount.get() - passivePeersCount.get(),
         activeLackSize);
