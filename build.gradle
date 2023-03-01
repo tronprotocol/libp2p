@@ -18,7 +18,6 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'application'
 
 def protobufVersion = "3.19.2"
-
 def grpcVersion = "1.14.0"
 
 mainClassName = 'org.tron.p2p.example.StartApp'
@@ -74,7 +73,16 @@ dependencies {
 
     implementation group: 'dnsjava', name: 'dnsjava', version: '3.5.2'
     implementation group: 'org.web3j', name: 'crypto', version: '5.0.0'
-    implementation group: 'software.amazon.awssdk', name: 'route53', version: '2.18.41'
+    implementation('software.amazon.awssdk:route53:2.18.41', {
+        exclude group: 'io.netty', module: 'netty-codec-http2'
+        exclude group: 'io.netty', module: 'netty-codec-http'
+        exclude group: 'io.netty', module: 'netty-common'
+        exclude group: 'io.netty', module: 'netty-buffer'
+        exclude group: 'io.netty', module: 'netty-transport'
+        exclude group: 'io.netty', module: 'netty-codec'
+        exclude group: 'io.netty', module: 'netty-handler'
+        exclude group: 'io.netty', module: 'netty-resolver'
+    })
     implementation group: 'com.aliyun', name: 'alidns20150109', version: '3.0.1'
     implementation group: 'xerces', name: 'xercesImpl', version: '2.11.0'
 }
