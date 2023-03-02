@@ -1,5 +1,7 @@
 package org.tron.p2p.dns.update;
 
+import java.net.Inet4Address;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,7 +58,7 @@ public class PublishService {
     PublishConfig config = Parameter.p2pConfig.getPublishConfig();
     try {
       Tree tree = new Tree();
-      List<String> nodes = getNodes();
+      List<String> nodes = getNodes(config);
       tree.makeTree(1, nodes, config.getKnownTreeUrls(), config.getDnsPrivate());
       publish.deploy(config.getDnsDomain(), tree);
     } catch (Exception e) {
@@ -64,9 +66,22 @@ public class PublishService {
     }
   }
 
-  private List<String> getNodes() throws UnknownHostException {
-    List<Node> nodes = NodeManager.getConnectableNodes();
-    nodes.add(NodeManager.getHomeNode());
+  private List<String> getNodes(PublishConfig config) throws UnknownHostException {
+    List<Node> nodes = new ArrayList<>();
+    if (config.getStaticNodes() != null && !config.getStaticNodes().isEmpty()) {
+      for (InetSocketAddress staticAddress : config.getStaticNodes()) {
+        if (staticAddress.getAddress() instanceof Inet4Address) {
+          nodes.add(new Node(null, staticAddress.getAddress().getHostAddress(), null,
+              staticAddress.getPort()));
+        } else {
+          nodes.add(new Node(null, null, staticAddress.getAddress().getHostAddress(),
+              staticAddress.getPort()));
+        }
+      }
+    } else {
+      nodes = NodeManager.getConnectableNodes();
+      nodes.add(NodeManager.getHomeNode());
+    }
     List<DnsNode> dnsNodes = new ArrayList<>();
     for (Node node : nodes) {
       if (node.getInetSocketAddressV6() != null) {

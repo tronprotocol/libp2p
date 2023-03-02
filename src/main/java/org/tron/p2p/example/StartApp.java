@@ -147,6 +147,7 @@ public class StartApp {
   private static final String configPublish = "publish";
   private static final String configDnsPrivate = "dns-private";
   private static final String configKnownUrls = "known-urls";
+  private static final String configStaticNodes = "static-nodes";
   private static final String configDomain = "domain";
   private static final String configServerType = "server-type";
   private static final String configAccessId = "access-key-id";
@@ -187,6 +188,11 @@ public class StartApp {
       if (cli.hasOption(configKnownUrls)) {
         publishConfig.setKnownTreeUrls(
             Arrays.asList(cli.getOptionValue(configKnownUrls).split(",")));
+      }
+
+      if (cli.hasOption(configStaticNodes)) {
+        publishConfig.setStaticNodes(
+            parseInetSocketAddressList(cli.getOptionValue(configStaticNodes)));
       }
 
       if (cli.hasOption(configDomain)) {
@@ -294,19 +300,21 @@ public class StartApp {
         "dns private key used to publish, required, hex string of length 64");
     Option opt3 = new Option(null, configKnownUrls, true,
         "known dns urls to publish, url format tree://{pubkey}@{domain}, optional, url[,url[...]]");
-    Option opt4 = new Option(null, configDomain, true,
+    Option opt4 = new Option(null, configStaticNodes, true,
+        "static nodes to publish, if exist then nodes from kad will be ignored, optional, ip:port[,ip:port[...]]");
+    Option opt5 = new Option(null, configDomain, true,
         "dns domain to publish nodes, required, string");
-    Option opt5 = new Option(null, configServerType, true,
+    Option opt6 = new Option(null, configServerType, true,
         "dns server to publish, required, only aws or aliyun is support");
-    Option opt6 = new Option(null, configAccessId, true,
+    Option opt7 = new Option(null, configAccessId, true,
         "access key id of aws or aliyun api, required, string");
-    Option opt7 = new Option(null, configAccessSecret, true,
+    Option opt8 = new Option(null, configAccessSecret, true,
         "access key secret of aws or aliyun api, required, string");
-    Option opt8 = new Option(null, configAwsRegion, true,
+    Option opt9 = new Option(null, configAwsRegion, true,
         "if server-type is aws, it's region of aws api, such as \"eu-south-1\", required, string");
-    Option opt9 = new Option(null, configHostZoneId, true,
+    Option opt10 = new Option(null, configHostZoneId, true,
         "if server-type is aws, it's host zone id of aws's domain, optional, string");
-    Option opt10 = new Option(null, configAliEndPoint, true,
+    Option opt11 = new Option(null, configAliEndPoint, true,
         "if server-type is aliyun, it's endpoint of aws dns server, required, string");
 
     Options group = new Options();
@@ -320,6 +328,7 @@ public class StartApp {
     group.addOption(opt8);
     group.addOption(opt9);
     group.addOption(opt10);
+    group.addOption(opt11);
     return group;
   }
 

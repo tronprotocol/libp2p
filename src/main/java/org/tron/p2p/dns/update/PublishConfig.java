@@ -1,6 +1,7 @@
 package org.tron.p2p.dns.update;
 
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
@@ -11,6 +12,7 @@ public class PublishConfig {
   private boolean dnsPublishEnable = false;
   private String dnsPrivate = null;
   private List<String> knownTreeUrls = new ArrayList<>();
+  private List<InetSocketAddress> staticNodes = new ArrayList<>();
   private String dnsDomain = null;
   private DnsType dnsType = null;
   private String accessKeyId = null;

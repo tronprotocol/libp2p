@@ -58,7 +58,7 @@ public class DnsManager {
         }
       }
       log.debug("Tree {} node size:{}, v4 node size:{}, v6 node size:{}", entry.getKey(),
-          tree.getDnsNodes().size(), v4Size, v6Size);
+          dnsNodes.size(), v4Size, v6Size);
       if (ipv6Nodes.size() > 0) {
         log.debug("Node with ipv6: {}", ipv6Nodes);
       }
