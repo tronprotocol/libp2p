@@ -28,8 +28,8 @@ usage: available p2p discovery cli options:
  -v,--version <arg>                  p2p version, int, default 1
 
 available dns read cli options:
- -u,--url-schemes <arg>   dns urls to get nodes, url format
-                          tree://{pubkey}@{domain}. url[,url[...]]
+ -u,--url-schemes <arg>   dns url(s) to get nodes, url format
+                          tree://{pubkey}@{domain}, url[,url[...]]
 
 available dns publish cli options:
     --access-key-id <arg>         access key id of aws or aliyun api,
@@ -53,6 +53,9 @@ available dns publish cli options:
  -publish,--publish               enable dns publish
     --server-type <arg>           dns server to publish, required, only
                                   aws or aliyun is support
+    --static-nodes <arg>          static nodes to publish, if exist then
+                                  nodes from kad will be ignored,
+                                  optional, ip:port[,ip:port[...]]
 ```
 
 For details please

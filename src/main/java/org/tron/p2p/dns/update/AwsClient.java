@@ -488,9 +488,9 @@ public class AwsClient implements Publish {
     return sb.toString();
   }
 
-  private boolean isSubdomain(String sub, String root) {
-    String subNoSuffix = StringUtils.stripEnd(sub, postfix);
-    String rootNoSuffix = StringUtils.stripEnd(root, postfix);
+  public static boolean isSubdomain(String sub, String root) {
+    String subNoSuffix = postfix + StringUtils.strip(sub, postfix);
+    String rootNoSuffix = postfix + StringUtils.strip(root, postfix);
     return subNoSuffix.endsWith(rootNoSuffix);
   }
 
