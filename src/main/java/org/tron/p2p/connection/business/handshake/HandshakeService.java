@@ -33,7 +33,7 @@ public class HandshakeService implements MessageProcess {
     DisconnectCode code = ChannelManager.processPeer(channel);
     if (code != DisconnectCode.NORMAL) {
       sendHelloMsg(channel, code);
-      channel.close();
+      channel.getCtx().close();
       return;
     }
 
