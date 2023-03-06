@@ -3,9 +3,13 @@ package org.tron.p2p.utils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Enumeration;
 import java.util.Random;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
@@ -90,8 +94,8 @@ public class NetUtil {
       }
       return ip;
     } catch (IOException e) {
-      log.warn("Fail to get ip {}, {}", Constant.AMAZONAWS_URL.equals(url) ? "v4" : "v6",
-          e.getMessage());
+      log.warn("Fail to get {} by {}, cause:{}",
+          Constant.AMAZONAWS_URL.equals(url) ? "ipv4" : "ipv6", url, e.getMessage());
       return ip;
     } finally {
       if (in != null) {
@@ -103,12 +107,46 @@ public class NetUtil {
     }
   }
 
+  private static String getOuterIPv6Address() {
+    Enumeration<NetworkInterface> networkInterfaces;
+    try {
+      networkInterfaces = NetworkInterface.getNetworkInterfaces();
+    } catch (SocketException e) {
+      log.warn("GetOuterIPv6Address failed, {}", e);
+      return null;
+    }
+    while (networkInterfaces.hasMoreElements()) {
+      Enumeration<InetAddress> inetAds = networkInterfaces.nextElement().getInetAddresses();
+      while (inetAds.hasMoreElements()) {
+        InetAddress inetAddress = inetAds.nextElement();
+        if (inetAddress instanceof Inet6Address && !isReservedAddress(inetAddress)) {
+          String ipAddress = inetAddress.getHostAddress();
+          int index = ipAddress.indexOf('%');
+          if (index > 0) {
+            ipAddress = ipAddress.substring(0, index);
+          }
+          return ipAddress;
+        }
+      }
+    }
+    return null;
+  }
+
+  private static boolean isReservedAddress(InetAddress inetAddress) {
+    return inetAddress.isAnyLocalAddress() || inetAddress.isLinkLocalAddress()
+        || inetAddress.isLoopbackAddress() || inetAddress.isMulticastAddress();
+  }
+
   public static String getExternalIpV4() {
     return getExternalIp(Constant.AMAZONAWS_URL);
   }
 
   public static String getExternalIpV6() {
-    return getExternalIp(Constant.IDENT_URL);
+    String ipV6 = getExternalIp(Constant.IDENT_URL);
+    if (null == ipV6) {
+      ipV6 = getOuterIPv6Address();
+    }
+    return ipV6;
   }
 
 }

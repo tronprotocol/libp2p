@@ -204,11 +204,11 @@ public class StartApp {
 
       if (cli.hasOption(configServerType)) {
         String serverType = cli.getOptionValue(configServerType);
-        if (!serverType.equalsIgnoreCase("aws") && !serverType.equalsIgnoreCase("aliyun")) {
+        if (!"aws".equalsIgnoreCase(serverType) && !"aliyun".equalsIgnoreCase(serverType)) {
           log.error("Check {}, must be aws or aliyun", configServerType);
           System.exit(0);
         }
-        if (serverType.equalsIgnoreCase("aws")) {
+        if ("aws".equalsIgnoreCase(serverType)) {
           publishConfig.setDnsType(DnsType.AwsRoute53);
         } else {
           publishConfig.setDnsType(DnsType.AliYun);
