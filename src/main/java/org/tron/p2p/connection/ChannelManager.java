@@ -185,6 +185,10 @@ public class ChannelManager {
 
     if (!channel.isFinishHandshake()) {
       channel.setFinishHandshake(true);
+      if (!DisconnectCode.NORMAL.equals(processPeer(channel)))  {
+        channel.getCtx().close();
+        return;
+      }
       Parameter.handlerList.forEach(h -> h.onConnect(channel));
     }
 

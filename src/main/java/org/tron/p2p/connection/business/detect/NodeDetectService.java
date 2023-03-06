@@ -27,7 +27,7 @@ public class NodeDetectService implements MessageProcess {
 
   @Getter
   private static final Cache<InetAddress, Long> badNodesCache = CacheBuilder
-    .newBuilder().maximumSize(2000).build();
+    .newBuilder().maximumSize(5000).expireAfterWrite(1, TimeUnit.HOURS).build();
 
   private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
