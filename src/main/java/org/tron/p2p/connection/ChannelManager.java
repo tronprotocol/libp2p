@@ -50,7 +50,7 @@ public class ChannelManager {
 
   @Getter
   private static final Cache<InetAddress, Long> bannedNodes = CacheBuilder
-    .newBuilder().maximumSize(2000).build(); //ban timestamp
+      .newBuilder().maximumSize(2000).build(); //ban timestamp
 
   public static void init() {
     peerServer = new PeerServer();
@@ -68,7 +68,7 @@ public class ChannelManager {
 
   public static void connect(InetSocketAddress address) {
     peerClient.connect(address.getAddress().getHostAddress(), address.getPort(),
-      ByteArray.toHexString(NetUtil.getNodeId()));
+        ByteArray.toHexString(NetUtil.getNodeId()));
   }
 
   public static void notifyDisconnect(Channel channel) {
@@ -99,7 +99,7 @@ public class ChannelManager {
     if (!channel.isActive() && !channel.isTrustPeer()) {
       InetAddress inetAddress = channel.getInetAddress();
       if (bannedNodes.getIfPresent(inetAddress) != null
-        && bannedNodes.getIfPresent(inetAddress) > System.currentTimeMillis()) {
+          && bannedNodes.getIfPresent(inetAddress) > System.currentTimeMillis()) {
         log.info("Peer {} recently disconnected", channel);
         return DisconnectCode.TIME_BANNED;
       }
@@ -138,7 +138,7 @@ public class ChannelManager {
   public static void banNode(InetAddress inetAddress, Long banTime) {
     long now = System.currentTimeMillis();
     if (bannedNodes.getIfPresent(inetAddress) == null
-      || bannedNodes.getIfPresent(inetAddress) < now) {
+        || bannedNodes.getIfPresent(inetAddress) < now) {
       bannedNodes.put(inetAddress, now + banTime);
     }
   }
@@ -182,9 +182,17 @@ public class ChannelManager {
     if (handler == null) {
       throw new P2pException(P2pException.TypeEnum.NO_SUCH_MESSAGE, "type:" + data[0]);
     }
+    if (channel.isDiscoveryMode()) {
+      channel.getCtx().close();
+      return;
+    }
 
     if (!channel.isFinishHandshake()) {
       channel.setFinishHandshake(true);
+      if (!DisconnectCode.NORMAL.equals(processPeer(channel))) {
+        channel.getCtx().close();
+        return;
+      }
       Parameter.handlerList.forEach(h -> h.onConnect(channel));
     }
 
