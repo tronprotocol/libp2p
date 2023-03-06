@@ -63,7 +63,8 @@ public class DnsManager {
       }
       List<DnsNode> connectAbleNodes = dnsNodes.stream()
           .filter(node -> node.getPreferInetSocketAddress() != null)
-          .filter(node -> !localIpSet.contains(node.getPreferInetSocketAddress()))
+          .filter(node -> !localIpSet.contains(
+              node.getPreferInetSocketAddress().getAddress().getHostAddress()))
           .collect(Collectors.toList());
       log.debug("Tree {} node size:{}, v4 node size:{}, v6 node size:{}, connectable size:{}",
           entry.getKey(), dnsNodes.size(), v4Size, v6Size, connectAbleNodes.size());
