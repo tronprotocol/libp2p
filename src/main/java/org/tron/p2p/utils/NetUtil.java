@@ -10,7 +10,9 @@ import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -130,6 +132,30 @@ public class NetUtil {
       }
     }
     return null;
+  }
+
+  public static Set<String> getAllLocalAddress() {
+    Set<String> localIpSet = new HashSet<>();
+    Enumeration<NetworkInterface> networkInterfaces;
+    try {
+      networkInterfaces = NetworkInterface.getNetworkInterfaces();
+    } catch (SocketException e) {
+      log.warn("GetAllLocalAddress failed, {}", e);
+      return localIpSet;
+    }
+    while (networkInterfaces.hasMoreElements()) {
+      Enumeration<InetAddress> inetAds = networkInterfaces.nextElement().getInetAddresses();
+      while (inetAds.hasMoreElements()) {
+        InetAddress inetAddress = inetAds.nextElement();
+        String ipAddress = inetAddress.getHostAddress();
+        int index = ipAddress.indexOf('%');
+        if (index > 0) {
+          ipAddress = ipAddress.substring(0, index);
+        }
+        localIpSet.add(ipAddress);
+      }
+    }
+    return localIpSet;
   }
 
   private static boolean isReservedAddress(InetAddress inetAddress) {
