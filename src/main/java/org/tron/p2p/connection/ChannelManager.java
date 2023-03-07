@@ -23,6 +23,7 @@ import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
 import org.tron.p2p.exception.P2pException;
+import org.tron.p2p.exception.P2pException.TypeEnum;
 import org.tron.p2p.utils.ByteArray;
 import org.tron.p2p.utils.NetUtil;
 
@@ -153,7 +154,7 @@ public class ChannelManager {
 
   public static void processMessage(Channel channel, byte[] data) throws P2pException {
     if (data == null || data.length == 0) {
-      return;
+      throw new P2pException(TypeEnum.EMPTY_MESSAGE, "");
     }
     if (data[0] >= 0) {
       handMessage(channel, data);
