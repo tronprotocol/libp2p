@@ -41,6 +41,9 @@ available dns publish cli options:
     --aws-region <arg>            if server-type is aws, it's region of
                                   aws api, such as "eu-south-1", required,
                                   string
+    --change-threshold <arg>      change threshold of add and delete to
+                                  publish, optional, should be > 0 and <
+                                  1.0, default 0.1
     --dns-private <arg>           dns private key used to publish,
                                   required, hex string of length 64
     --domain <arg>                dns domain to publish nodes, required,
@@ -50,6 +53,9 @@ available dns publish cli options:
     --known-urls <arg>            known dns urls to publish, url format
                                   tree://{pubkey}@{domain}, optional,
                                   url[,url[...]]
+    --max-merge-size <arg>        max merge size to merge node to a leaf
+                                  node in dns tree, optional, should be
+                                  [1~5], default 5
  -publish,--publish               enable dns publish
     --server-type <arg>           dns server to publish, required, only
                                   aws or aliyun is support

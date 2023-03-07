@@ -149,6 +149,8 @@ public class StartApp {
   private static final String configKnownUrls = "known-urls";
   private static final String configStaticNodes = "static-nodes";
   private static final String configDomain = "domain";
+  private static final String configChangeThreshold = "change-threshold";
+  private static final String configMaxMergeSize = "max-merge-size";
   private static final String configServerType = "server-type";
   private static final String configAccessId = "access-key-id";
   private static final String configAccessSecret = "access-key-secret";
@@ -200,6 +202,25 @@ public class StartApp {
       } else {
         log.error("Check {}, must not be null", configDomain);
         System.exit(0);
+      }
+
+      if (cli.hasOption(configChangeThreshold)) {
+        double changeThreshold = Double.parseDouble(cli.getOptionValue(configChangeThreshold));
+        if (changeThreshold >= 1.0) {
+          log.error("Check {}, range between (0.0 ~ 1.0]",
+              configChangeThreshold);
+        } else {
+          publishConfig.setChangeThreshold(changeThreshold);
+        }
+      }
+
+      if (cli.hasOption(configMaxMergeSize)) {
+        int maxMergeSize = Integer.parseInt(cli.getOptionValue(configMaxMergeSize));
+        if (maxMergeSize > 5) {
+          log.error("Check {}, range between [1 ~ 5]", configMaxMergeSize);
+        } else {
+          publishConfig.setMaxMergeSize(maxMergeSize);
+        }
       }
 
       if (cli.hasOption(configServerType)) {
@@ -304,17 +325,21 @@ public class StartApp {
         "static nodes to publish, if exist then nodes from kad will be ignored, optional, ip:port[,ip:port[...]]");
     Option opt5 = new Option(null, configDomain, true,
         "dns domain to publish nodes, required, string");
-    Option opt6 = new Option(null, configServerType, true,
+    Option opt6 = new Option(null, configChangeThreshold, true,
+        "change threshold of add and delete to publish, optional, should be > 0 and < 1.0, default 0.1");
+    Option opt7 = new Option(null, configMaxMergeSize, true,
+        "max merge size to merge node to a leaf node in dns tree, optional, should be [1~5], default 5");
+    Option opt8 = new Option(null, configServerType, true,
         "dns server to publish, required, only aws or aliyun is support");
-    Option opt7 = new Option(null, configAccessId, true,
+    Option opt9 = new Option(null, configAccessId, true,
         "access key id of aws or aliyun api, required, string");
-    Option opt8 = new Option(null, configAccessSecret, true,
+    Option opt10 = new Option(null, configAccessSecret, true,
         "access key secret of aws or aliyun api, required, string");
-    Option opt9 = new Option(null, configAwsRegion, true,
+    Option opt11 = new Option(null, configAwsRegion, true,
         "if server-type is aws, it's region of aws api, such as \"eu-south-1\", required, string");
-    Option opt10 = new Option(null, configHostZoneId, true,
+    Option opt12 = new Option(null, configHostZoneId, true,
         "if server-type is aws, it's host zone id of aws's domain, optional, string");
-    Option opt11 = new Option(null, configAliEndPoint, true,
+    Option opt13 = new Option(null, configAliEndPoint, true,
         "if server-type is aliyun, it's endpoint of aws dns server, required, string");
 
     Options group = new Options();
@@ -329,6 +354,8 @@ public class StartApp {
     group.addOption(opt9);
     group.addOption(opt10);
     group.addOption(opt11);
+    group.addOption(opt12);
+    group.addOption(opt13);
     return group;
   }
 
