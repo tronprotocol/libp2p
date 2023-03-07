@@ -147,21 +147,18 @@ public class AwsClient implements Publish {
     set1.removeAll(treeNodes); // dns - tree
     int deleteNodeSize = set1.size();
 
-    if ((existing.size() == 0 || changes.size() / (double) existing.size() >= changeThreshold)
-        && (serverNodes.isEmpty()
-        || (addNodeSize + deleteNodeSize) / (double) serverNodes.size() >= changeThreshold)) {
+    if (serverNodes.isEmpty()
+        || (addNodeSize + deleteNodeSize) / (double) serverNodes.size() >= changeThreshold) {
       String comment = String.format("Tree update of %s at seq %d", domain, tree.getSeq());
       log.info(comment);
       submitChanges(changes, comment);
     } else {
       NumberFormat nf = NumberFormat.getNumberInstance();
       nf.setMaximumFractionDigits(4);
-      double changePercent = existing.isEmpty() ? 1.0 : (changes.size() / (double) existing.size());
-      double nodePercent = serverNodes.isEmpty() ? 1.0
+      double changePercent = serverNodes.isEmpty() ? 1.0
           : ((addNodeSize + deleteNodeSize) / (double) serverNodes.size());
-      log.info(
-          "Total change percent {} or Node add/delete percent {} is below changeThreshold {}, skip this changes",
-          nf.format(changePercent), nf.format(nodePercent), changeThreshold);
+      log.info("Sum of node add & delete percent {} is below changeThreshold {}, skip this changes",
+          nf.format(changePercent), changeThreshold);
     }
   }
 
