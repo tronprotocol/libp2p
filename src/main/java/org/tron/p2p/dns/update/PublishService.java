@@ -4,7 +4,9 @@ import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -70,7 +72,7 @@ public class PublishService {
   }
 
   private List<String> getNodes(PublishConfig config) throws UnknownHostException {
-    List<Node> nodes = new ArrayList<>();
+    Set<Node> nodes = new HashSet<>();
     if (config.getStaticNodes() != null && !config.getStaticNodes().isEmpty()) {
       for (InetSocketAddress staticAddress : config.getStaticNodes()) {
         if (staticAddress.getAddress() instanceof Inet4Address) {
@@ -82,14 +84,11 @@ public class PublishService {
         }
       }
     } else {
-      nodes = NodeManager.getConnectableNodes();
+      nodes.addAll(NodeManager.getConnectableNodes());
       nodes.add(NodeManager.getHomeNode());
     }
     List<DnsNode> dnsNodes = new ArrayList<>();
     for (Node node : nodes) {
-      if (node.getInetSocketAddressV6() != null) {
-        log.debug(node.format());
-      }
       DnsNode dnsNode = new DnsNode(node.getId(), node.getHostV4(), node.getHostV6(),
           node.getPort());
       dnsNodes.add(dnsNode);
