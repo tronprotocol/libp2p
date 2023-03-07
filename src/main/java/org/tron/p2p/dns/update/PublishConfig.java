@@ -14,6 +14,8 @@ public class PublishConfig {
   private List<String> knownTreeUrls = new ArrayList<>();
   private List<InetSocketAddress> staticNodes = new ArrayList<>();
   private String dnsDomain = null;
+  private double changeThreshold = 0.1;
+  private int maxMergeSize = 5;
   private DnsType dnsType = null;
   private String accessKeyId = null;
   private String accessKeySecret = null;

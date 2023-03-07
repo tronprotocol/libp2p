@@ -44,12 +44,14 @@ public class PublishService {
     if (config.getDnsType() == DnsType.AliYun) {
       publish = new AliClient(config.getAliDnsEndpoint(),
           config.getAccessKeyId(),
-          config.getAccessKeySecret());
+          config.getAccessKeySecret(),
+          config.getChangeThreshold());
     } else {
       publish = new AwsClient(config.getAccessKeyId(),
           config.getAccessKeySecret(),
           config.getAwsHostZoneId(),
-          config.getAwsRegion());
+          config.getAwsRegion(),
+          config.getChangeThreshold());
     }
     return publish;
   }
@@ -60,6 +62,7 @@ public class PublishService {
       Tree tree = new Tree();
       List<String> nodes = getNodes(config);
       tree.makeTree(1, nodes, config.getKnownTreeUrls(), config.getDnsPrivate());
+      log.debug("Try to publish node count:{}", tree.getDnsNodes().size());
       publish.deploy(config.getDnsDomain(), tree);
     } catch (Exception e) {
       log.error("Failed to publish dns", e);
@@ -91,7 +94,7 @@ public class PublishService {
           node.getPort());
       dnsNodes.add(dnsNode);
     }
-    return Tree.merge(dnsNodes);
+    return Tree.merge(dnsNodes, config.getMaxMergeSize());
   }
 
   private boolean checkConfig(boolean supportV4, PublishConfig config) {

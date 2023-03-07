@@ -25,12 +25,15 @@ public class AliClient implements Publish {
   private final int treeNodeTTL = 24 * 60 * 60;
   private int lastSeq = 0;
   private final Client aliDnsClient;
+  private double changeThreshold;
 
-  public AliClient(String endpoint, String accessKeyId, String accessKeySecret) throws Exception {
+  public AliClient(String endpoint, String accessKeyId, String accessKeySecret,
+      double changeThreshold) throws Exception {
     Config config = new Config();
     config.accessKeyId = accessKeyId;
     config.accessKeySecret = accessKeySecret;
     config.endpoint = endpoint;
+    this.changeThreshold = changeThreshold;
     aliDnsClient = new Client(config);
   }
 

@@ -54,9 +54,10 @@ public class AwsClient implements Publish {
   private Set<DnsNode> serverNodes;
   private static final String symbol = "\"";
   private static final String postfix = ".";
+  private double changeThreshold;
 
   public AwsClient(final String accessKey, final String accessKeySecret,
-      final String zoneId, final String region) throws DnsException {
+      final String zoneId, final String region, double changeThreshold) throws DnsException {
     if (StringUtils.isEmpty(accessKey) || StringUtils.isEmpty(accessKeySecret)) {
       throw new DnsException(TypeEnum.DEPLOY_DOMAIN_FAILED,
           "Need Route53 Access Key ID and secret to proceed");
@@ -79,6 +80,7 @@ public class AwsClient implements Publish {
         .build();
     this.zoneId = zoneId;
     this.serverNodes = new HashSet<>();
+    this.changeThreshold = changeThreshold;
   }
 
   private void checkZone(String domain) {

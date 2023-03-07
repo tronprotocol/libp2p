@@ -14,6 +14,7 @@ import org.junit.Test;
 import org.tron.p2p.dns.tree.Algorithm;
 import org.tron.p2p.dns.tree.Entry;
 import org.tron.p2p.dns.tree.Tree;
+import org.tron.p2p.dns.update.PublishConfig;
 import org.tron.p2p.exception.DnsException;
 
 public class TreeTest {
@@ -44,7 +45,8 @@ public class TreeTest {
     DnsNode[] nodes = sampleNode();
     List<DnsNode> nodeList = Arrays.asList(nodes);
 
-    List<String> enrs = Tree.merge(nodeList);
+    int maxMergeSize = new PublishConfig().getMaxMergeSize();
+    List<String> enrs = Tree.merge(nodeList, maxMergeSize);
     int total = 0;
     for (int i = 0; i < enrs.size(); i++) {
       List<DnsNode> subList = null;
@@ -53,7 +55,7 @@ public class TreeTest {
       } catch (InvalidProtocolBufferException e) {
         Assert.fail();
       }
-      Assert.assertTrue(subList.size() <= Tree.MaxMergeSize);
+      Assert.assertTrue(subList.size() <= maxMergeSize);
       total += subList.size();
     }
     Assert.assertEquals(nodeList.size(), total);
@@ -174,6 +176,7 @@ public class TreeTest {
     Random random = new Random();
     //simulate some nodes
     int ipCount = 2000;
+    int maxMergeSize = 5;
     List<DnsNode> dnsNodes = new ArrayList<>();
     Set<String> ipSet = new HashSet<>();
     int i = 0;
@@ -187,7 +190,7 @@ public class TreeTest {
       ipSet.add(ip);
       dnsNodes.add(new DnsNode(null, ip, null, 10000));
     }
-    Set<String> enrSet1 = new HashSet<>(Tree.merge(dnsNodes));
+    Set<String> enrSet1 = new HashSet<>(Tree.merge(dnsNodes, maxMergeSize));
     System.out.println("srcSize:" + enrSet1.size());
 
     // delete some node
@@ -212,7 +215,7 @@ public class TreeTest {
       ipSet.add(ip);
       dnsNodes.add(new DnsNode(null, ip, null, 10000));
     }
-    Set<String> enrSet2 = new HashSet<>(Tree.merge(dnsNodes));
+    Set<String> enrSet2 = new HashSet<>(Tree.merge(dnsNodes, maxMergeSize));
 
     // calculate changes
     Set<String> enrSet3 = new HashSet<>(enrSet2);

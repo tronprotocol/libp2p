@@ -152,6 +152,9 @@ public class ChannelManager {
   }
 
   public static void processMessage(Channel channel, byte[] data) throws P2pException {
+    if (data == null || data.length == 0) {
+      return;
+    }
     if (data[0] >= 0) {
       handMessage(channel, data);
       return;

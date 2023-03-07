@@ -3,6 +3,7 @@ package org.tron.p2p.dns.lookup;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.Random;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -22,26 +23,27 @@ public class LookUpTxt {
       "223.5.5.5", "223.6.6.6", //AliDNS
       "180.76.76.76", //BaiduDNS
       "119.29.29.29", "182.254.116.116", //DNSPod DNS+
-      "1.2.4.8", "210.2.4.8", //CNNIC SDNS
+      //"1.2.4.8",
+      "210.2.4.8", //CNNIC SDNS
       "117.50.11.11", "117.50.22.22", //oneDNS
       "101.226.4.6", "218.30.118.6", "123.125.81.6", "140.207.198.6", //DNS pai
       "8.8.8.8", "8.8.4.4", //Google DNS
       "9.9.9.9", //IBM Quad9
       "208.67.222.222", "208.67.220.220", //OpenDNS
-      "199.91.73.222", "178.79.131.110" //V2EX DNS
+      //"199.91.73.222", "178.79.131.110" //V2EX DNS
   };
 
   static String[] publicDnsV6 = new String[] {
       "2606:4700:4700::1111", "2606:4700:4700::1001", //Cloudflare
       "2400:3200::1", "2400:3200:baba::1", //AliDNS
-      "2400:da00::6666", //BaiduDNS
+      //"2400:da00::6666", //BaiduDNS
       "2a00:5a60::ad1:0ff", "2a00:5a60::ad2:0ff", //AdGuard
       "2620:74:1b::1:1", "2620:74:1c::2:2", //Verisign
-      "2a05:dfc7:5::53", "2a05:dfc7:5::5353", //OpenNIC
+      //"2a05:dfc7:5::53", "2a05:dfc7:5::5353", //OpenNIC
       "2a02:6b8::feed:0ff", "2a02:6b8:0:1::feed:0ff",  //Yandex
       "2001:4860:4860::8888", "2001:4860:4860::8844", //Google DNS
       "2620:fe::fe", "2620:fe::9", //IBM Quad9
-      "2620:119:35::35", "2620:119:53::53", //OpenDNS
+      //"2620:119:35::35", "2620:119:53::53", //OpenDNS
       "2a00:5a60::ad1:0ff", "2a00:5a60::ad2:0ff" //AdGuard
   };
 
@@ -61,6 +63,7 @@ public class LookUpTxt {
     Lookup lookup = new Lookup(name, Type.TXT);
     int times = 0;
     Record[] records = null;
+    long start = System.currentTimeMillis();
     while (times < maxRetryTimes) {
       String publicDns;
       if (StringUtils.isNotEmpty(Parameter.p2pConfig.getIp())) {
@@ -68,12 +71,19 @@ public class LookUpTxt {
       } else {
         publicDns = publicDnsV6[random.nextInt(publicDnsV6.length)];
       }
-      lookup.setResolver(new SimpleResolver(InetAddress.getByName(publicDns)));
+      SimpleResolver simpleResolver = new SimpleResolver(InetAddress.getByName(publicDns));
+      simpleResolver.setTimeout(Duration.ofMillis(1000));
+      lookup.setResolver(simpleResolver);
+      long thisTime = System.currentTimeMillis();
       records = lookup.run();
+      long end = System.currentTimeMillis();
       times += 1;
       if (records != null) {
-        log.debug("Use Dns: {}", publicDns);
+        log.debug("Succeed to use dns: {}, cur cost: {}ms, total cost: {}ms", publicDns,
+            end - thisTime, end - start);
         break;
+      } else {
+        log.debug("Failed to use dns: {}, cur cost: {}ms", publicDns, end - thisTime);
       }
     }
     if (records == null) {
