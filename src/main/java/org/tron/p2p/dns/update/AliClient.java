@@ -119,6 +119,9 @@ public class AliClient implements Publish {
       return;
     }
     long ttl;
+    long addCount = 0;
+    long updateCount = 0;
+    long deleteCount = 0;
     for (Map.Entry<String, String> entry : records.entrySet()) {
       boolean result = true;
       ttl = treeNodeTTL;
@@ -127,10 +130,12 @@ public class AliClient implements Publish {
       }
       if (!existing.containsKey(entry.getKey())) {
         result = addRecord(domainName, entry.getKey(), entry.getValue(), ttl);
+        addCount++;
       } else if (!entry.getValue().equals(existing.get(entry.getKey()).getValue()) ||
           existing.get(entry.getKey()).getTTL() != ttl) {
         result = updateRecord(existing.get(entry.getKey()).getRecordId(), entry.getKey(),
             entry.getValue(), ttl);
+        updateCount++;
       }
 
       if (!result) {
@@ -141,8 +146,11 @@ public class AliClient implements Publish {
     for (String key : existing.keySet()) {
       if (!records.containsKey(key)) {
         deleteRecord(existing.get(key).getRecordId());
+        deleteCount++;
       }
     }
+    log.debug("Published successfully, add count:{}, update count:{}, delete count:{}",
+        addCount, updateCount, deleteCount);
   }
 
   private boolean computeChanges(String domainName,
