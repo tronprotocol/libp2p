@@ -11,7 +11,7 @@ public class NodeManagerTest {
     P2pConfig config = new P2pConfig();
     Parameter.p2pConfig = config;
     try {
-      NodeManager.init();
+      NodeManager.init(Parameter.p2pConfig.isDiscoverEnable());
       Thread.sleep(100);
       Assert.assertEquals(0, NodeManager.getAllNodes().size());
       Assert.assertEquals(0, NodeManager.getTableNodes().size());

@@ -9,11 +9,13 @@ public class NodeManager {
   private static DiscoverService discoverService;
   private static DiscoverServer discoverServer;
 
-  public static void init() {
-    discoverServer = new DiscoverServer();
+  public static void init(boolean isDiscoverEnable) {
     discoverService = new KadService();
     discoverService.init();
-    discoverServer.init(discoverService);
+    if (isDiscoverEnable) {
+      discoverServer = new DiscoverServer();
+      discoverServer.init(discoverService);
+    }
   }
 
   public static void close() {

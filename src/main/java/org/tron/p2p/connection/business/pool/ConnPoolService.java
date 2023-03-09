@@ -108,8 +108,11 @@ public class ConnPoolService extends P2pEventHandler {
       addNode(inetInUse, channel.getNode());
     });
 
+    addNode(inetInUse, new Node(Parameter.p2pConfig.getNodeID(), Parameter.p2pConfig.getIp(),
+        Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort()));
+
     p2pConfig.getActiveNodes().forEach(address -> {
-      if (!addressInUse.contains(address.getAddress())) {
+      if (!inetInUse.contains(address) && !addressInUse.contains(address.getAddress())) {
         addressInUse.add(address.getAddress());
         inetInUse.add(address);
         Node node = new Node(address); //use a random NodeId for config activeNodes
@@ -118,8 +121,6 @@ public class ConnPoolService extends P2pEventHandler {
         }
       }
     });
-    addNode(inetInUse, new Node(Parameter.p2pConfig.getNodeID(), Parameter.p2pConfig.getIp(),
-        Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort()));
 
     //calculate lackSize exclude config activeNodes
     int size = Math.max(p2pConfig.getMinConnections() - activePeers.size(),
