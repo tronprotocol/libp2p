@@ -23,7 +23,7 @@ public class P2pService {
 
   public void start(P2pConfig p2pConfig) {
     Parameter.p2pConfig = p2pConfig;
-    NodeManager.init(Parameter.p2pConfig.isDiscoverEnable());
+    NodeManager.init();
     ChannelManager.init();
     DnsManager.init();
     log.info("P2p service started");

@@ -27,7 +27,7 @@ public class SocketTest {
     Parameter.p2pConfig.setPort(port);
     Parameter.p2pConfig.setDiscoverEnable(false);
 
-    NodeManager.init(Parameter.p2pConfig.isDiscoverEnable());
+    NodeManager.init();
     ChannelManager.init();
   }
 

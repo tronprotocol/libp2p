@@ -28,7 +28,7 @@ public class ConnPoolServiceTest {
     Parameter.p2pConfig.setDiscoverEnable(false);
     Parameter.p2pConfig.setPort(port);
 
-    NodeManager.init(Parameter.p2pConfig.isDiscoverEnable());
+    NodeManager.init();
     ChannelManager.init();
   }
 
