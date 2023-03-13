@@ -155,11 +155,11 @@ public class AwsClient implements Publish {
     } else {
       NumberFormat nf = NumberFormat.getNumberInstance();
       nf.setMaximumFractionDigits(4);
-      double changePercent = serverNodes.isEmpty() ? 1.0
-          : ((addNodeSize + deleteNodeSize) / (double) serverNodes.size());
+      double changePercent = (addNodeSize + deleteNodeSize) / (double) serverNodes.size();
       log.info("Sum of node add & delete percent {} is below changeThreshold {}, skip this changes",
           nf.format(changePercent), changeThreshold);
     }
+    serverNodes.clear();
   }
 
   // removes all TXT records of the given domain.
