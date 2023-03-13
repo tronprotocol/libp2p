@@ -37,7 +37,12 @@ public class PublishService {
         log.error("Init PublishService failed", e);
         return;
       }
-      publisher.scheduleWithFixedDelay(this::startPublish, 300, publishDelay, TimeUnit.SECONDS);
+
+      if (publishConfig.getStaticNodes() != null && !publishConfig.getStaticNodes().isEmpty()) {
+        startPublish();
+      } else {
+        publisher.scheduleWithFixedDelay(this::startPublish, 300, publishDelay, TimeUnit.SECONDS);
+      }
     }
   }
 
@@ -64,7 +69,7 @@ public class PublishService {
       Tree tree = new Tree();
       List<String> nodes = getNodes(config);
       tree.makeTree(1, nodes, config.getKnownTreeUrls(), config.getDnsPrivate());
-      log.debug("Try to publish node count:{}", tree.getDnsNodes().size());
+      log.info("Try to publish node count:{}", tree.getDnsNodes().size());
       publish.deploy(config.getDnsDomain(), tree);
     } catch (Exception e) {
       log.error("Failed to publish dns", e);
