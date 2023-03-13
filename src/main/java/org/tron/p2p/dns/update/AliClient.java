@@ -32,6 +32,7 @@ public class AliClient implements Publish {
   private Set<DnsNode> serverNodes;
   private final Client aliDnsClient;
   private double changeThreshold;
+  public static final String aliyunRoot = "@";
 
   public AliClient(String endpoint, String accessKeyId, String accessKeySecret,
       double changeThreshold) throws Exception {
@@ -119,7 +120,7 @@ public class AliClient implements Publish {
               .getDomainRecords().getRecord()) {
             String name = StringUtils.stripEnd(r.getRR(), ".");
             records.put(name, r);
-            if (domain.equalsIgnoreCase(name)) {
+            if (aliyunRoot.equalsIgnoreCase(name)) {
               rootContent = r.value;
             }
             if (StringUtils.isNotEmpty(r.value) && r.value.startsWith(
