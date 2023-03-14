@@ -168,7 +168,7 @@ public class AliClient implements Publish {
     for (Map.Entry<String, String> entry : records.entrySet()) {
       boolean result = true;
       ttl = treeNodeTTL;
-      if (entry.getKey().equals(domainName)) {
+      if (entry.getKey().equals(aliyunRoot)) {
         ttl = rootTTL;
       }
       if (!existing.containsKey(entry.getKey())) {
