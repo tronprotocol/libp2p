@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
@@ -175,4 +176,25 @@ public class NetUtil {
     return ipV6;
   }
 
+  public static InetSocketAddress parseInetSocketAddress(String para) {
+    int index = para.trim().lastIndexOf(":");
+    if (index > 0) {
+      String host = para.substring(0, index);
+      if (host.startsWith("[") && host.endsWith("]")) {
+        host = host.substring(1, host.length() - 1);
+        if (!validIpV6(host)) {
+          log.error("Invalid inetSocketAddress: {}, use ipv4:port or [ipv6]:port", para);
+          return null;
+        }
+      } else {
+        if (!validIpV4(host)) {
+          log.error("Invalid inetSocketAddress: {}, use ipv4:port or [ipv6]:port", para);
+          return null;
+        }
+      }
+      int port = Integer.parseInt(para.substring(index + 1));
+      return new InetSocketAddress(host, port);
+    }
+    return null;
+  }
 }

@@ -23,6 +23,7 @@ import org.tron.p2p.base.Parameter;
 import org.tron.p2p.dns.update.DnsType;
 import org.tron.p2p.dns.update.PublishConfig;
 import org.tron.p2p.utils.ByteArray;
+import org.tron.p2p.utils.NetUtil;
 
 @Slf4j(topic = "net")
 public class StartApp {
@@ -373,12 +374,9 @@ public class StartApp {
   private List<InetSocketAddress> parseInetSocketAddressList(String paras) {
     List<InetSocketAddress> nodes = new ArrayList<>();
     for (String para : paras.split(",")) {
-      int index = para.lastIndexOf(":");
-      if (index > 0) {
-        String host = para.substring(0, index);
-        int port = Integer.parseInt(para.substring(index + 1));
-        InetSocketAddress address = new InetSocketAddress(host, port);
-        nodes.add(address);
+      InetSocketAddress inetSocketAddress = NetUtil.parseInetSocketAddress(para);
+      if (inetSocketAddress != null) {
+        nodes.add(inetSocketAddress);
       }
     }
     return nodes;
