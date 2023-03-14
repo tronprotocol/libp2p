@@ -182,12 +182,8 @@ public class NetUtil {
       String host = para.substring(0, index);
       if (host.startsWith("[") && host.endsWith("]")) {
         host = host.substring(1, host.length() - 1);
-        if (!validIpV6(host)) {
-          log.error("Invalid inetSocketAddress: {}, use ipv4:port or [ipv6]:port", para);
-          return null;
-        }
       } else {
-        if (!validIpV4(host)) {
+        if (host.contains(":")) {
           log.error("Invalid inetSocketAddress: {}, use ipv4:port or [ipv6]:port", para);
           return null;
         }
