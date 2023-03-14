@@ -102,6 +102,36 @@ public class NetUtilTest {
     String ip6 = new InetSocketAddress("FE80::204:61ff:254.157.241.86",
         randomPort).getAddress().getHostAddress();
     Assert.assertEquals(ip6, std);
+
+    String ip7 = new InetSocketAddress("[fe80:0:0:0:204:61ff:fe9d:f156]",
+        randomPort).getAddress().getHostAddress();
+    Assert.assertEquals(ip7, std);
+  }
+
+  @Test
+  public void testParseIpv6() {
+    InetSocketAddress address1 = NetUtil.parseInetSocketAddress(
+        "[2600:1f13:908:1b00:e1fd:5a84:251c:a32a]:18888");
+    Assert.assertNotNull(address1);
+    Assert.assertEquals(18888, address1.getPort());
+    Assert.assertEquals("2600:1f13:908:1b00:e1fd:5a84:251c:a32a",
+        address1.getAddress().getHostAddress());
+
+    InetSocketAddress address2 = NetUtil.parseInetSocketAddress(
+        "2600:1f13:908:1b00:e1fd:5a84:251c:a32a:18888");
+    Assert.assertNull(address2);
+
+    InetSocketAddress address3 = NetUtil.parseInetSocketAddress(
+        "[2600:1f13:908:1b00:e1fd:5a84:251c:a32a:18888");
+    Assert.assertNull(address3);
+
+    InetSocketAddress address4 = NetUtil.parseInetSocketAddress(
+        "2600:1f13:908:1b00:e1fd:5a84:251c:a32a");
+    Assert.assertNull(address4);
+
+    InetSocketAddress address5 = NetUtil.parseInetSocketAddress(
+        "192.168.0.1:18888");
+    Assert.assertNotNull(address5);
   }
 
 }
