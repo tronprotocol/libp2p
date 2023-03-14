@@ -117,17 +117,45 @@ public class NetUtilTest {
     Assert.assertEquals("2600:1f13:908:1b00:e1fd:5a84:251c:a32a",
         address1.getAddress().getHostAddress());
 
-    InetSocketAddress address2 = NetUtil.parseInetSocketAddress(
-        "2600:1f13:908:1b00:e1fd:5a84:251c:a32a:18888");
-    Assert.assertNull(address2);
+    try {
+      NetUtil.parseInetSocketAddress(
+          "[2600:1f13:908:1b00:e1fd:5a84:251c:a32a]:abcd");
+      Assert.fail();
+    } catch (RuntimeException e) {
+      Assert.assertTrue(true);
+    }
 
-    InetSocketAddress address3 = NetUtil.parseInetSocketAddress(
-        "[2600:1f13:908:1b00:e1fd:5a84:251c:a32a:18888");
-    Assert.assertNull(address3);
+    try {
+      NetUtil.parseInetSocketAddress(
+          "2600:1f13:908:1b00:e1fd:5a84:251c:a32a:18888");
+      Assert.fail();
+    } catch (RuntimeException e) {
+      Assert.assertTrue(true);
+    }
 
-    InetSocketAddress address4 = NetUtil.parseInetSocketAddress(
-        "2600:1f13:908:1b00:e1fd:5a84:251c:a32a");
-    Assert.assertNull(address4);
+    try {
+      NetUtil.parseInetSocketAddress(
+          "[2600:1f13:908:1b00:e1fd:5a84:251c:a32a:18888");
+      Assert.fail();
+    } catch (RuntimeException e) {
+      Assert.assertTrue(true);
+    }
+
+    try {
+      NetUtil.parseInetSocketAddress(
+          "2600:1f13:908:1b00:e1fd:5a84:251c:a32a]:18888");
+      Assert.fail();
+    } catch (RuntimeException e) {
+      Assert.assertTrue(true);
+    }
+
+    try {
+      NetUtil.parseInetSocketAddress(
+          "2600:1f13:908:1b00:e1fd:5a84:251c:a32a");
+      Assert.fail();
+    } catch (RuntimeException e) {
+      Assert.assertTrue(true);
+    }
 
     InetSocketAddress address5 = NetUtil.parseInetSocketAddress(
         "192.168.0.1:18888");

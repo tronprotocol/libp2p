@@ -184,13 +184,15 @@ public class NetUtil {
         host = host.substring(1, host.length() - 1);
       } else {
         if (host.contains(":")) {
-          log.error("Invalid inetSocketAddress: {}, use ipv4:port or [ipv6]:port", para);
-          return null;
+          throw new RuntimeException(String.format("Invalid inetSocketAddress: \"%s\", "
+              + "use ipv4:port or [ipv6]:port", para));
         }
       }
       int port = Integer.parseInt(para.substring(index + 1));
       return new InetSocketAddress(host, port);
+    } else {
+      throw new RuntimeException(String.format("Invalid inetSocketAddress: \"%s\", "
+          + "use ipv4:port or [ipv6]:port", para));
     }
-    return null;
   }
 }
