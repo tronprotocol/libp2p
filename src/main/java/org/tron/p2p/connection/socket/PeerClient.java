@@ -44,6 +44,17 @@ public class PeerClient {
     }
   }
 
+  public ChannelFuture connect(Node node, ChannelFutureListener future) {
+    ChannelFuture channelFuture = connectAsync(
+        node.getPreferInetSocketAddress().getAddress().getHostAddress(),
+        node.getPort(),
+        node.getId() == null ? null : node.getHexId(), false);
+    if (future != null) {
+      channelFuture.addListener(future);
+    }
+    return channelFuture;
+  }
+
   public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
     return connectAsync(node.getPreferInetSocketAddress().getAddress().getHostAddress(),
         node.getPort(),
@@ -60,7 +71,8 @@ public class PeerClient {
   private ChannelFuture connectAsync(String host, int port, String remoteId,
       boolean discoveryMode) {
 
-    P2pChannelInitializer p2pChannelInitializer = new P2pChannelInitializer(remoteId, discoveryMode);
+    P2pChannelInitializer p2pChannelInitializer = new P2pChannelInitializer(remoteId,
+        discoveryMode);
 
     Bootstrap b = new Bootstrap();
     b.group(workerGroup);

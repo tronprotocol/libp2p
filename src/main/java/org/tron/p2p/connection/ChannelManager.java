@@ -2,6 +2,8 @@ package org.tron.p2p.connection;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -22,6 +24,7 @@ import org.tron.p2p.connection.business.pool.ConnPoolService;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
+import org.tron.p2p.discover.Node;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.exception.P2pException.TypeEnum;
 import org.tron.p2p.utils.ByteArray;
@@ -70,6 +73,10 @@ public class ChannelManager {
   public static void connect(InetSocketAddress address) {
     peerClient.connect(address.getAddress().getHostAddress(), address.getPort(),
         ByteArray.toHexString(NetUtil.getNodeId()));
+  }
+
+  public static ChannelFuture connect(Node node, ChannelFutureListener future) {
+    return peerClient.connect(node, future);
   }
 
   public static void notifyDisconnect(Channel channel) {

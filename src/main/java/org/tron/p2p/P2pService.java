@@ -1,5 +1,7 @@
 package org.tron.p2p;
 
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -42,6 +44,10 @@ public class P2pService {
 
   public void connect(InetSocketAddress address) {
     ChannelManager.connect(address);
+  }
+
+  public ChannelFuture connect(Node node, ChannelFutureListener future) {
+    return ChannelManager.connect(node, future);
   }
 
   public P2pStats getP2pStats() {
