@@ -29,6 +29,7 @@ public class RandomTest {
     while (count < 20) {
       DnsNode dnsNode = randomIterator.next();
       Assert.assertNotNull(dnsNode);
+      Assert.assertNull(dnsNode.getId());
       count += 1;
       System.out.println("get Node success:" + dnsNode.format());
     }

@@ -54,9 +54,10 @@ public class AwsClient implements Publish {
   private Set<DnsNode> serverNodes;
   private static final String symbol = "\"";
   private static final String postfix = ".";
+  private double changeThreshold;
 
   public AwsClient(final String accessKey, final String accessKeySecret,
-      final String zoneId, final Region region) throws DnsException {
+      final String zoneId, final String region, double changeThreshold) throws DnsException {
     if (StringUtils.isEmpty(accessKey) || StringUtils.isEmpty(accessKeySecret)) {
       throw new DnsException(TypeEnum.DEPLOY_DOMAIN_FAILED,
           "Need Route53 Access Key ID and secret to proceed");
@@ -75,10 +76,11 @@ public class AwsClient implements Publish {
         });
     route53Client = Route53Client.builder()
         .credentialsProvider(staticCredentialsProvider)
-        .region(region)
+        .region(Region.of(region))
         .build();
     this.zoneId = zoneId;
     this.serverNodes = new HashSet<>();
+    this.changeThreshold = changeThreshold;
   }
 
   private void checkZone(String domain) {
@@ -145,22 +147,19 @@ public class AwsClient implements Publish {
     set1.removeAll(treeNodes); // dns - tree
     int deleteNodeSize = set1.size();
 
-    if ((existing.size() == 0 || changes.size() / (double) existing.size() >= changeThreshold)
-        && (serverNodes.isEmpty()
-        || (addNodeSize + deleteNodeSize) / (double) serverNodes.size() >= changeThreshold)) {
+    if (serverNodes.isEmpty()
+        || (addNodeSize + deleteNodeSize) / (double) serverNodes.size() >= changeThreshold) {
       String comment = String.format("Tree update of %s at seq %d", domain, tree.getSeq());
       log.info(comment);
       submitChanges(changes, comment);
     } else {
       NumberFormat nf = NumberFormat.getNumberInstance();
       nf.setMaximumFractionDigits(4);
-      double changePercent = existing.isEmpty() ? 1.0 : (changes.size() / (double) existing.size());
-      double nodePercent = serverNodes.isEmpty() ? 1.0
-          : ((addNodeSize + deleteNodeSize) / (double) serverNodes.size());
-      log.info(
-          "Total change percent {} or Node add/delete percent {} is below changeThreshold {}, skip this changes",
-          nf.format(changePercent), nf.format(nodePercent), changeThreshold);
+      double changePercent = (addNodeSize + deleteNodeSize) / (double) serverNodes.size();
+      log.info("Sum of node add & delete percent {} is below changeThreshold {}, skip this changes",
+          nf.format(changePercent), changeThreshold);
     }
+    serverNodes.clear();
   }
 
   // removes all TXT records of the given domain.
@@ -488,9 +487,9 @@ public class AwsClient implements Publish {
     return sb.toString();
   }
 
-  private boolean isSubdomain(String sub, String root) {
-    String subNoSuffix = StringUtils.stripEnd(sub, postfix);
-    String rootNoSuffix = StringUtils.stripEnd(root, postfix);
+  public static boolean isSubdomain(String sub, String root) {
+    String subNoSuffix = postfix + StringUtils.strip(sub, postfix);
+    String rootNoSuffix = postfix + StringUtils.strip(root, postfix);
     return subNoSuffix.endsWith(rootNoSuffix);
   }
 

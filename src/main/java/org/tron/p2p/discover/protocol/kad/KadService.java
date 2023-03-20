@@ -186,7 +186,7 @@ public class KadService implements DiscoverService {
   }
 
   public void sendOutbound(UdpEvent udpEvent) {
-    if (messageSender != null) {
+    if (Parameter.p2pConfig.isDiscoverEnable() && messageSender != null) {
       messageSender.accept(udpEvent);
     }
   }

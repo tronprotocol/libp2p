@@ -1,6 +1,7 @@
 package org.tron.p2p.discover;
 
 import java.util.List;
+import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.protocol.kad.KadService;
 import org.tron.p2p.discover.socket.DiscoverServer;
 
@@ -10,10 +11,12 @@ public class NodeManager {
   private static DiscoverServer discoverServer;
 
   public static void init() {
-    discoverServer = new DiscoverServer();
     discoverService = new KadService();
     discoverService.init();
-    discoverServer.init(discoverService);
+    if (Parameter.p2pConfig.isDiscoverEnable()) {
+      discoverServer = new DiscoverServer();
+      discoverServer.init(discoverService);
+    }
   }
 
   public static void close() {

@@ -23,7 +23,7 @@ import org.tron.p2p.base.Parameter;
 import org.tron.p2p.dns.update.DnsType;
 import org.tron.p2p.dns.update.PublishConfig;
 import org.tron.p2p.utils.ByteArray;
-import software.amazon.awssdk.regions.Region;
+import org.tron.p2p.utils.NetUtil;
 
 @Slf4j(topic = "net")
 public class StartApp {
@@ -148,7 +148,10 @@ public class StartApp {
   private static final String configPublish = "publish";
   private static final String configDnsPrivate = "dns-private";
   private static final String configKnownUrls = "known-urls";
+  private static final String configStaticNodes = "static-nodes";
   private static final String configDomain = "domain";
+  private static final String configChangeThreshold = "change-threshold";
+  private static final String configMaxMergeSize = "max-merge-size";
   private static final String configServerType = "server-type";
   private static final String configAccessId = "access-key-id";
   private static final String configAccessSecret = "access-key-secret";
@@ -190,6 +193,11 @@ public class StartApp {
             Arrays.asList(cli.getOptionValue(configKnownUrls).split(",")));
       }
 
+      if (cli.hasOption(configStaticNodes)) {
+        publishConfig.setStaticNodes(
+            parseInetSocketAddressList(cli.getOptionValue(configStaticNodes)));
+      }
+
       if (cli.hasOption(configDomain)) {
         publishConfig.setDnsDomain(cli.getOptionValue(configDomain));
       } else {
@@ -197,13 +205,32 @@ public class StartApp {
         System.exit(0);
       }
 
+      if (cli.hasOption(configChangeThreshold)) {
+        double changeThreshold = Double.parseDouble(cli.getOptionValue(configChangeThreshold));
+        if (changeThreshold >= 1.0) {
+          log.error("Check {}, range between (0.0 ~ 1.0]",
+              configChangeThreshold);
+        } else {
+          publishConfig.setChangeThreshold(changeThreshold);
+        }
+      }
+
+      if (cli.hasOption(configMaxMergeSize)) {
+        int maxMergeSize = Integer.parseInt(cli.getOptionValue(configMaxMergeSize));
+        if (maxMergeSize > 5) {
+          log.error("Check {}, range between [1 ~ 5]", configMaxMergeSize);
+        } else {
+          publishConfig.setMaxMergeSize(maxMergeSize);
+        }
+      }
+
       if (cli.hasOption(configServerType)) {
         String serverType = cli.getOptionValue(configServerType);
-        if (!serverType.equalsIgnoreCase("aws") && !serverType.equalsIgnoreCase("aliyun")) {
+        if (!"aws".equalsIgnoreCase(serverType) && !"aliyun".equalsIgnoreCase(serverType)) {
           log.error("Check {}, must be aws or aliyun", configServerType);
           System.exit(0);
         }
-        if (serverType.equalsIgnoreCase("aws")) {
+        if ("aws".equalsIgnoreCase(serverType)) {
           publishConfig.setDnsType(DnsType.AwsRoute53);
         } else {
           publishConfig.setDnsType(DnsType.AliYun);
@@ -238,7 +265,7 @@ public class StartApp {
           System.exit(0);
         } else {
           String region = cli.getOptionValue(configAwsRegion);
-          publishConfig.setAwsRegion(Region.of(region));
+          publishConfig.setAwsRegion(region);
         }
       } else {
         if (!cli.hasOption(configAliEndPoint)) {
@@ -295,19 +322,25 @@ public class StartApp {
         "dns private key used to publish, required, hex string of length 64");
     Option opt3 = new Option(null, configKnownUrls, true,
         "known dns urls to publish, url format tree://{pubkey}@{domain}, optional, url[,url[...]]");
-    Option opt4 = new Option(null, configDomain, true,
+    Option opt4 = new Option(null, configStaticNodes, true,
+        "static nodes to publish, if exist then nodes from kad will be ignored, optional, ip:port[,ip:port[...]]");
+    Option opt5 = new Option(null, configDomain, true,
         "dns domain to publish nodes, required, string");
-    Option opt5 = new Option(null, configServerType, true,
+    Option opt6 = new Option(null, configChangeThreshold, true,
+        "change threshold of add and delete to publish, optional, should be > 0 and < 1.0, default 0.1");
+    Option opt7 = new Option(null, configMaxMergeSize, true,
+        "max merge size to merge node to a leaf node in dns tree, optional, should be [1~5], default 5");
+    Option opt8 = new Option(null, configServerType, true,
         "dns server to publish, required, only aws or aliyun is support");
-    Option opt6 = new Option(null, configAccessId, true,
+    Option opt9 = new Option(null, configAccessId, true,
         "access key id of aws or aliyun api, required, string");
-    Option opt7 = new Option(null, configAccessSecret, true,
+    Option opt10 = new Option(null, configAccessSecret, true,
         "access key secret of aws or aliyun api, required, string");
-    Option opt8 = new Option(null, configAwsRegion, true,
+    Option opt11 = new Option(null, configAwsRegion, true,
         "if server-type is aws, it's region of aws api, such as \"eu-south-1\", required, string");
-    Option opt9 = new Option(null, configHostZoneId, true,
+    Option opt12 = new Option(null, configHostZoneId, true,
         "if server-type is aws, it's host zone id of aws's domain, optional, string");
-    Option opt10 = new Option(null, configAliEndPoint, true,
+    Option opt13 = new Option(null, configAliEndPoint, true,
         "if server-type is aliyun, it's endpoint of aws dns server, required, string");
 
     Options group = new Options();
@@ -321,6 +354,9 @@ public class StartApp {
     group.addOption(opt8);
     group.addOption(opt9);
     group.addOption(opt10);
+    group.addOption(opt11);
+    group.addOption(opt12);
+    group.addOption(opt13);
     return group;
   }
 
@@ -338,12 +374,9 @@ public class StartApp {
   private List<InetSocketAddress> parseInetSocketAddressList(String paras) {
     List<InetSocketAddress> nodes = new ArrayList<>();
     for (String para : paras.split(",")) {
-      int index = para.lastIndexOf(":");
-      if (index > 0) {
-        String host = para.substring(0, index);
-        int port = Integer.parseInt(para.substring(index + 1));
-        InetSocketAddress address = new InetSocketAddress(host, port);
-        nodes.add(address);
+      InetSocketAddress inetSocketAddress = NetUtil.parseInetSocketAddress(para);
+      if (inetSocketAddress != null) {
+        nodes.add(inetSocketAddress);
       }
     }
     return nodes;

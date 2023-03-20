@@ -28,8 +28,8 @@ usage: available p2p discovery cli options:
  -v,--version <arg>                  p2p version, int, default 1
 
 available dns read cli options:
- -u,--url-schemes <arg>   dns urls to get nodes, url format
-                          tree://{pubkey}@{domain}. url[,url[...]]
+ -u,--url-schemes <arg>   dns url(s) to get nodes, url format
+                          tree://{pubkey}@{domain}, url[,url[...]]
 
 available dns publish cli options:
     --access-key-id <arg>         access key id of aws or aliyun api,
@@ -41,6 +41,9 @@ available dns publish cli options:
     --aws-region <arg>            if server-type is aws, it's region of
                                   aws api, such as "eu-south-1", required,
                                   string
+    --change-threshold <arg>      change threshold of add and delete to
+                                  publish, optional, should be > 0 and <
+                                  1.0, default 0.1
     --dns-private <arg>           dns private key used to publish,
                                   required, hex string of length 64
     --domain <arg>                dns domain to publish nodes, required,
@@ -50,9 +53,15 @@ available dns publish cli options:
     --known-urls <arg>            known dns urls to publish, url format
                                   tree://{pubkey}@{domain}, optional,
                                   url[,url[...]]
+    --max-merge-size <arg>        max merge size to merge node to a leaf
+                                  node in dns tree, optional, should be
+                                  [1~5], default 5
  -publish,--publish               enable dns publish
     --server-type <arg>           dns server to publish, required, only
                                   aws or aliyun is support
+    --static-nodes <arg>          static nodes to publish, if exist then
+                                  nodes from kad will be ignored,
+                                  optional, ip:port[,ip:port[...]]
 ```
 
 For details please
@@ -241,6 +250,7 @@ Set discover seed nodes
 List<InetSocketAddress> seedNodeList = new ArrayList<>();
 seedNodeList.add(new InetSocketAddress("13.124.62.58", 18888));
 seedNodeList.add(new InetSocketAddress("2600:1f13:908:1b00:e1fd:5a84:251c:a32a", 18888));
+seedNodeList.add(new InetSocketAddress("[2600:1f13:908:1b00:e1fd:5a84:251c:1234]", 18888));
 seedNodeList.add(new InetSocketAddress("127.0.0.4", 18888));
 config.setSeedNodes(seedNodeList);
 ```

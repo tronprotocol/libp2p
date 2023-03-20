@@ -9,8 +9,6 @@ public interface Publish<T> {
   int rootTTL = 10 * 60;
   int treeNodeTTL = 4 * 7 * 24 * 60 * 60;
 
-  double changeThreshold = 0.1;
-
   void testConnect() throws Exception;
 
   void deploy(String domainName, Tree t) throws Exception;

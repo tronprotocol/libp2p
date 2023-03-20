@@ -13,7 +13,6 @@ import org.tron.p2p.discover.Node;
 import org.tron.p2p.dns.update.DnsType;
 import org.tron.p2p.dns.update.PublishConfig;
 import org.tron.p2p.stats.P2pStats;
-import software.amazon.awssdk.regions.Region;
 
 public class DnsExample1 {
 
@@ -99,7 +98,7 @@ public class DnsExample1 {
     publishConfig.setAccessKeyId("your access key");
     publishConfig.setAccessKeySecret("your access key secret");
     publishConfig.setAwsHostZoneId("your host zone id");
-    publishConfig.setAwsRegion(Region.US_EAST_1);
+    publishConfig.setAwsRegion("us-east-1");
 
     // enable dns publish
     publishConfig.setDnsPublishEnable(true);

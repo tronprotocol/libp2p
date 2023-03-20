@@ -30,7 +30,8 @@ public class P2pException extends Exception {
     MESSAGE_WITH_WRONG_LENGTH(3, "message with wrong length"),
     BAD_MESSAGE(4, "bad message"),
     BAD_PROTOCOL(5, "bad protocol"),
-    TYPE_ALREADY_REGISTERED(6, "type already registered");
+    TYPE_ALREADY_REGISTERED(6, "type already registered"),
+    EMPTY_MESSAGE(7, "empty message");
 
     private final Integer value;
     private final String desc;
