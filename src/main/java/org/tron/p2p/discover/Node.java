@@ -104,7 +104,7 @@ public class Node implements Serializable, Cloneable {
   }
 
   public String getHexId() {
-    return Hex.toHexString(id);
+    return id == null ? null : Hex.toHexString(id);
   }
 
   public String getHexIdShort() {
