@@ -56,7 +56,10 @@ public class ChannelManager {
   private static final Cache<InetAddress, Long> bannedNodes = CacheBuilder
       .newBuilder().maximumSize(2000).build(); //ban timestamp
 
+  private static boolean isInit = false;
+
   public static void init() {
+    isInit = true;
     peerServer = new PeerServer();
     peerClient = new PeerClient();
     keepAliveService = new KeepAliveService();
@@ -152,6 +155,9 @@ public class ChannelManager {
   }
 
   public static void close() {
+    if (!isInit) {
+      return;
+    }
     connPoolService.close();
     keepAliveService.close();
     peerServer.close();
@@ -236,5 +242,9 @@ public class ChannelManager {
       log.info("close channel {}, other channel {} is earlier", c2, c1);
       c2.close();
     }
+  }
+
+  public static void triggerConnect(InetSocketAddress address) {
+    connPoolService.triggerConnect(address);
   }
 }
