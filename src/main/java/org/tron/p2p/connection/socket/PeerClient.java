@@ -14,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.discover.Node;
+import org.tron.p2p.utils.ByteArray;
+import org.tron.p2p.utils.NetUtil;
 
 @Slf4j(topic = "net")
 public class PeerClient {
@@ -49,7 +51,7 @@ public class PeerClient {
     ChannelFuture channelFuture = connectAsync(
         node.getPreferInetSocketAddress().getAddress().getHostAddress(),
         node.getPort(),
-        node.getId() == null ? null : node.getHexId(), false);
+        node.getId() == null ? ByteArray.toHexString(NetUtil.getNodeId()) : node.getHexId(), false);
     if (future != null) {
       channelFuture.addListener(future);
     }
