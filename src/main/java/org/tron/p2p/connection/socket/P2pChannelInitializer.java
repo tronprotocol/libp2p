@@ -17,7 +17,6 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
 
   private boolean peerDiscoveryMode = false;
 
-  @Setter
   private boolean trigger = true;
   public P2pChannelInitializer(String remoteId, boolean peerDiscoveryMode, boolean trigger) {
     this.remoteId = remoteId;
