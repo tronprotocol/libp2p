@@ -42,6 +42,7 @@ public class P2pService {
     Parameter.addP2pEventHandle(p2PEventHandler);
   }
 
+  @Deprecated
   public void connect(InetSocketAddress address) {
     ChannelManager.connect(address);
   }
