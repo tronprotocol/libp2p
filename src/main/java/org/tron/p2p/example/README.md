@@ -252,7 +252,7 @@ seedNodeList.add(new InetSocketAddress("13.124.62.58", 18888));
 seedNodeList.add(new InetSocketAddress("2600:1f13:908:1b00:e1fd:5a84:251c:a32a", 18888));
 seedNodeList.add(new InetSocketAddress("[2600:1f13:908:1b00:e1fd:5a84:251c:1234]", 18888));
 seedNodeList.add(new InetSocketAddress("127.0.0.4", 18888));
-config.setSeedNodes(seedNodeList);
+config.setSeedNodes(new CopyOnWriteArrayList<>(seedNodeList));
 ```
 
 Set active nodes
@@ -260,7 +260,7 @@ Set active nodes
 List<InetSocketAddress> activeNodeList = new ArrayList<>();
 activeNodeList.add(new InetSocketAddress("127.0.0.2", 18888));
 activeNodeList.add(new InetSocketAddress("127.0.0.3", 18888));
-config.setActiveNodes(activeNodeList);
+config.setActiveNodes(new CopyOnWriteArrayList<>(activeNodeList));
 ```
 
 Set trust ips
@@ -268,7 +268,7 @@ Set trust ips
 ```bash
 List<InetAddress> trustNodeList = new ArrayList<>();
 trustNodeList.add((new InetSocketAddress("127.0.0.2", 18888)).getAddress());
-config.setTrustNodes(trustNodeList);
+config.setTrustNodes(new CopyOnWriteArrayList<>(trustNodeList));
 ```
 
 Set the minimum number of connections

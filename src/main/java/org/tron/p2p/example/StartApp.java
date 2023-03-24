@@ -8,6 +8,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -43,12 +44,14 @@ public class StartApp {
     }
 
     if (cli.hasOption("s")) {
-      Parameter.p2pConfig.setSeedNodes(app.parseInetSocketAddressList(cli.getOptionValue("s")));
+      Parameter.p2pConfig.setSeedNodes(
+          new CopyOnWriteArrayList<>(app.parseInetSocketAddressList(cli.getOptionValue("s"))));
       log.info("Seed nodes {}", Parameter.p2pConfig.getSeedNodes());
     }
 
     if (cli.hasOption("a")) {
-      Parameter.p2pConfig.setActiveNodes(app.parseInetSocketAddressList(cli.getOptionValue("a")));
+      Parameter.p2pConfig.setActiveNodes(
+          new CopyOnWriteArrayList<>(app.parseInetSocketAddressList(cli.getOptionValue("a"))));
       log.info("Active nodes {}", Parameter.p2pConfig.getActiveNodes());
     }
 
@@ -56,7 +59,7 @@ public class StartApp {
       InetSocketAddress address = new InetSocketAddress(cli.getOptionValue("t"), 0);
       List<InetAddress> trustNodes = new ArrayList<>();
       trustNodes.add(address.getAddress());
-      Parameter.p2pConfig.setTrustNodes(trustNodes);
+      Parameter.p2pConfig.setTrustNodes(new CopyOnWriteArrayList<>(trustNodes));
       log.info("Trust nodes {}", Parameter.p2pConfig.getTrustNodes());
     }
 

@@ -7,6 +7,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.P2pService;
 import org.tron.p2p.discover.Node;
@@ -78,7 +79,7 @@ public class DnsExample1 {
     seedNodeList.add(new InetSocketAddress("13.124.62.58", 18888));
     seedNodeList.add(new InetSocketAddress("2600:1f13:908:1b00:e1fd:5a84:251c:a32a", 18888));
     seedNodeList.add(new InetSocketAddress("127.0.0.4", 18888));
-    config.setSeedNodes(seedNodeList);
+    config.setSeedNodes(new CopyOnWriteArrayList<>(seedNodeList));
 
     PublishConfig publishConfig = new PublishConfig();
     // config node private key, and then you should publish your public key

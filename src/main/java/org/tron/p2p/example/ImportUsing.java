@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.commons.lang3.ArrayUtils;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.P2pEventHandler;
@@ -96,18 +97,18 @@ public class ImportUsing {
     seedNodeList.add(new InetSocketAddress("13.124.62.58", 18888));
     seedNodeList.add(new InetSocketAddress("2600:1f13:908:1b00:e1fd:5a84:251c:a32a", 18888));
     seedNodeList.add(new InetSocketAddress("127.0.0.4", 18888));
-    config.setSeedNodes(seedNodeList);
+    config.setSeedNodes(new CopyOnWriteArrayList<>(seedNodeList));
 
     // set active nodes
     List<InetSocketAddress> activeNodeList = new ArrayList<>();
     activeNodeList.add(new InetSocketAddress("127.0.0.2", 18888));
     activeNodeList.add(new InetSocketAddress("127.0.0.3", 18888));
-    config.setActiveNodes(activeNodeList);
+    config.setActiveNodes(new CopyOnWriteArrayList<>(activeNodeList));
 
     // set trust nodes
     List<InetAddress> trustNodeList = new ArrayList<>();
     trustNodeList.add((new InetSocketAddress("127.0.0.2", 18888)).getAddress());
-    config.setTrustNodes(trustNodeList);
+    config.setTrustNodes(new CopyOnWriteArrayList<>(trustNodeList));
 
     // set the minimum number of connections
     config.setMinConnections(8);

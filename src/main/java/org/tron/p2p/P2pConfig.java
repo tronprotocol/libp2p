@@ -12,9 +12,9 @@ import org.tron.p2p.utils.NetUtil;
 @Data
 public class P2pConfig {
 
-  private List<InetSocketAddress> seedNodes = new CopyOnWriteArrayList<>();
-  private List<InetSocketAddress> activeNodes = new CopyOnWriteArrayList<>();
-  private List<InetAddress> trustNodes = new CopyOnWriteArrayList<>();
+  private CopyOnWriteArrayList<InetSocketAddress> seedNodes = new CopyOnWriteArrayList<>();
+  private CopyOnWriteArrayList<InetSocketAddress> activeNodes = new CopyOnWriteArrayList<>();
+  private CopyOnWriteArrayList<InetAddress> trustNodes = new CopyOnWriteArrayList<>();
   private byte[] nodeID = NetUtil.getNodeId();
   private String ip = NetUtil.getExternalIpV4();
   private String ipv6 = NetUtil.getExternalIpV6();
