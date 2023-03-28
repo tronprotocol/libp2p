@@ -6,6 +6,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
+import io.netty.handler.codec.CorruptedFrameException;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import io.netty.handler.timeout.ReadTimeoutException;
 import io.netty.handler.timeout.ReadTimeoutHandler;
@@ -96,7 +97,8 @@ public class Channel {
     }
     SocketAddress address = ctx.channel().remoteAddress();
     if (throwable instanceof ReadTimeoutException
-      || throwable instanceof IOException) {
+      || throwable instanceof IOException
+      || throwable instanceof CorruptedFrameException) {
       log.warn("Close peer {}, reason: {}", address, throwable.getMessage());
     } else if (baseThrowable instanceof P2pException) {
       log.warn("Close peer {}, type: ({}), info: {}",
