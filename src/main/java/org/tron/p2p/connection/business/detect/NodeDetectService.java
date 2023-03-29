@@ -77,7 +77,7 @@ public class NodeDetectService implements MessageProcess {
       return;
     }
 
-    NodeStat nodeStat = getSortedNodeStats().get(0);
+    NodeStat nodeStat = nodeStats.get(0);
     if (nodeStat.getLastDetectTime() > System.currentTimeMillis() - NODE_DETECT_MIN_THRESHOLD) {
       return;
     }

@@ -11,9 +11,11 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.util.encoders.Hex;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.discover.Node;
+import org.tron.p2p.utils.NetUtil;
 
 @Slf4j(topic = "net")
 public class PeerClient {
@@ -48,7 +50,7 @@ public class PeerClient {
   public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
     return connectAsync(node.getPreferInetSocketAddress().getAddress().getHostAddress(),
         node.getPort(),
-        node.getId() == null ? null : node.getHexId(), discoveryMode)
+        node.getId() == null ? Hex.toHexString(NetUtil.getNodeId()) : node.getHexId(), discoveryMode)
         .addListener((ChannelFutureListener) future -> {
           if (!future.isSuccess()) {
             log.warn("Connect to peer {} fail, cause:{}", node.getPreferInetSocketAddress(),
