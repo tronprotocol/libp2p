@@ -261,13 +261,17 @@ public class ConnPoolService extends P2pEventHandler {
       return;
     }
     connectingPeersCount.decrementAndGet();
-    poolLoopExecutor.submit(() -> {
-      try {
-        connect(true);
-      } catch (Exception t) {
-        log.error("Exception in poolLoopExecutor worker", t);
-      }
-    });
+    try {
+      poolLoopExecutor.submit(() -> {
+        try {
+          connect(true);
+        } catch (Exception t) {
+          log.error("Exception in poolLoopExecutor worker", t);
+        }
+      });
+    } catch (Exception e) {
+      log.warn("Submit task failed, message:{}", e.getMessage());
+    }
   }
 
   @Override
