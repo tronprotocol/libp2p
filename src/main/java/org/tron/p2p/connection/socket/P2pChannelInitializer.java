@@ -5,6 +5,7 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
@@ -16,9 +17,11 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
 
   private boolean peerDiscoveryMode = false;
 
-  public P2pChannelInitializer(String remoteId, boolean peerDiscoveryMode) {
+  private boolean trigger = true;
+  public P2pChannelInitializer(String remoteId, boolean peerDiscoveryMode, boolean trigger) {
     this.remoteId = remoteId;
     this.peerDiscoveryMode = peerDiscoveryMode;
+    this.trigger = trigger;
   }
 
   @Override
@@ -41,7 +44,7 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
             log.info("Close channel:{}", channel.getInetSocketAddress());
             ChannelManager.notifyDisconnect(channel);
           } finally {
-            if (channel.getInetSocketAddress() != null && channel.isActive()) {
+            if (channel.getInetSocketAddress() != null && channel.isActive() && trigger) {
               ChannelManager.triggerConnect(channel.getInetSocketAddress());
             }
           }

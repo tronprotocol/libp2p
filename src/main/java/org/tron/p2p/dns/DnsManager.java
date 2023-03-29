@@ -52,7 +52,7 @@ public class DnsManager {
       List<DnsNode> dnsNodes = tree.getDnsNodes();
       List<DnsNode> ipv6Nodes = new ArrayList<>();
       for (DnsNode dnsNode : dnsNodes) {
-        log.debug("DnsNode:{}", dnsNode);
+        //log.debug("DnsNode:{}", dnsNode);
         if (dnsNode.getInetSocketAddressV4() != null) {
           v4Size += 1;
         }

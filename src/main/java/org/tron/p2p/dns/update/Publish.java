@@ -7,7 +7,7 @@ import org.tron.p2p.dns.tree.Tree;
 public interface Publish<T> {
 
   int rootTTL = 10 * 60;
-  int treeNodeTTL = 4 * 7 * 24 * 60 * 60;
+  int treeNodeTTL = 7 * 24 * 60 * 60;
 
   void testConnect() throws Exception;
 

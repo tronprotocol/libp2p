@@ -40,17 +40,29 @@ public class PeerClient {
 
   public void connect(String host, int port, String remoteId) {
     try {
-      ChannelFuture f = connectAsync(host, port, remoteId, false);
+      ChannelFuture f = connectAsync(host, port, remoteId, false, false);
       f.sync().channel().closeFuture().sync();
     } catch (Exception e) {
       log.warn("PeerClient can't connect to {}:{} ({})", host, port, e.getMessage());
     }
   }
 
+  public ChannelFuture connect(Node node, ChannelFutureListener future) {
+    ChannelFuture channelFuture = connectAsync(
+        node.getPreferInetSocketAddress().getAddress().getHostAddress(),
+        node.getPort(),
+        node.getId() == null ? Hex.toHexString(NetUtil.getNodeId()) : node.getHexId(), false, false);
+    if (future != null) {
+      channelFuture.addListener(future);
+    }
+    return channelFuture;
+  }
+
   public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
     return connectAsync(node.getPreferInetSocketAddress().getAddress().getHostAddress(),
         node.getPort(),
-        node.getId() == null ? Hex.toHexString(NetUtil.getNodeId()) : node.getHexId(), discoveryMode)
+        node.getId() == null ? Hex.toHexString(NetUtil.getNodeId()) : node.getHexId(),
+        discoveryMode, true)
         .addListener((ChannelFutureListener) future -> {
           if (!future.isSuccess()) {
             log.warn("Connect to peer {} fail, cause:{}", node.getPreferInetSocketAddress(),
@@ -64,9 +76,10 @@ public class PeerClient {
   }
 
   private ChannelFuture connectAsync(String host, int port, String remoteId,
-      boolean discoveryMode) {
+      boolean discoveryMode, boolean trigger) {
 
-    P2pChannelInitializer p2pChannelInitializer = new P2pChannelInitializer(remoteId, discoveryMode);
+    P2pChannelInitializer p2pChannelInitializer = new P2pChannelInitializer(remoteId,
+        discoveryMode, trigger);
 
     Bootstrap b = new Bootstrap();
     b.group(workerGroup);
