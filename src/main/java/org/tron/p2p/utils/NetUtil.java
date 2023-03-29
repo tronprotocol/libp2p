@@ -96,7 +96,7 @@ public class NetUtil {
         throw new IOException("Invalid address: " + ip);
       }
       return ip;
-    } catch (IOException e) {
+    } catch (Exception e) {
       log.warn("Fail to get {} by {}, cause:{}",
           Constant.AMAZONAWS_URL.equals(url) ? "ipv4" : "ipv6", url, e.getMessage());
       return ip;
