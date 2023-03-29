@@ -61,7 +61,8 @@ public class PeerClient {
   public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
     return connectAsync(node.getPreferInetSocketAddress().getAddress().getHostAddress(),
         node.getPort(),
-        node.getId() == null ? null : node.getHexId(), discoveryMode, true)
+        node.getId() == null ? Hex.toHexString(NetUtil.getNodeId()) : node.getHexId(),
+        discoveryMode, true)
         .addListener((ChannelFutureListener) future -> {
           if (!future.isSuccess()) {
             log.warn("Connect to peer {} fail, cause:{}", node.getPreferInetSocketAddress(),
