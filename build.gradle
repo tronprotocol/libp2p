@@ -20,9 +20,9 @@ apply plugin: 'maven-publish'
 apply plugin: 'signing'
 apply plugin: "io.github.gradle-nexus.publish-plugin"
 
-def protobufVersion = "3.19.2"
+def protobufVersion = "3.21.12"
 
-def grpcVersion = "1.14.0"
+def grpcVersion = "1.52.1"
 
 mainClassName = 'org.tron.p2p.example.StartApp'
 
