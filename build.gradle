@@ -17,8 +17,8 @@ apply plugin: 'com.google.protobuf'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'application'
 
-def protobufVersion = "3.19.2"
-def grpcVersion = "1.14.0"
+def protobufVersion = "3.21.12"
+def grpcVersion = "1.52.1"
 
 mainClassName = 'org.tron.p2p.example.StartApp'
 
@@ -82,6 +82,8 @@ dependencies {
         exclude group: 'io.netty', module: 'netty-codec'
         exclude group: 'io.netty', module: 'netty-handler'
         exclude group: 'io.netty', module: 'netty-resolver'
+        exclude group: 'io.netty', module: 'netty-transport-classes-epoll'
+        exclude group: 'io.netty', module: 'netty-transport-native-unix-common'
     })
     implementation group: 'com.aliyun', name: 'alidns20150109', version: '3.0.1'
     implementation group: 'xerces', name: 'xercesImpl', version: '2.11.0'
