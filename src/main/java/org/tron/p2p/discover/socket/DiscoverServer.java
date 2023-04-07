@@ -18,7 +18,6 @@ public class DiscoverServer {
   private EventHandler eventHandler;
 
   private final int SERVER_RESTART_WAIT = 5000;
-  private final int SERVER_CLOSE_WAIT = 10;
   private final int port = Parameter.p2pConfig.getPort();
   private volatile boolean shutdown = false;
 
@@ -38,7 +37,7 @@ public class DiscoverServer {
     shutdown = true;
     if (channel != null) {
       try {
-        channel.close().await(SERVER_CLOSE_WAIT, TimeUnit.SECONDS);
+        channel.close();
       } catch (Exception e) {
         log.error("Closing discovery server failed", e);
       }
