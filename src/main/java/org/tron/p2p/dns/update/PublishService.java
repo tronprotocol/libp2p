@@ -72,7 +72,7 @@ public class PublishService {
       log.info("Try to publish node count:{}", tree.getDnsNodes().size());
       publish.deploy(config.getDnsDomain(), tree);
     } catch (Exception e) {
-      log.error("Failed to publish dns", e);
+      log.error("Failed to publish dns: {}", e.getMessage());
     }
   }
 
