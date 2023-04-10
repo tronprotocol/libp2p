@@ -1,5 +1,5 @@
 group 'io.github.tronprotocol'
-version '0.1.5'
+version '1.1.0'
 
 buildscript {
     repositories {
@@ -61,7 +61,7 @@ dependencies {
     testImplementation group: 'junit', name: 'junit', version: '4.12'
 
     implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.9'
-    implementation group: 'ch.qos.logback', name: 'logback-core', version: '1.2.3'
+    implementation group: 'ch.qos.logback', name: 'logback-core', version: '1.2.9'
     implementation group: 'com.google.protobuf', name: 'protobuf-java', version: protobufVersion
     implementation group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
     implementation group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
