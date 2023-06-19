@@ -11,7 +11,7 @@ import org.tron.p2p.connection.message.handshake.HelloMessage;
 @Slf4j(topic = "net")
 public class HandshakeService implements MessageProcess {
 
-  private final int version = Parameter.p2pConfig.getVersion();
+  private final int networkId = Parameter.p2pConfig.getNetworkId();
 
   public void startHandshake(Channel channel) {
     sendHelloMsg(channel, DisconnectCode.NORMAL);
@@ -19,17 +19,23 @@ public class HandshakeService implements MessageProcess {
 
   @Override
   public void processMessage(Channel channel, Message message) {
-    log.info("Receive HelloMessage from {}:{}", channel.getInetAddress(),
-        channel.getInetSocketAddress().getPort());
     HelloMessage msg = (HelloMessage) message;
+    log.debug("Receive message from {}, {}", channel.getInetSocketAddress(), message);
 
     if (channel.isFinishHandshake()) {
+      log.warn("Close channel {}, handshake is finished", channel.getInetSocketAddress());
       channel.close();
-      log.warn("Close channel {}, handshake is finished", channel.getInetAddress());
       return;
     }
 
-    channel.setFinishHandshake(true);
+    channel.setHelloMessage(msg);
+
+    DisconnectCode code = ChannelManager.processPeer(channel);
+    if (code != DisconnectCode.NORMAL) {
+      sendHelloMsg(channel, code);
+      channel.close();
+      return;
+    }
 
     ChannelManager.updateNodeId(channel, msg.getFrom().getHexId());
     if (channel.isDisconnect()) {
@@ -38,34 +44,35 @@ public class HandshakeService implements MessageProcess {
 
     if (channel.isActive()) {
       if (msg.getCode() != DisconnectCode.NORMAL.getValue()
-          || msg.getVersion() != version) {
-        log.info("Handshake failed {}, code: {}, version: {}",
-            channel.getInetAddress(),
-            DisconnectCode.NORMAL.getValue(),
+          || (msg.getNetworkId() != networkId && msg.getVersion() != networkId)) {
+        //v0.1 have version, v0.2 both have version and networkId
+        log.info("Handshake failed {}, code: {}, networkId:{}, version: {}",
+            channel.getInetSocketAddress(),
+            msg.getCode(),
+            msg.getNetworkId(),
             msg.getVersion());
         channel.close();
         return;
       }
     } else {
-      if (msg.getVersion() != version) {
-        log.info("Peer {} different p2p version, peer->{}, me->{}",
-            channel.getInetAddress(), msg.getVersion(), version);
+
+      if (msg.getNetworkId() != networkId) {
+        log.info("Peer {} different network id, peer->{}, me->{}",
+          channel.getInetSocketAddress(), msg.getNetworkId(), networkId);
         sendHelloMsg(channel, DisconnectCode.DIFFERENT_VERSION);
         channel.close();
         return;
       }
       sendHelloMsg(channel, DisconnectCode.NORMAL);
     }
-
-    channel.updateLatency(System.currentTimeMillis() - channel.getStartTime());
+    channel.setFinishHandshake(true);
+    channel.updateAvgLatency(System.currentTimeMillis() - channel.getStartTime());
     Parameter.handlerList.forEach(h -> h.onConnect(channel));
   }
 
   private void sendHelloMsg(Channel channel, DisconnectCode code) {
     HelloMessage helloMessage = new HelloMessage(code);
     channel.send(helloMessage);
-    log.info("Handshake send to {}:{}, {} ", channel.getInetAddress(),
-        channel.getInetSocketAddress().getPort(), helloMessage);
   }
 
 }

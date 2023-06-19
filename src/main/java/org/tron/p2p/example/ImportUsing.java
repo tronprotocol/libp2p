@@ -1,5 +1,13 @@
 package org.tron.p2p.example;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.ArrayUtils;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.P2pEventHandler;
@@ -9,11 +17,6 @@ import org.tron.p2p.discover.Node;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.stats.P2pStats;
 import org.tron.p2p.utils.ByteArray;
-
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class ImportUsing {
 
@@ -80,7 +83,7 @@ public class ImportUsing {
 
   private void initConfig(P2pConfig config) {
     // set p2p version
-    config.setVersion(11111);
+    config.setNetworkId(11111);
 
     // set tcp and udp listen port
     config.setPort(18888);
@@ -91,10 +94,8 @@ public class ImportUsing {
     // set discover seed nodes
     List<InetSocketAddress> seedNodeList = new ArrayList<>();
     seedNodeList.add(new InetSocketAddress("13.124.62.58", 18888));
-    seedNodeList.add(new InetSocketAddress("18.196.99.16", 18888));
-    seedNodeList.add(new InetSocketAddress("35.180.51.163", 18888));
-    seedNodeList.add(new InetSocketAddress("34.253.187.192", 18888));
-    seedNodeList.add(new InetSocketAddress("52.53.189.99", 18888));
+    seedNodeList.add(new InetSocketAddress("2600:1f13:908:1b00:e1fd:5a84:251c:a32a", 18888));
+    seedNodeList.add(new InetSocketAddress("127.0.0.4", 18888));
     config.setSeedNodes(seedNodeList);
 
     // set active nodes
@@ -121,7 +122,7 @@ public class ImportUsing {
     config.setMaxConnectionsWithSameIp(2);
   }
 
-  public class MyP2pEventHandler extends P2pEventHandler {
+  private class MyP2pEventHandler extends P2pEventHandler {
 
     public MyP2pEventHandler() {
       this.messageTypes = new HashSet<>();
@@ -154,13 +155,13 @@ public class ImportUsing {
 
   }
 
-  public enum MessageTypes {
+  private enum MessageTypes {
 
-    FIRST((byte)0x00),
+    FIRST((byte) 0x00),
 
-    TEST((byte)0x01),
+    TEST((byte) 0x01),
 
-    LAST((byte)0x8f);
+    LAST((byte) 0x8f);
 
     private final byte type;
 
@@ -185,15 +186,16 @@ public class ImportUsing {
     }
   }
 
-  public class TestMessage {
+  private static class TestMessage {
+
     protected MessageTypes type;
     protected byte[] data;
+
     public TestMessage(byte[] data) {
       this.type = MessageTypes.TEST;
       this.data = data;
     }
 
   }
-
 
 }

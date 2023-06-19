@@ -1,6 +1,7 @@
 package org.tron.p2p.connection.message.handshake;
 
 import com.google.protobuf.ByteString;
+import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.message.Message;
@@ -8,6 +9,7 @@ import org.tron.p2p.connection.message.MessageType;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.protos.Connect;
 import org.tron.p2p.protos.Discover;
+import org.tron.p2p.utils.ByteArray;
 import org.tron.p2p.utils.NetUtil;
 
 public class HelloMessage extends Message {
@@ -21,17 +23,18 @@ public class HelloMessage extends Message {
 
   public HelloMessage(DisconnectCode code) {
     super(MessageType.HANDSHAKE_HELLO, null);
-    Discover.Endpoint endpoint = Discover.Endpoint.newBuilder()
-            .setNodeId(ByteString.copyFrom(Parameter.p2pConfig.getNodeID()))
-            .setPort(Parameter.p2pConfig.getPort())
-            .setAddress(ByteString.copyFrom(Parameter.p2pConfig.getIp().getBytes()))
-            .build();
+    Discover.Endpoint endpoint = Parameter.getHomeNode();
     this.helloMessage = Connect.HelloMessage.newBuilder()
-            .setFrom(endpoint)
-            .setVersion(Parameter.p2pConfig.getVersion())
-            .setCode(code.getValue())
-            .setTimestamp(System.currentTimeMillis()).build();
+      .setFrom(endpoint)
+      .setNetworkId(Parameter.p2pConfig.getNetworkId())
+      .setCode(code.getValue())
+      .setVersion(Parameter.version)
+      .setTimestamp(System.currentTimeMillis()).build();
     this.data = helloMessage.toByteArray();
+  }
+
+  public int getNetworkId() {
+    return this.helloMessage.getNetworkId();
   }
 
   public int getVersion() {
@@ -47,9 +50,7 @@ public class HelloMessage extends Message {
   }
 
   public Node getFrom() {
-    Discover.Endpoint from = this.helloMessage.getFrom();
-    return new Node(from.getNodeId().toByteArray(),
-            new String(from.getAddress().toByteArray()), from.getPort());
+    return NetUtil.getNode(helloMessage.getFrom());
   }
 
   @Override

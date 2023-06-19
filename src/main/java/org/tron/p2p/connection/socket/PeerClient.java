@@ -11,8 +11,11 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.util.encoders.Hex;
 import org.tron.p2p.base.Parameter;
+import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.discover.Node;
+import org.tron.p2p.utils.NetUtil;
 
 @Slf4j(topic = "net")
 public class PeerClient {
@@ -37,32 +40,46 @@ public class PeerClient {
 
   public void connect(String host, int port, String remoteId) {
     try {
-      ChannelFuture f = connectAsync(host, port, remoteId, false);
+      ChannelFuture f = connectAsync(host, port, remoteId, false, false);
       f.sync().channel().closeFuture().sync();
     } catch (Exception e) {
       log.warn("PeerClient can't connect to {}:{} ({})", host, port, e.getMessage());
     }
   }
 
+  public ChannelFuture connect(Node node, ChannelFutureListener future) {
+    ChannelFuture channelFuture = connectAsync(
+        node.getPreferInetSocketAddress().getAddress().getHostAddress(),
+        node.getPort(),
+        node.getId() == null ? Hex.toHexString(NetUtil.getNodeId()) : node.getHexId(), false, false);
+    if (future != null) {
+      channelFuture.addListener(future);
+    }
+    return channelFuture;
+  }
+
   public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
-    return connectAsync(node.getHost(), node.getPort(),
-        node.getId() == null ? null : node.getHexId(), discoveryMode)
+    return connectAsync(node.getPreferInetSocketAddress().getAddress().getHostAddress(),
+        node.getPort(),
+        node.getId() == null ? Hex.toHexString(NetUtil.getNodeId()) : node.getHexId(),
+        discoveryMode, true)
         .addListener((ChannelFutureListener) future -> {
           if (!future.isSuccess()) {
-            log.warn("Connect to peer {} fail, cause:{}", node.getInetSocketAddress().getAddress(),
+            log.warn("Connect to peer {} fail, cause:{}", node.getPreferInetSocketAddress(),
                 future.cause().getMessage());
             future.channel().close();
+            if (!discoveryMode) {
+              ChannelManager.triggerConnect(node.getPreferInetSocketAddress());
+            }
           }
         });
   }
 
   private ChannelFuture connectAsync(String host, int port, String remoteId,
-      boolean discoveryMode) {
+      boolean discoveryMode, boolean trigger) {
 
-    log.info("Connect to peer {}:{}", host, port);
-
-    P2pChannelInitializer p2pChannelInitializer = new P2pChannelInitializer(remoteId);
-    p2pChannelInitializer.setPeerDiscoveryMode(discoveryMode);
+    P2pChannelInitializer p2pChannelInitializer = new P2pChannelInitializer(remoteId,
+        discoveryMode, trigger);
 
     Bootstrap b = new Bootstrap();
     b.group(workerGroup);

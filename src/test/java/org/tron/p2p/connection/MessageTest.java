@@ -29,7 +29,7 @@ public class MessageTest {
   @Test
   public void testPing() {
     PingMessage pingMessage = new PingMessage();
-    byte[] messageData = pingMessage.getSendData().array();
+    byte[] messageData = pingMessage.getSendData();
     try {
       Message message = Message.parse(messageData);
       Assert.assertEquals(MessageType.KEEP_ALIVE_PING, message.getType());
@@ -41,7 +41,7 @@ public class MessageTest {
   @Test
   public void testPong() {
     PongMessage pongMessage = new PongMessage();
-    byte[] messageData = pongMessage.getSendData().array();
+    byte[] messageData = pongMessage.getSendData();
     try {
       Message message = Message.parse(messageData);
       Assert.assertEquals(MessageType.KEEP_ALIVE_PONG, message.getType());
@@ -53,7 +53,7 @@ public class MessageTest {
   @Test
   public void testHandShakeHello() {
     HelloMessage helloMessage = new HelloMessage(DisconnectCode.NORMAL);
-    byte[] messageData = helloMessage.getSendData().array();
+    byte[] messageData = helloMessage.getSendData();
     try {
       Message message = Message.parse(messageData);
       Assert.assertEquals(MessageType.HANDSHAKE_HELLO, message.getType());
@@ -65,7 +65,7 @@ public class MessageTest {
   @Test
   public void testUnKnownType() {
     PingMessage pingMessage = new PingMessage();
-    byte[] messageData = pingMessage.getSendData().array();
+    byte[] messageData = pingMessage.getSendData();
     messageData[0] = (byte) 0x00;
     try {
       Message.parse(messageData);

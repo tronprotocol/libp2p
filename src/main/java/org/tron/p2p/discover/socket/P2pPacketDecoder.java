@@ -10,7 +10,7 @@ import org.tron.p2p.discover.message.Message;
 import org.tron.p2p.exception.P2pException;
 
 @Slf4j(topic = "net")
-public class PacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
+public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
 
   private static final int MAXSIZE = 2048;
 

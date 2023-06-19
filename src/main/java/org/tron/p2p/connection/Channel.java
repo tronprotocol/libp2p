@@ -6,6 +6,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
+import io.netty.handler.codec.CorruptedFrameException;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import io.netty.handler.timeout.ReadTimeoutException;
 import io.netty.handler.timeout.ReadTimeoutHandler;
@@ -20,9 +21,12 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.base.Parameter;
+import org.tron.p2p.connection.business.upgrade.UpgradeController;
 import org.tron.p2p.connection.message.Message;
+import org.tron.p2p.connection.message.handshake.HelloMessage;
 import org.tron.p2p.connection.socket.MessageHandler;
 import org.tron.p2p.connection.socket.P2pProtobufVarint32FrameDecoder;
+import org.tron.p2p.discover.Node;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.stats.TrafficStats;
 import org.tron.p2p.utils.ByteArray;
@@ -31,8 +35,15 @@ import org.tron.p2p.utils.ByteArray;
 public class Channel {
 
   public volatile boolean waitForPong = false;
-  public volatile long pingSent = System.currentTimeMillis();;
+  public volatile long pingSent = System.currentTimeMillis();
 
+  @Getter
+  private HelloMessage helloMessage;
+  @Getter
+  private Node node;
+  @Getter
+  private int version;
+  @Getter
   private ChannelHandlerContext ctx;
   @Getter
   private InetSocketAddress inetSocketAddress;
@@ -57,10 +68,11 @@ public class Channel {
   @Getter
   @Setter
   private String nodeId;
+  @Setter
   @Getter
   private boolean discoveryMode;
   @Getter
-  private long latency;
+  private long avgLatency;
   private long count;
 
   public void init(ChannelPipeline pipeline, String nodeId, boolean discoveryMode) {
@@ -85,15 +97,23 @@ public class Channel {
     }
     SocketAddress address = ctx.channel().remoteAddress();
     if (throwable instanceof ReadTimeoutException
-        || throwable instanceof IOException) {
+      || throwable instanceof IOException
+      || throwable instanceof CorruptedFrameException) {
       log.warn("Close peer {}, reason: {}", address, throwable.getMessage());
     } else if (baseThrowable instanceof P2pException) {
       log.warn("Close peer {}, type: ({}), info: {}",
-          address, ((P2pException) baseThrowable).getType(), baseThrowable.getMessage());
+        address, ((P2pException) baseThrowable).getType(), baseThrowable.getMessage());
     } else {
       log.error("Close peer {}, exception caught", address, throwable);
     }
     close();
+  }
+
+  public void setHelloMessage(HelloMessage helloMessage) {
+    this.helloMessage = helloMessage;
+    this.node = helloMessage.getFrom();
+    this.nodeId = node.getHexId(); //update node id from handshake
+    this.version = helloMessage.getVersion();
   }
 
   public void setChannelHandlerContext(ChannelHandlerContext ctx) {
@@ -114,34 +134,47 @@ public class Channel {
     close(Parameter.DEFAULT_BAN_TIME);
   }
 
-  public void send(byte[] data) {
-    send(Unpooled.wrappedBuffer(data), data[0]);
-  }
+//  public void send(byte[] data) {
+//    send(data, data[0]);
+//  }
 
   public void send(Message message) {
-    send(message.getSendData(), message.getType().getType());
+    log.debug("Send message to {}, {}", inetSocketAddress, message);
+    send(message.getSendData());
   }
 
-  private void send(ByteBuf byteBuf, byte type) {
-    if (isDisconnect) {
-      log.warn("Send to {} failed as channel has closed, message-type:{} ",
-              ctx.channel().remoteAddress(), type);
-      return;
-    }
-    ctx.writeAndFlush(byteBuf).addListener((ChannelFutureListener) future -> {
-      if (!future.isSuccess() && !isDisconnect) {
-        log.warn("Send to {} failed, message-type:{}, cause:{}",
-                ctx.channel().remoteAddress(), ByteArray.byte2int(type),
-                future.cause().getMessage());
+  public void send(byte[] data) {
+    try {
+      byte type = data[0];
+      if (isDisconnect) {
+        log.warn("Send to {} failed as channel has closed, message-type:{} ",
+                ctx.channel().remoteAddress(), type);
+        return;
       }
-    });
-    setLastSendTime(System.currentTimeMillis());
+
+      if (finishHandshake) {
+        data = UpgradeController.codeSendData(version, data);
+      }
+
+      ByteBuf byteBuf = Unpooled.wrappedBuffer(data);
+      ctx.writeAndFlush(byteBuf).addListener((ChannelFutureListener) future -> {
+        if (!future.isSuccess() && !isDisconnect) {
+          log.warn("Send to {} failed, message-type:{}, cause:{}",
+                  ctx.channel().remoteAddress(), ByteArray.byte2int(type),
+                  future.cause().getMessage());
+        }
+      });
+      setLastSendTime(System.currentTimeMillis());
+    } catch (Exception e) {
+      log.warn("Send message to {} failed, {}", inetSocketAddress, e.getMessage());
+      ctx.channel();
+    }
   }
 
-  public void updateLatency(long latency) {
-    long total = this.latency * this.count;
+  public void updateAvgLatency(long latency) {
+    long total = this.avgLatency * this.count;
     this.count++;
-    this.latency = (total + latency) / this.count;
+    this.avgLatency = (total + latency) / this.count;
   }
 
   @Override
@@ -164,6 +197,7 @@ public class Channel {
   @Override
   public String toString() {
     return String.format("%s | %s", inetSocketAddress,
-        StringUtils.isEmpty(nodeId) ? "<null>" : nodeId);
+      StringUtils.isEmpty(nodeId) ? "<null>" : nodeId);
   }
+
 }

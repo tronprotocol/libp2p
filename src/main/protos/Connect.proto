@@ -11,7 +11,27 @@ message KeepAliveMessage {
 
 message HelloMessage {
   Endpoint from = 1;
-  int32 version = 2;
+  int32 network_id = 2;
   int32 code = 3;
   int64 timestamp = 4;
+  int32 version = 5;
+}
+
+message StatusMessage {
+  Endpoint from = 1;
+  int32 version = 2;
+  int32 network_id = 3;
+  int32 maxConnections = 4;
+  int32 currentConnections = 5;
+  int64 timestamp = 6;
+}
+
+message CompressMessage {
+  enum CompressType {
+    uncompress = 0;
+    snappy = 1;
+  }
+
+  CompressType type = 1;
+  bytes data = 2;
 }

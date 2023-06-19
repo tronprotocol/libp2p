@@ -2,6 +2,8 @@ package org.tron.p2p.connection;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.util.encoders.Hex;
 import org.tron.p2p.P2pEventHandler;
 import org.tron.p2p.base.Parameter;
+import org.tron.p2p.connection.business.detect.NodeDetectService;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.business.handshake.HandshakeService;
 import org.tron.p2p.connection.business.keepalive.KeepAliveService;
@@ -21,12 +24,17 @@ import org.tron.p2p.connection.business.pool.ConnPoolService;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
+import org.tron.p2p.discover.Node;
 import org.tron.p2p.exception.P2pException;
+import org.tron.p2p.exception.P2pException.TypeEnum;
 import org.tron.p2p.utils.ByteArray;
 import org.tron.p2p.utils.NetUtil;
 
 @Slf4j(topic = "net")
 public class ChannelManager {
+
+  @Getter
+  private static NodeDetectService nodeDetectService;
 
   private static PeerServer peerServer;
 
@@ -48,21 +56,30 @@ public class ChannelManager {
   private static final Cache<InetAddress, Long> bannedNodes = CacheBuilder
       .newBuilder().maximumSize(2000).build(); //ban timestamp
 
+  private static boolean isInit = false;
+
   public static void init() {
+    isInit = true;
     peerServer = new PeerServer();
     peerClient = new PeerClient();
     keepAliveService = new KeepAliveService();
     connPoolService = new ConnPoolService();
     handshakeService = new HandshakeService();
+    nodeDetectService = new NodeDetectService();
     peerServer.init();
     peerClient.init();
     keepAliveService.init();
     connPoolService.init(peerClient);
+    nodeDetectService.init(peerClient);
   }
 
   public static void connect(InetSocketAddress address) {
     peerClient.connect(address.getAddress().getHostAddress(), address.getPort(),
         ByteArray.toHexString(NetUtil.getNodeId()));
+  }
+
+  public static ChannelFuture connect(Node node, ChannelFutureListener future) {
+    return peerClient.connect(node, future);
   }
 
   public static void notifyDisconnect(Channel channel) {
@@ -124,8 +141,8 @@ public class ChannelManager {
     }
 
     channels.put(channel.getInetSocketAddress(), channel);
-    log.info("Add peer {}, total peers: {}",
-            channel.getInetSocketAddress(), channels.size());
+
+    log.info("Add peer {}, total channels: {}", channel.getInetSocketAddress(), channels.size());
     return DisconnectCode.NORMAL;
   }
 
@@ -138,19 +155,29 @@ public class ChannelManager {
   }
 
   public static void close() {
+    if (!isInit) {
+      return;
+    }
     connPoolService.close();
     keepAliveService.close();
     peerServer.close();
     peerClient.close();
+    nodeDetectService.close();
   }
 
   public static void processMessage(Channel channel, byte[] data) throws P2pException {
+    if (data == null || data.length == 0) {
+      throw new P2pException(TypeEnum.EMPTY_MESSAGE, "");
+    }
     if (data[0] >= 0) {
       handMessage(channel, data);
       return;
     }
 
     Message message = Message.parse(data);
+
+    log.debug("Receive message from {}, {}", channel.getInetSocketAddress(), message);
+
     switch (message.getType()) {
       case KEEP_ALIVE_PING:
       case KEEP_ALIVE_PONG:
@@ -158,6 +185,9 @@ public class ChannelManager {
         break;
       case HANDSHAKE_HELLO:
         handshakeService.processMessage(channel, message);
+        break;
+      case STATUS:
+        nodeDetectService.processMessage(channel, message);
         break;
       default:
         throw new P2pException(P2pException.TypeEnum.NO_SUCH_MESSAGE, "type:" + data[0]);
@@ -169,9 +199,17 @@ public class ChannelManager {
     if (handler == null) {
       throw new P2pException(P2pException.TypeEnum.NO_SUCH_MESSAGE, "type:" + data[0]);
     }
+    if (channel.isDiscoveryMode()) {
+      channel.getCtx().close();
+      return;
+    }
 
     if (!channel.isFinishHandshake()) {
       channel.setFinishHandshake(true);
+      if (!DisconnectCode.NORMAL.equals(processPeer(channel))) {
+        channel.getCtx().close();
+        return;
+      }
       Parameter.handlerList.forEach(h -> h.onConnect(channel));
     }
 
@@ -198,9 +236,15 @@ public class ChannelManager {
     Channel c1 = list.get(0);
     Channel c2 = list.get(1);
     if (c1.getStartTime() > c2.getStartTime()) {
+      log.info("close channel {}, other channel {} is earlier", c1, c2);
       c1.close();
     } else {
+      log.info("close channel {}, other channel {} is earlier", c2, c1);
       c2.close();
     }
+  }
+
+  public static void triggerConnect(InetSocketAddress address) {
+    connPoolService.triggerConnect(address);
   }
 }

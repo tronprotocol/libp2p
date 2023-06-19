@@ -40,7 +40,7 @@ public class KadServiceTest {
     Assert.assertEquals(1, kadService.getAllNodes().size());
 
     UdpEvent event = new UdpEvent(new PingMessage(node2, kadService.getPublicHomeNode()),
-        new InetSocketAddress(node2.getHost(), node2.getPort()));
+        new InetSocketAddress(node2.getHostV4(), node2.getPort()));
     kadService.handleEvent(event);
     Assert.assertEquals(2, kadService.getAllNodes().size());
 

@@ -67,7 +67,7 @@ public class NodeTableTest {
 
     ips = new String[KademliaOptions.BUCKET_SIZE + 1];
     byte[] homeId = new byte[64];
-    homeNode = new Node(homeId, "127.0.0.1", 18888, 18888);
+    homeNode = new Node(homeId, "127.0.0.1", null, 18888, 18888);
     nodeTable = new NodeTable(homeNode);
     ips[0] = "127.0.0.2";
     ips[1] = "127.0.0.3";
@@ -90,7 +90,7 @@ public class NodeTableTest {
 
   @Test
   public void addNodeTest() {
-    Node node = new Node(ids.get(0), ips[0], 18888, 18888);
+    Node node = new Node(ids.get(0), ips[0], null, 18888, 18888);
     Assert.assertEquals(0, nodeTable.getNodesCount());
     nodeTable.addNode(node);
     Assert.assertEquals(1, nodeTable.getNodesCount());
@@ -99,7 +99,7 @@ public class NodeTableTest {
 
   @Test
   public void addDupNodeTest() throws Exception {
-    Node node = new Node(ids.get(0), ips[0], 18888, 18888);
+    Node node = new Node(ids.get(0), ips[0], null, 18888, 18888);
     nodeTable.addNode(node);
     long firstTouchTime = nodeTable.getAllNodes().get(0).getModified();
     TimeUnit.MILLISECONDS.sleep(20);
@@ -113,11 +113,11 @@ public class NodeTableTest {
   public void addNode_bucketFullTest() throws Exception {
     for (int i = 0; i < KademliaOptions.BUCKET_SIZE; i++) {
       TimeUnit.MILLISECONDS.sleep(10);
-      addNode(new Node(ids.get(i), ips[i], 18888, 18888));
+      addNode(new Node(ids.get(i), ips[i], null, 18888, 18888));
     }
-    Node lastSeen = nodeTable.addNode(new Node(ids.get(16), ips[16], 18888, 18888));
+    Node lastSeen = nodeTable.addNode(new Node(ids.get(16), ips[16], null, 18888, 18888));
     Assert.assertTrue(null != lastSeen);
-    Assert.assertEquals(ips[15], lastSeen.getHost());
+    Assert.assertEquals(ips[15], lastSeen.getHostV4());
   }
 
   public void addNode(Node n) {
@@ -126,27 +126,27 @@ public class NodeTableTest {
 
   @Test
   public void dropNodeTest() {
-    Node node = new Node(ids.get(0), ips[0], 18888, 18888);
+    Node node = new Node(ids.get(0), ips[0], null, 18888, 18888);
     nodeTable.addNode(node);
     Assert.assertTrue(nodeTable.contains(node));
     nodeTable.dropNode(node);
     Assert.assertTrue(!nodeTable.contains(node));
     nodeTable.addNode(node);
-    nodeTable.dropNode(new Node(ids.get(1), ips[0], 10000, 10000));
+    nodeTable.dropNode(new Node(ids.get(1), ips[0], null, 10000, 10000));
     Assert.assertTrue(!nodeTable.contains(node));
   }
 
   @Test
   public void getBucketsCountTest() {
     Assert.assertEquals(0, nodeTable.getBucketsCount());
-    Node node = new Node(ids.get(0), ips[0], 18888, 18888);
+    Node node = new Node(ids.get(0), ips[0], null, 18888, 18888);
     nodeTable.addNode(node);
     Assert.assertEquals(1, nodeTable.getBucketsCount());
   }
 
   @Test
   public void touchNodeTest() throws Exception {
-    Node node = new Node(ids.get(0), ips[0], 18888, 18888);
+    Node node = new Node(ids.get(0), ips[0], null, 18888, 18888);
     nodeTable.addNode(node);
     long firstTouchTime = nodeTable.getAllNodes().get(0).getModified();
     TimeUnit.MILLISECONDS.sleep(10);
@@ -157,7 +157,7 @@ public class NodeTableTest {
 
   @Test
   public void containsTest() {
-    Node node = new Node(ids.get(0), ips[0], 18888, 18888);
+    Node node = new Node(ids.get(0), ips[0], null, 18888, 18888);
     Assert.assertTrue(!nodeTable.contains(node));
     nodeTable.addNode(node);
     Assert.assertTrue(nodeTable.contains(node));
@@ -165,7 +165,7 @@ public class NodeTableTest {
 
   @Test
   public void getBuckIdTest() {
-    Node node = new Node(ids.get(0), ips[0], 18888, 18888);  //id: 11100...000
+    Node node = new Node(ids.get(0), ips[0], null, 18888, 18888);  //id: 11100...000
     nodeTable.addNode(node);
     NodeEntry nodeEntry = new NodeEntry(homeNode.getId(), node);
     Assert.assertEquals(13, nodeTable.getBucketId(nodeEntry));
@@ -175,14 +175,14 @@ public class NodeTableTest {
   public void getClosestNodes_nodesMoreThanBucketCapacity() throws Exception {
     byte[] bytes = new byte[64];
     bytes[0] = 15;
-    Node nearNode = new Node(bytes, "127.0.0.19", 18888, 18888);
+    Node nearNode = new Node(bytes, "127.0.0.19", null, 18888, 18888);
     bytes[0] = 70;
-    Node farNode = new Node(bytes, "127.0.0.20", 18888, 18888);
+    Node farNode = new Node(bytes, "127.0.0.20", null, 18888, 18888);
     nodeTable.addNode(nearNode);
     nodeTable.addNode(farNode);
     for (int i = 0; i < KademliaOptions.BUCKET_SIZE - 1; i++) {
       //To control totally 17 nodes, however closest's capacity is 16
-      nodeTable.addNode(new Node(ids.get(i), ips[i], 18888, 18888));
+      nodeTable.addNode(new Node(ids.get(i), ips[i], null, 18888, 18888));
       TimeUnit.MILLISECONDS.sleep(10);
     }
     Assert.assertTrue(nodeTable.getBucketsCount() > 1);
@@ -194,7 +194,7 @@ public class NodeTableTest {
 
   @Test
   public void getClosestNodes_isDiscoverNode() {
-    Node node = new Node(ids.get(0), ips[0], 18888);
+    Node node = new Node(ids.get(0), ips[0], null, 18888);
     nodeTable.addNode(node);
     List<Node> closest = nodeTable.getClosestNodes(homeNode.getId());
     Assert.assertFalse(closest.isEmpty());

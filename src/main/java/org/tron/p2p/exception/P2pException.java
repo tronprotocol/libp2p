@@ -2,7 +2,8 @@ package org.tron.p2p.exception;
 
 public class P2pException extends Exception {
 
-  private TypeEnum type;
+  private static final long serialVersionUID = 1390312274369330710L;
+  private final TypeEnum type;
 
   public P2pException(TypeEnum type, String errMsg) {
     super(errMsg);
@@ -29,10 +30,11 @@ public class P2pException extends Exception {
     MESSAGE_WITH_WRONG_LENGTH(3, "message with wrong length"),
     BAD_MESSAGE(4, "bad message"),
     BAD_PROTOCOL(5, "bad protocol"),
-    TYPE_ALREADY_REGISTERED(6, "type already registered");
+    TYPE_ALREADY_REGISTERED(6, "type already registered"),
+    EMPTY_MESSAGE(7, "empty message");
 
-    private Integer value;
-    private String desc;
+    private final Integer value;
+    private final String desc;
 
     TypeEnum(Integer value, String desc) {
       this.value = value;
