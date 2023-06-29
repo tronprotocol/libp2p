@@ -66,7 +66,7 @@ dependencies {
 <dependency>
     <groupId>io.github.tronprotocol</groupId>
     <artifactId>libp2p</artifactId>
-    <version>2.0.0</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 
