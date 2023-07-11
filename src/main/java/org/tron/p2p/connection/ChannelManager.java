@@ -2,6 +2,8 @@ package org.tron.p2p.connection;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -22,7 +24,9 @@ import org.tron.p2p.connection.business.pool.ConnPoolService;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
+import org.tron.p2p.discover.Node;
 import org.tron.p2p.exception.P2pException;
+import org.tron.p2p.exception.P2pException.TypeEnum;
 import org.tron.p2p.utils.ByteArray;
 import org.tron.p2p.utils.NetUtil;
 
@@ -50,9 +54,12 @@ public class ChannelManager {
 
   @Getter
   private static final Cache<InetAddress, Long> bannedNodes = CacheBuilder
-    .newBuilder().maximumSize(2000).build(); //ban timestamp
+      .newBuilder().maximumSize(2000).build(); //ban timestamp
+
+  private static boolean isInit = false;
 
   public static void init() {
+    isInit = true;
     peerServer = new PeerServer();
     peerClient = new PeerClient();
     keepAliveService = new KeepAliveService();
@@ -68,7 +75,11 @@ public class ChannelManager {
 
   public static void connect(InetSocketAddress address) {
     peerClient.connect(address.getAddress().getHostAddress(), address.getPort(),
-      ByteArray.toHexString(NetUtil.getNodeId()));
+        ByteArray.toHexString(NetUtil.getNodeId()));
+  }
+
+  public static ChannelFuture connect(Node node, ChannelFutureListener future) {
+    return peerClient.connect(node, future);
   }
 
   public static void notifyDisconnect(Channel channel) {
@@ -99,7 +110,7 @@ public class ChannelManager {
     if (!channel.isActive() && !channel.isTrustPeer()) {
       InetAddress inetAddress = channel.getInetAddress();
       if (bannedNodes.getIfPresent(inetAddress) != null
-        && bannedNodes.getIfPresent(inetAddress) > System.currentTimeMillis()) {
+          && bannedNodes.getIfPresent(inetAddress) > System.currentTimeMillis()) {
         log.info("Peer {} recently disconnected", channel);
         return DisconnectCode.TIME_BANNED;
       }
@@ -138,12 +149,15 @@ public class ChannelManager {
   public static void banNode(InetAddress inetAddress, Long banTime) {
     long now = System.currentTimeMillis();
     if (bannedNodes.getIfPresent(inetAddress) == null
-      || bannedNodes.getIfPresent(inetAddress) < now) {
+        || bannedNodes.getIfPresent(inetAddress) < now) {
       bannedNodes.put(inetAddress, now + banTime);
     }
   }
 
   public static void close() {
+    if (!isInit) {
+      return;
+    }
     connPoolService.close();
     keepAliveService.close();
     peerServer.close();
@@ -152,6 +166,9 @@ public class ChannelManager {
   }
 
   public static void processMessage(Channel channel, byte[] data) throws P2pException {
+    if (data == null || data.length == 0) {
+      throw new P2pException(TypeEnum.EMPTY_MESSAGE, "");
+    }
     if (data[0] >= 0) {
       handMessage(channel, data);
       return;
@@ -182,9 +199,17 @@ public class ChannelManager {
     if (handler == null) {
       throw new P2pException(P2pException.TypeEnum.NO_SUCH_MESSAGE, "type:" + data[0]);
     }
+    if (channel.isDiscoveryMode()) {
+      channel.getCtx().close();
+      return;
+    }
 
     if (!channel.isFinishHandshake()) {
       channel.setFinishHandshake(true);
+      if (!DisconnectCode.NORMAL.equals(processPeer(channel))) {
+        channel.getCtx().close();
+        return;
+      }
       Parameter.handlerList.forEach(h -> h.onConnect(channel));
     }
 
@@ -217,5 +242,9 @@ public class ChannelManager {
       log.info("close channel {}, other channel {} is earlier", c2, c1);
       c2.close();
     }
+  }
+
+  public static void triggerConnect(InetSocketAddress address) {
+    connPoolService.triggerConnect(address);
   }
 }

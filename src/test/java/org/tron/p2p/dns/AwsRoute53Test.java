@@ -8,11 +8,12 @@ import java.util.List;
 import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
+import org.tron.p2p.P2pConfig;
 import org.tron.p2p.dns.tree.Tree;
 import org.tron.p2p.dns.update.AwsClient;
 import org.tron.p2p.dns.update.AwsClient.RecordSet;
+import org.tron.p2p.dns.update.PublishConfig;
 import org.tron.p2p.exception.DnsException;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.route53.model.Change;
 import software.amazon.awssdk.services.route53.model.ChangeAction;
 
@@ -49,7 +50,7 @@ public class AwsRoute53Test {
     AwsClient publish;
     try {
       publish = new AwsClient("random1", "random2", "random3",
-          Region.US_EAST_1);
+          "us-east-1", new P2pConfig().getPublishConfig().getChangeThreshold());
     } catch (DnsException e) {
       Assert.fail();
       return;
@@ -98,7 +99,7 @@ public class AwsRoute53Test {
 
     DnsNode[] nodes = TreeTest.sampleNode();
     List<DnsNode> nodeList = Arrays.asList(nodes);
-    List<String> enrList = Tree.merge(nodeList);
+    List<String> enrList = Tree.merge(nodeList, new PublishConfig().getMaxMergeSize());
 
     String[] links = new String[] {
         "tree://AKA3AM6LPBYEUDMVNU3BSVQJ5AD45Y7YPOHJLEF6W26QOE4VTUDPE@example1.org",

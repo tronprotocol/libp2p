@@ -67,7 +67,6 @@ public class Client {
         log.error("SyncTree failed, url:" + urlScheme, e);
         continue;
       }
-      log.info("tree {} node size:{}", urlScheme, tree.getDnsNodes().size());
     }
   }
 
@@ -96,7 +95,7 @@ public class Client {
     }
 
     tree.setRootEntry(clientTree.getRoot());
-    log.info("SyncTree {} complete, LinkEntry size:{}, NodesEntry size:{}, DnsNode size:{}",
+    log.info("SyncTree {} complete, LinkEntry size:{}, NodesEntry size:{}, node size:{}",
         urlScheme, tree.getLinksEntry().size(), tree.getNodesEntry().size(),
         tree.getDnsNodes().size());
   }
@@ -110,7 +109,8 @@ public class Client {
     }
     for (String txt : txtRecord.getStrings()) {
       if (txt.startsWith(Entry.rootPrefix)) {
-        return RootEntry.parseEntry(txt, linkEntry.getUnCompressHexPublicKey(), linkEntry.getDomain());
+        return RootEntry.parseEntry(txt, linkEntry.getUnCompressHexPublicKey(),
+            linkEntry.getDomain());
       }
     }
     throw new DnsException(TypeEnum.NO_ROOT_FOUND, "domain: " + linkEntry.getDomain());

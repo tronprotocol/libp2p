@@ -26,7 +26,7 @@ public class NodesEntry implements Entry {
     String content = e.substring(nodesPrefix.length());
     List<DnsNode> nodeList;
     try {
-      nodeList = DnsNode.decompress(content);
+      nodeList = DnsNode.decompress(content.replace("\"",""));
     } catch (InvalidProtocolBufferException | UnknownHostException ex) {
       throw new DnsException(TypeEnum.INVALID_NODES, ex);
     }

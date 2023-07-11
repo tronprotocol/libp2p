@@ -27,7 +27,7 @@ public class NodeDetectService implements MessageProcess {
 
   @Getter
   private static final Cache<InetAddress, Long> badNodesCache = CacheBuilder
-    .newBuilder().maximumSize(2000).build();
+    .newBuilder().maximumSize(5000).expireAfterWrite(1, TimeUnit.HOURS).build();
 
   private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
@@ -77,7 +77,7 @@ public class NodeDetectService implements MessageProcess {
       return;
     }
 
-    NodeStat nodeStat = getSortedNodeStats().get(0);
+    NodeStat nodeStat = nodeStats.get(0);
     if (nodeStat.getLastDetectTime() > System.currentTimeMillis() - NODE_DETECT_MIN_THRESHOLD) {
       return;
     }

@@ -39,7 +39,7 @@ public class PeerServer {
     EventLoopGroup bossGroup = new NioEventLoopGroup(1);
     //if threads = 0, it is number of core * 2
     EventLoopGroup workerGroup = new NioEventLoopGroup(Parameter.TCP_NETTY_WORK_THREAD_NUM);
-    P2pChannelInitializer p2pChannelInitializer = new P2pChannelInitializer("", false);
+    P2pChannelInitializer p2pChannelInitializer = new P2pChannelInitializer("", false, true);
     try {
       ServerBootstrap b = new ServerBootstrap();
 

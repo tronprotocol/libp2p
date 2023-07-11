@@ -1,8 +1,12 @@
 package org.tron.p2p.dns.update;
 
+import java.net.Inet4Address;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +37,12 @@ public class PublishService {
         log.error("Init PublishService failed", e);
         return;
       }
-      publisher.scheduleWithFixedDelay(this::startPublish, 300, publishDelay, TimeUnit.SECONDS);
+
+      if (publishConfig.getStaticNodes() != null && !publishConfig.getStaticNodes().isEmpty()) {
+        startPublish();
+      } else {
+        publisher.scheduleWithFixedDelay(this::startPublish, 300, publishDelay, TimeUnit.SECONDS);
+      }
     }
   }
 
@@ -42,12 +51,14 @@ public class PublishService {
     if (config.getDnsType() == DnsType.AliYun) {
       publish = new AliClient(config.getAliDnsEndpoint(),
           config.getAccessKeyId(),
-          config.getAccessKeySecret());
+          config.getAccessKeySecret(),
+          config.getChangeThreshold());
     } else {
       publish = new AwsClient(config.getAccessKeyId(),
           config.getAccessKeySecret(),
           config.getAwsHostZoneId(),
-          config.getAwsRegion());
+          config.getAwsRegion(),
+          config.getChangeThreshold());
     }
     return publish;
   }
@@ -56,27 +67,38 @@ public class PublishService {
     PublishConfig config = Parameter.p2pConfig.getPublishConfig();
     try {
       Tree tree = new Tree();
-      List<String> nodes = getNodes();
+      List<String> nodes = getNodes(config);
       tree.makeTree(1, nodes, config.getKnownTreeUrls(), config.getDnsPrivate());
+      log.info("Try to publish node count:{}", tree.getDnsNodes().size());
       publish.deploy(config.getDnsDomain(), tree);
     } catch (Exception e) {
       log.error("Failed to publish dns", e);
     }
   }
 
-  private List<String> getNodes() throws UnknownHostException {
-    List<Node> nodes = NodeManager.getConnectableNodes();
-    nodes.add(NodeManager.getHomeNode());
+  private List<String> getNodes(PublishConfig config) throws UnknownHostException {
+    Set<Node> nodes = new HashSet<>();
+    if (config.getStaticNodes() != null && !config.getStaticNodes().isEmpty()) {
+      for (InetSocketAddress staticAddress : config.getStaticNodes()) {
+        if (staticAddress.getAddress() instanceof Inet4Address) {
+          nodes.add(new Node(null, staticAddress.getAddress().getHostAddress(), null,
+              staticAddress.getPort()));
+        } else {
+          nodes.add(new Node(null, null, staticAddress.getAddress().getHostAddress(),
+              staticAddress.getPort()));
+        }
+      }
+    } else {
+      nodes.addAll(NodeManager.getConnectableNodes());
+      nodes.add(NodeManager.getHomeNode());
+    }
     List<DnsNode> dnsNodes = new ArrayList<>();
     for (Node node : nodes) {
-      if (node.getInetSocketAddressV6() != null) {
-        log.debug(node.format());
-      }
       DnsNode dnsNode = new DnsNode(node.getId(), node.getHostV4(), node.getHostV6(),
           node.getPort());
       dnsNodes.add(dnsNode);
     }
-    return Tree.merge(dnsNodes);
+    return Tree.merge(dnsNodes, config.getMaxMergeSize());
   }
 
   private boolean checkConfig(boolean supportV4, PublishConfig config) {

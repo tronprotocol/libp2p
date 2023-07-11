@@ -16,6 +16,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.dns.DnsNode;
+import org.tron.p2p.dns.update.AliClient;
 import org.tron.p2p.exception.DnsException;
 import org.tron.p2p.exception.DnsException.TypeEnum;
 import org.tron.p2p.utils.ByteArray;
@@ -25,7 +26,6 @@ public class Tree {
 
   public static final int HashAbbrevSize = 1 + 16 * 13 / 8; // Size of an encoded hash (plus comma)
   public static final int MaxChildren = 370 / HashAbbrevSize; // 13 children
-  public static final int MaxMergeSize = 5;
 
   @Getter
   @Setter
@@ -129,13 +129,13 @@ public class Tree {
     this.base32PublicKey = Algorithm.encode32(ByteArray.fromHexString(hexPub));
   }
 
-  public static List<String> merge(List<DnsNode> nodes) {
+  public static List<String> merge(List<DnsNode> nodes, int maxMergeSize) {
     Collections.sort(nodes);
     List<String> enrs = new ArrayList<>();
     int networkA = -1;
     List<DnsNode> sub = new ArrayList<>();
     for (DnsNode dnsNode : nodes) {
-      if ((networkA > -1 && dnsNode.getNetworkA() != networkA) || sub.size() >= MaxMergeSize) {
+      if ((networkA > -1 && dnsNode.getNetworkA() != networkA) || sub.size() >= maxMergeSize) {
         enrs.add(Entry.nodesPrefix + DnsNode.compress(sub));
         sub.clear();
       }
@@ -154,7 +154,7 @@ public class Tree {
     if (StringUtils.isNoneEmpty(rootDomain)) {
       dnsRecords.put(rootDomain, rootEntry.toFormat());
     } else {
-      dnsRecords.put("@", rootEntry.toFormat());
+      dnsRecords.put(AliClient.aliyunRoot, rootEntry.toFormat());
     }
     for (Map.Entry<String, Entry> item : entries.entrySet()) {
       String hash = item.getKey();

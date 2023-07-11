@@ -1,5 +1,5 @@
 group 'io.github.tronprotocol'
-version '0.2.0'
+version '1.2.0'
 
 buildscript {
     repositories {
@@ -16,12 +16,8 @@ apply plugin: 'java'
 apply plugin: 'com.google.protobuf'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'application'
-apply plugin: 'maven-publish'
-apply plugin: 'signing'
-apply plugin: "io.github.gradle-nexus.publish-plugin"
 
 def protobufVersion = "3.19.2"
-
 def grpcVersion = "1.14.0"
 
 mainClassName = 'org.tron.p2p.example.StartApp'
@@ -62,22 +58,33 @@ dependencies {
 
     implementation group: 'org.xerial.snappy', name: 'snappy-java', version: '1.1.8.4'
     implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.9'
-    implementation group: 'ch.qos.logback', name: 'logback-core', version: '1.2.3'
+    implementation group: 'ch.qos.logback', name: 'logback-core', version: '1.2.9'
     implementation group: 'com.google.protobuf', name: 'protobuf-java', version: protobufVersion
     implementation group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
     implementation group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
     implementation group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.69'
-    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.4'
     implementation group: 'commons-cli', name: 'commons-cli', version: '1.5.0'
 
-    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.24'
-    testImplementation group: 'org.projectlombok', name: 'lombok', version: '1.18.24'
-    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.24'
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
+    testImplementation group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
+    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
 
     implementation group: 'dnsjava', name: 'dnsjava', version: '3.5.2'
     implementation group: 'org.web3j', name: 'crypto', version: '5.0.0'
-    implementation group: 'software.amazon.awssdk', name: 'route53', version: '2.18.41'
+    implementation('software.amazon.awssdk:route53:2.18.41', {
+        exclude group: 'io.netty', module: 'netty-codec-http2'
+        exclude group: 'io.netty', module: 'netty-codec-http'
+        exclude group: 'io.netty', module: 'netty-common'
+        exclude group: 'io.netty', module: 'netty-buffer'
+        exclude group: 'io.netty', module: 'netty-transport'
+        exclude group: 'io.netty', module: 'netty-codec'
+        exclude group: 'io.netty', module: 'netty-handler'
+        exclude group: 'io.netty', module: 'netty-resolver'
+        exclude group: 'io.netty', module: 'netty-transport-classes-epoll'
+        exclude group: 'io.netty', module: 'netty-transport-native-unix-common'
+    })
     implementation group: 'com.aliyun', name: 'alidns20150109', version: '3.0.1'
     implementation group: 'xerces', name: 'xercesImpl', version: '2.11.0'
 }
@@ -163,66 +170,6 @@ javadoc {
 }
 artifacts {
     archives javadocJar, sourcesJar
-}
-
-publishing {
-
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            artifact sourcesJar
-            artifact javadocJar
-            pom {
-                name = 'libp2p'
-                description = 'libp2p is a p2p network SDK implemented in java language.'
-                url = 'https://github.com/tronprotocol/libp2p'
-                licenses {
-                    license {
-                        name = 'The Apache Software License, Version 2.0'
-                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    }
-                }
-                developers {
-                    developer {
-                        name = 'chengtx01'
-                        email = 'ctxhorse@gmail.com'
-                    }
-                    developer {
-                        name = 'jiangyuanshu'
-                        email = '317787106@qq.com'
-                    }
-                    developer {
-                        name = 'wubin01'
-                        email = 'wb_bupt@163.com'
-                    }
-                }
-                scm {
-                    url = 'https://github.com/tronprotocol/libp2p'
-                    connection = 'scm:git:git://github.com/tronprotocol/libp2p.git'
-                    developerConnection = 'scm:git:ssh://git@github.com:tronprotocol/libp2p.git'
-                }
-            }
-        }
-    }
-}
-
-nexusPublishing {
-    repositories {
-        sonatype {
-            //only for users registered in Sonatype after 24 Feb 2021
-            nexusUrl = uri("https://s01.oss.sonatype.org/service/local/")
-            snapshotRepositoryUrl = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-            username = "${sonatypeUsername}"
-            password = "${sonatypePassword}"
-        }
-    }
-}
-
-
-signing {
-    // https://discuss.gradle.org/t/use-of-signing-plugin-with-gpg-agent-fails-with-gradle-5-x/38351/2
-    useGpgCmd()
-    sign publishing.publications.mavenJava
 }
 
 
