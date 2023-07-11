@@ -53,6 +53,7 @@ public class ConnPoolService extends P2pEventHandler {
   public P2pConfig p2pConfig = Parameter.p2pConfig;
   private PeerClient peerClient;
   private List<InetSocketAddress> configActiveNodes = new ArrayList<>();
+  private boolean isShutdown = false;
 
   public ConnPoolService() {
     this.messageTypes = new HashSet<>(); //no message type registers
@@ -257,6 +258,9 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   public void triggerConnect(InetSocketAddress address) {
+    if (isShutdown) {
+      return;
+    }
     if (configActiveNodes.contains(address)) {
       return;
     }
@@ -305,6 +309,7 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   public void close() {
+    isShutdown = true;
     List<Channel> channels = new ArrayList<>(activePeers);
     try {
       channels.forEach(p -> {
