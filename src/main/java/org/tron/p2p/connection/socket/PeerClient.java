@@ -44,8 +44,7 @@ public class PeerClient {
 
   public ChannelFuture connect(Node node, ChannelFutureListener future) {
     ChannelFuture channelFuture = connectAsync(
-        node.getPreferInetSocketAddress().getAddress().getHostAddress(),
-        node.getPort(),
+        node.getPreferInetSocketAddress().getAddress().getHostAddress(), node.getPort(),
         node.getId() == null ? Hex.toHexString(NetUtil.getNodeId()) : node.getHexId(), false,
         false);
     if (future != null) {
