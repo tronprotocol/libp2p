@@ -50,7 +50,7 @@ public class DiscoverServer {
 
   private void start() throws Exception {
     ThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern(
-        "DiscoverServer-").build();
+        "DiscoverServer").build();
     NioEventLoopGroup group = new NioEventLoopGroup(Parameter.UDP_NETTY_WORK_THREAD_NUM,
         threadFactory);
     try {

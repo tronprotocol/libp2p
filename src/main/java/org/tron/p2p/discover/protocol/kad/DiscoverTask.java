@@ -6,6 +6,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.protocol.kad.table.KademliaOptions;
 import org.tron.p2p.utils.NetUtil;
@@ -13,7 +14,9 @@ import org.tron.p2p.utils.NetUtil;
 @Slf4j(topic = "net")
 public class DiscoverTask {
 
-  private ScheduledExecutorService discoverer = Executors.newSingleThreadScheduledExecutor();
+  private ScheduledExecutorService discoverer = Executors.newSingleThreadScheduledExecutor(
+      new BasicThreadFactory.Builder().namingPattern("DiscoverTask")
+          .build());
 
   private KadService kadService;
 

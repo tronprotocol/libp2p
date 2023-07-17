@@ -23,7 +23,7 @@ public class PeerClient {
   private EventLoopGroup workerGroup;
 
   public void init() {
-    ThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern("PeerClient-")
+    ThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern("PeerClient-%d")
         .build();
     workerGroup = new NioEventLoopGroup(0, threadFactory);
   }

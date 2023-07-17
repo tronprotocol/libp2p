@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.DiscoverService;
 import org.tron.p2p.discover.Node;
@@ -55,7 +56,8 @@ public class KadService implements DiscoverService {
     for (InetSocketAddress address : Parameter.p2pConfig.getActiveNodes()) {
       bootNodes.add(new Node(address));
     }
-    this.pongTimer = Executors.newSingleThreadScheduledExecutor();
+    this.pongTimer = Executors.newSingleThreadScheduledExecutor(
+        new BasicThreadFactory.Builder().namingPattern("PongTimer").build());
     this.homeNode = new Node(Parameter.p2pConfig.getNodeID(), Parameter.p2pConfig.getIp(),
         Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort());
     this.table = new NodeTable(homeNode);

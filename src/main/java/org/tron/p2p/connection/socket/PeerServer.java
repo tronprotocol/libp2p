@@ -39,9 +39,9 @@ public class PeerServer {
   }
 
   public void start(int port) {
-    ThreadFactory threadFactory1 = new BasicThreadFactory.Builder().namingPattern("PeerBoss-")
+    ThreadFactory threadFactory1 = new BasicThreadFactory.Builder().namingPattern("PeerBoss-%d")
         .build();
-    ThreadFactory threadFactory2 = new BasicThreadFactory.Builder().namingPattern("PeerWorker-")
+    ThreadFactory threadFactory2 = new BasicThreadFactory.Builder().namingPattern("PeerWorker-%d")
         .build();
     EventLoopGroup bossGroup = new NioEventLoopGroup(1, threadFactory1);
     //if threads = 0, it is number of core * 2
