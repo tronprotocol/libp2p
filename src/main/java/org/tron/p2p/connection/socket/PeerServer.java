@@ -9,7 +9,6 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LoggingHandler;
-import java.util.concurrent.ThreadFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.tron.p2p.base.Parameter;
@@ -39,14 +38,11 @@ public class PeerServer {
   }
 
   public void start(int port) {
-    ThreadFactory threadFactory1 = new BasicThreadFactory.Builder().namingPattern("PeerBoss-%d")
-        .build();
-    ThreadFactory threadFactory2 = new BasicThreadFactory.Builder().namingPattern("PeerWorker-%d")
-        .build();
-    EventLoopGroup bossGroup = new NioEventLoopGroup(1, threadFactory1);
+    EventLoopGroup bossGroup = new NioEventLoopGroup(1,
+        new BasicThreadFactory.Builder().namingPattern("PeerBoss-%d").build());
     //if threads = 0, it is number of core * 2
     EventLoopGroup workerGroup = new NioEventLoopGroup(Parameter.TCP_NETTY_WORK_THREAD_NUM,
-        threadFactory2);
+        new BasicThreadFactory.Builder().namingPattern("PeerWorker-%d").build());
     P2pChannelInitializer p2pChannelInitializer = new P2pChannelInitializer("", false, true);
     try {
       ServerBootstrap b = new ServerBootstrap();
