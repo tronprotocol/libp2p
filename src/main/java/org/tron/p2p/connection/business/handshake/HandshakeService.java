@@ -56,7 +56,7 @@ public class HandshakeService implements MessageProcess {
             msg.getCode(),
             msg.getNetworkId(),
             msg.getVersion());
-        channel.send(new P2pDisconnectMessage(DisconnectReason.INCOMPATIBLE_PROTOCOL));
+        channel.send(new P2pDisconnectMessage(DisconnectReason.DIFFERENT_VERSION));
         channel.close();
         return;
       }
@@ -66,7 +66,7 @@ public class HandshakeService implements MessageProcess {
         log.info("Peer {} different network id, peer->{}, me->{}",
             channel.getInetSocketAddress(), msg.getNetworkId(), networkId);
         sendHelloMsg(channel, DisconnectCode.DIFFERENT_VERSION);
-        channel.send(new P2pDisconnectMessage(DisconnectReason.INCOMPATIBLE_PROTOCOL));
+        channel.send(new P2pDisconnectMessage(DisconnectReason.DIFFERENT_VERSION));
         channel.close();
         return;
       }

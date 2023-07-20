@@ -152,7 +152,7 @@ public class ChannelManager {
     DisconnectReason disconnectReason;
     switch (code) {
       case DIFFERENT_VERSION:
-        disconnectReason = DisconnectReason.INCOMPATIBLE_PROTOCOL;
+        disconnectReason = DisconnectReason.DIFFERENT_VERSION;
         break;
       case TIME_BANNED:
         disconnectReason = DisconnectReason.RECENT_DISCONNECT;
