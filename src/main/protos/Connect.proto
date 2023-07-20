@@ -35,3 +35,26 @@ message CompressMessage {
   CompressType type = 1;
   bytes data = 2;
 }
+
+enum DisconnectReason {
+  PEER_QUITING = 0x00;
+  BAD_PROTOCOL = 0x01;
+  TOO_MANY_PEERS = 0x02;
+  DUPLICATE_PEER = 0x03;
+  INCOMPATIBLE_PROTOCOL = 0x04;
+  RANDOM_ELIMINATION = 0x05;
+  EMPTY_MESSAGE = 0X06;
+  PING_TIMEOUT = 0x07;
+  DISCOVER_MODE = 0x08;
+  DETECT_COMPLETE = 0x09;
+  NO_SUCH_MESSAGE = 0x0A;
+  BAD_MESSAGE = 0x0B;
+  TOO_MANY_PEERS_WITH_SAME_IP = 0x0C;
+  RECENT_DISCONNECT = 0x0D;
+  DUP_HANDSHAKE = 0x0E;
+  UNKNOWN = 0xFF;
+}
+
+message P2pDisconnectMessage {
+  DisconnectReason reason = 1;
+}

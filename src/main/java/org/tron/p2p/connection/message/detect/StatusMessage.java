@@ -2,7 +2,6 @@ package org.tron.p2p.connection.message.detect;
 
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.ChannelManager;
-import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.message.MessageType;
 import org.tron.p2p.discover.Node;

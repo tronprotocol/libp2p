@@ -8,6 +8,7 @@ import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.business.MessageProcess;
 import org.tron.p2p.connection.message.Message;
+import org.tron.p2p.connection.message.base.P2pDisconnectMessage;
 import org.tron.p2p.connection.message.detect.StatusMessage;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.discover.Node;
@@ -17,6 +18,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.*;
+import org.tron.p2p.protos.Connect.DisconnectReason;
 
 @Slf4j(topic = "net")
 public class NodeDetectService implements MessageProcess {
@@ -142,6 +144,7 @@ public class NodeDetectService implements MessageProcess {
     if(!channel.isActive()) {
       channel.setDiscoveryMode(true);
       channel.send(new StatusMessage());
+      //channel.send(new P2pDisconnectMessage(DisconnectReason.DETECT_COMPLETE));
       channel.getCtx().close();
       return;
     }
@@ -162,6 +165,7 @@ public class NodeDetectService implements MessageProcess {
     nodeStat.setLastSuccessDetectTime(nodeStat.getLastDetectTime());
     setStatusMessage(nodeStat, statusMessage);
 
+    channel.send(new P2pDisconnectMessage(DisconnectReason.DETECT_COMPLETE));
     channel.getCtx().close();
   }
 

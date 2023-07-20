@@ -22,11 +22,13 @@ import org.tron.p2p.connection.business.handshake.HandshakeService;
 import org.tron.p2p.connection.business.keepalive.KeepAliveService;
 import org.tron.p2p.connection.business.pool.ConnPoolService;
 import org.tron.p2p.connection.message.Message;
+import org.tron.p2p.connection.message.base.P2pDisconnectMessage;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.exception.P2pException.TypeEnum;
+import org.tron.p2p.protos.Connect.DisconnectReason;
 import org.tron.p2p.utils.ByteArray;
 import org.tron.p2p.utils.NetUtil;
 
@@ -146,6 +148,31 @@ public class ChannelManager {
     return DisconnectCode.NORMAL;
   }
 
+  public static DisconnectReason getDisconnectReason(DisconnectCode code){
+    DisconnectReason disconnectReason;
+    switch (code) {
+      case DIFFERENT_VERSION:
+        disconnectReason = DisconnectReason.INCOMPATIBLE_PROTOCOL;
+        break;
+      case TIME_BANNED:
+        disconnectReason = DisconnectReason.RECENT_DISCONNECT;
+        break;
+      case DUPLICATE_PEER:
+        disconnectReason = DisconnectReason.DUPLICATE_PEER;
+        break;
+      case TOO_MANY_PEERS:
+        disconnectReason = DisconnectReason.TOO_MANY_PEERS;
+        break;
+      case MAX_CONNECTION_WITH_SAME_IP:
+        disconnectReason = DisconnectReason.TOO_MANY_PEERS_WITH_SAME_IP;
+        break;
+      default: {
+        disconnectReason = DisconnectReason.UNKNOWN;
+      }
+    }
+    return disconnectReason;
+  }
+
   public static void banNode(InetAddress inetAddress, Long banTime) {
     long now = System.currentTimeMillis();
     if (bannedNodes.getIfPresent(inetAddress) == null
@@ -200,13 +227,17 @@ public class ChannelManager {
       throw new P2pException(P2pException.TypeEnum.NO_SUCH_MESSAGE, "type:" + data[0]);
     }
     if (channel.isDiscoveryMode()) {
+      channel.send(new P2pDisconnectMessage(DisconnectReason.DISCOVER_MODE));
       channel.getCtx().close();
       return;
     }
 
     if (!channel.isFinishHandshake()) {
       channel.setFinishHandshake(true);
-      if (!DisconnectCode.NORMAL.equals(processPeer(channel))) {
+      DisconnectCode code = processPeer(channel);
+      if (!DisconnectCode.NORMAL.equals(code)) {
+        DisconnectReason disconnectReason = getDisconnectReason(code);
+        channel.send(new P2pDisconnectMessage(disconnectReason));
         channel.getCtx().close();
         return;
       }
@@ -220,6 +251,7 @@ public class ChannelManager {
     channel.setNodeId(nodeId);
     if (nodeId.equals(Hex.toHexString(Parameter.p2pConfig.getNodeID()))) {
       log.warn("Channel {} is myself", channel.getInetSocketAddress());
+      channel.send(new P2pDisconnectMessage(DisconnectReason.DUPLICATE_PEER));
       channel.close();
       return;
     }
@@ -237,9 +269,11 @@ public class ChannelManager {
     Channel c2 = list.get(1);
     if (c1.getStartTime() > c2.getStartTime()) {
       log.info("close channel {}, other channel {} is earlier", c1, c2);
+      c1.send(new P2pDisconnectMessage(DisconnectReason.DUPLICATE_PEER));
       c1.close();
     } else {
       log.info("close channel {}, other channel {} is earlier", c2, c1);
+      c2.send(new P2pDisconnectMessage(DisconnectReason.DUPLICATE_PEER));
       c2.close();
     }
   }
