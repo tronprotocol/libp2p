@@ -8,7 +8,6 @@ import io.netty.channel.DefaultMessageSizeEstimator;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import java.util.concurrent.ThreadFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.bouncycastle.util.encoders.Hex;
@@ -23,9 +22,8 @@ public class PeerClient {
   private EventLoopGroup workerGroup;
 
   public void init() {
-    ThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern("PeerClient-%d")
-        .build();
-    workerGroup = new NioEventLoopGroup(0, threadFactory);
+    workerGroup = new NioEventLoopGroup(0,
+        new BasicThreadFactory.Builder().namingPattern("peerClient-%d").build());
   }
 
   public void close() {

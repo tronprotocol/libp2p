@@ -12,8 +12,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -48,12 +48,10 @@ public class ConnPoolService extends P2pEventHandler {
   private final AtomicInteger activePeersCount = new AtomicInteger(0);
   @Getter
   private final AtomicInteger connectingPeersCount = new AtomicInteger(0);
-  private final ScheduledExecutorService poolLoopExecutor =
-      Executors.newSingleThreadScheduledExecutor(
-          new BasicThreadFactory.Builder().namingPattern("ConnPool").build());
-  private final ScheduledExecutorService disconnectExecutor =
-      Executors.newSingleThreadScheduledExecutor(
-          new BasicThreadFactory.Builder().namingPattern("Disconnect").build());
+  private final ScheduledExecutorService poolLoopExecutor = new ScheduledThreadPoolExecutor(1,
+      new BasicThreadFactory.Builder().namingPattern("connPool").build());
+  private final ScheduledExecutorService disconnectExecutor = new ScheduledThreadPoolExecutor(1,
+      new BasicThreadFactory.Builder().namingPattern("randomDisconnect").build());
 
   public P2pConfig p2pConfig = Parameter.p2pConfig;
   private PeerClient peerClient;
@@ -121,7 +119,8 @@ public class ConnPoolService extends P2pEventHandler {
         Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort()));
 
     p2pConfig.getActiveNodes().forEach(address -> {
-      if (!isFilterActiveNodes && !inetInUse.contains(address) && !addressInUse.contains(address.getAddress())) {
+      if (!isFilterActiveNodes && !inetInUse.contains(address) && !addressInUse.contains(
+          address.getAddress())) {
         addressInUse.add(address.getAddress());
         inetInUse.add(address);
         Node node = new Node(address); //use a random NodeId for config activeNodes

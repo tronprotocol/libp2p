@@ -3,10 +3,11 @@ package org.tron.p2p.connection.business.keepalive;
 import static org.tron.p2p.base.Parameter.KEEP_ALIVE_TIMEOUT;
 import static org.tron.p2p.base.Parameter.PING_TIMEOUT;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.connection.business.MessageProcess;
@@ -17,8 +18,8 @@ import org.tron.p2p.connection.message.keepalive.PongMessage;
 @Slf4j(topic = "net")
 public class KeepAliveService implements MessageProcess {
 
-  private final ScheduledExecutorService executor =
-      Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "KeepAlive"));
+  private final ScheduledExecutorService executor = new ScheduledThreadPoolExecutor(1,
+      new BasicThreadFactory.Builder().namingPattern("keepAlive").build());
 
   public void init() {
     executor.scheduleWithFixedDelay(() -> {
