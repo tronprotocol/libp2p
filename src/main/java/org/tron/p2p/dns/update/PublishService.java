@@ -7,8 +7,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -24,7 +24,7 @@ public class PublishService {
 
   private static final long publishDelay = 1 * 60 * 60;
 
-  private ScheduledExecutorService publisher = new ScheduledThreadPoolExecutor(1,
+  private ScheduledExecutorService publisher = Executors.newSingleThreadScheduledExecutor(
       new BasicThreadFactory.Builder().namingPattern("publishService").build());
   private Publish publish;
 

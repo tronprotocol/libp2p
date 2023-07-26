@@ -30,7 +30,7 @@ public class NodeDetectService implements MessageProcess {
   private static final Cache<InetAddress, Long> badNodesCache = CacheBuilder
       .newBuilder().maximumSize(5000).expireAfterWrite(1, TimeUnit.HOURS).build();
 
-  private final ScheduledExecutorService executor = new ScheduledThreadPoolExecutor(1,
+  private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(
       new BasicThreadFactory.Builder().namingPattern("nodeDetectService").build());
 
   private final long NODE_DETECT_THRESHOLD = 5 * 60 * 1000;

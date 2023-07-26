@@ -2,8 +2,8 @@ package org.tron.p2p.discover.protocol.kad;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
@@ -14,7 +14,7 @@ import org.tron.p2p.utils.NetUtil;
 @Slf4j(topic = "net")
 public class DiscoverTask {
 
-  private ScheduledExecutorService discoverer = new ScheduledThreadPoolExecutor(1,
+  private ScheduledExecutorService discoverer = Executors.newSingleThreadScheduledExecutor(
       new BasicThreadFactory.Builder().namingPattern("discoverTask").build());
 
   private KadService kadService;

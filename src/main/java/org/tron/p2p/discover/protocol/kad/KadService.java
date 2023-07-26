@@ -7,8 +7,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -56,7 +56,7 @@ public class KadService implements DiscoverService {
     for (InetSocketAddress address : Parameter.p2pConfig.getActiveNodes()) {
       bootNodes.add(new Node(address));
     }
-    this.pongTimer = new ScheduledThreadPoolExecutor(1,
+    this.pongTimer = Executors.newSingleThreadScheduledExecutor(
         new BasicThreadFactory.Builder().namingPattern("pongTimer").build());
     this.homeNode = new Node(Parameter.p2pConfig.getNodeID(), Parameter.p2pConfig.getIp(),
         Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort());

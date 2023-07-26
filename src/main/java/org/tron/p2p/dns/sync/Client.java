@@ -8,6 +8,7 @@ import java.security.SignatureException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +41,7 @@ public class Client {
   private final Map<String, Tree> trees = new ConcurrentHashMap<>();
   private final Map<String, ClientTree> clientTrees = new HashMap<>();
 
-  private final ScheduledExecutorService syncer = new ScheduledThreadPoolExecutor(1,
+  private final ScheduledExecutorService syncer = Executors.newSingleThreadScheduledExecutor(
       new BasicThreadFactory.Builder().namingPattern("dnsSyncer").build());
 
   public Client() {
