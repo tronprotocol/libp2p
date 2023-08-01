@@ -148,7 +148,7 @@ public class ChannelManager {
     return DisconnectCode.NORMAL;
   }
 
-  public static DisconnectReason getDisconnectReason(DisconnectCode code){
+  public static DisconnectReason getDisconnectReason(DisconnectCode code) {
     DisconnectReason disconnectReason;
     switch (code) {
       case DIFFERENT_VERSION:
@@ -215,6 +215,12 @@ public class ChannelManager {
         break;
       case STATUS:
         nodeDetectService.processMessage(channel, message);
+        break;
+      case DISCONNECT:
+        P2pDisconnectMessage disconnectMessage = (P2pDisconnectMessage) message;
+        log.info("Disconnect from channel: {}, reason:{}", channel.getInetSocketAddress(),
+            disconnectMessage.getReason());
+        channel.close();
         break;
       default:
         throw new P2pException(P2pException.TypeEnum.NO_SUCH_MESSAGE, "type:" + data[0]);

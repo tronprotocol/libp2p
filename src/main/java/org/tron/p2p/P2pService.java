@@ -29,6 +29,8 @@ public class P2pService {
     ChannelManager.init();
     DnsManager.init();
     log.info("P2p service started");
+
+    Runtime.getRuntime().addShutdownHook(new Thread(this::close));
   }
 
   public void close() {

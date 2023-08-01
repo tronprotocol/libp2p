@@ -3,6 +3,7 @@ package org.tron.p2p.connection.message;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.apache.commons.lang3.ArrayUtils;
+import org.tron.p2p.connection.message.base.P2pDisconnectMessage;
 import org.tron.p2p.connection.message.detect.StatusMessage;
 import org.tron.p2p.connection.message.handshake.HelloMessage;
 import org.tron.p2p.connection.message.keepalive.PingMessage;
@@ -50,6 +51,9 @@ public abstract class Message {
           break;
         case STATUS:
           message = new StatusMessage(data);
+          break;
+        case DISCONNECT:
+          message = new P2pDisconnectMessage(data);
           break;
         default:
           throw new P2pException(P2pException.TypeEnum.NO_SUCH_MESSAGE, "type=" + type);

@@ -118,7 +118,8 @@ public class ConnPoolService extends P2pEventHandler {
         Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort()));
 
     p2pConfig.getActiveNodes().forEach(address -> {
-      if (!isFilterActiveNodes && !inetInUse.contains(address) && !addressInUse.contains(address.getAddress())) {
+      if (!isFilterActiveNodes && !inetInUse.contains(address) && !addressInUse.contains(
+          address.getAddress())) {
         addressInUse.add(address.getAddress());
         inetInUse.add(address);
         Node node = new Node(address); //use a random NodeId for config activeNodes

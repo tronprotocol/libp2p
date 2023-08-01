@@ -10,11 +10,20 @@ public class P2pDisconnectMessage extends Message {
 
   private Connect.P2pDisconnectMessage p2pDisconnectMessage;
 
+  public P2pDisconnectMessage(byte[] data) throws Exception {
+    super(MessageType.DISCONNECT, data);
+    this.p2pDisconnectMessage = Connect.P2pDisconnectMessage.parseFrom(data);
+  }
+
   public P2pDisconnectMessage(DisconnectReason disconnectReason) {
     super(MessageType.DISCONNECT, null);
     this.p2pDisconnectMessage = Connect.P2pDisconnectMessage.newBuilder()
         .setReason(disconnectReason).build();
     this.data = p2pDisconnectMessage.toByteArray();
+  }
+
+  public DisconnectReason getReason() {
+    return p2pDisconnectMessage.getReason();
   }
 
   @Override
