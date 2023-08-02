@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
+import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.connection.business.MessageProcess;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.message.detect.StatusMessage;
@@ -27,7 +28,7 @@ public class NodeDetectService implements MessageProcess {
 
   @Getter
   private static final Cache<InetAddress, Long> badNodesCache = CacheBuilder
-    .newBuilder().maximumSize(5000).expireAfterWrite(1, TimeUnit.HOURS).build();
+      .newBuilder().maximumSize(5000).expireAfterWrite(1, TimeUnit.HOURS).build();
 
   private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
@@ -67,6 +68,9 @@ public class NodeDetectService implements MessageProcess {
   }
 
   public void work() {
+    if (ChannelManager.isShutdown) {
+      return;
+    }
     trimNodeMap();
     if (nodeStatMap.size() < MIN_NODES) {
       loadNodes();
@@ -89,7 +93,7 @@ public class NodeDetectService implements MessageProcess {
 
     n = Math.min(n, nodeStats.size());
 
-    for(int i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++) {
       detect(nodeStats.get(i));
     }
   }
@@ -108,7 +112,7 @@ public class NodeDetectService implements MessageProcess {
     int size = nodeStatMap.size();
     int count = 0;
     List<Node> nodes = NodeManager.getConnectableNodes();
-    for (Node node: nodes) {
+    for (Node node : nodes) {
       InetSocketAddress socketAddress = node.getPreferInetSocketAddress();
       if (socketAddress != null
           && !nodeStatMap.containsKey(socketAddress)
@@ -131,15 +135,15 @@ public class NodeDetectService implements MessageProcess {
       peerClient.connectAsync(stat.getNode(), true);
     } catch (Exception e) {
       log.warn("Detect node {} failed, {}",
-        stat.getNode().getPreferInetSocketAddress(), e.getMessage());
+          stat.getNode().getPreferInetSocketAddress(), e.getMessage());
       nodeStatMap.remove(stat.getSocketAddress());
     }
   }
 
   public synchronized void processMessage(Channel channel, Message message) {
-    StatusMessage statusMessage = (StatusMessage)message;
+    StatusMessage statusMessage = (StatusMessage) message;
 
-    if(!channel.isActive()) {
+    if (!channel.isActive()) {
       channel.setDiscoveryMode(true);
       channel.send(new StatusMessage());
       channel.getCtx().close();
@@ -153,8 +157,8 @@ public class NodeDetectService implements MessageProcess {
     }
 
     long cost = System.currentTimeMillis() - nodeStat.getLastDetectTime();
-    if(cost  > NODE_DETECT_TIMEOUT
-      || statusMessage.getRemainConnections() == 0) {
+    if (cost > NODE_DETECT_TIMEOUT
+        || statusMessage.getRemainConnections() == 0) {
       badNodesCache.put(socketAddress.getAddress(), cost);
       nodeStatMap.remove(socketAddress);
     }
@@ -167,7 +171,7 @@ public class NodeDetectService implements MessageProcess {
 
   public void notifyDisconnect(Channel channel) {
 
-    if(!channel.isActive()) {
+    if (!channel.isActive()) {
       return;
     }
 
@@ -181,7 +185,7 @@ public class NodeDetectService implements MessageProcess {
       return;
     }
 
-    if(nodeStat.getLastDetectTime() != nodeStat.getLastSuccessDetectTime()) {
+    if (nodeStat.getLastDetectTime() != nodeStat.getLastSuccessDetectTime()) {
       badNodesCache.put(socketAddress.getAddress(), System.currentTimeMillis());
       nodeStatMap.remove(socketAddress);
     }

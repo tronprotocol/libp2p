@@ -53,7 +53,6 @@ public class ConnPoolService extends P2pEventHandler {
   public P2pConfig p2pConfig = Parameter.p2pConfig;
   private PeerClient peerClient;
   private List<InetSocketAddress> configActiveNodes = new ArrayList<>();
-  private boolean isShutdown = false;
 
   public ConnPoolService() {
     this.messageTypes = new HashSet<>(); //no message type registers
@@ -97,6 +96,9 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   private void connect(boolean isFilterActiveNodes) {
+    if (ChannelManager.isShutdown) {
+      return;
+    }
     List<Node> connectNodes = new ArrayList<>();
 
     //collect already used nodes in channelManager
@@ -117,7 +119,8 @@ public class ConnPoolService extends P2pEventHandler {
         Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort()));
 
     p2pConfig.getActiveNodes().forEach(address -> {
-      if (!isFilterActiveNodes && !inetInUse.contains(address) && !addressInUse.contains(address.getAddress())) {
+      if (!isFilterActiveNodes && !inetInUse.contains(address) && !addressInUse.contains(
+          address.getAddress())) {
         addressInUse.add(address.getAddress());
         inetInUse.add(address);
         Node node = new Node(address); //use a random NodeId for config activeNodes
@@ -231,6 +234,9 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   private void check() {
+    if (ChannelManager.isShutdown) {
+      return;
+    }
     if (ChannelManager.getChannels().size() < p2pConfig.getMaxConnections()) {
       return;
     }
@@ -258,9 +264,6 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   public void triggerConnect(InetSocketAddress address) {
-    if (isShutdown) {
-      return;
-    }
     if (configActiveNodes.contains(address)) {
       return;
     }
@@ -309,7 +312,6 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   public void close() {
-    isShutdown = true;
     List<Channel> channels = new ArrayList<>(activePeers);
     try {
       channels.forEach(p -> {
