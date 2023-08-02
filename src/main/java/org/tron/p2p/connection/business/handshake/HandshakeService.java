@@ -22,6 +22,7 @@ public class HandshakeService implements MessageProcess {
   @Override
   public void processMessage(Channel channel, Message message) {
     HelloMessage msg = (HelloMessage) message;
+    log.info("Receive message from {}, {}", channel.getInetSocketAddress(), message);
 
     if (channel.isFinishHandshake()) {
       log.warn("Close channel {}, handshake is finished", channel.getInetSocketAddress());
