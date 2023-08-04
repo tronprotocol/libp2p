@@ -41,7 +41,9 @@ public class PeerClient {
   public void connect(String host, int port, String remoteId) {
     try {
       ChannelFuture f = connectAsync(host, port, remoteId, false, false);
-      f.sync().channel().closeFuture().sync();
+      if (f != null) {
+        f.sync().channel().closeFuture().sync();
+      }
     } catch (Exception e) {
       log.warn("PeerClient can't connect to {}:{} ({})", host, port, e.getMessage());
     }
@@ -51,28 +53,39 @@ public class PeerClient {
     ChannelFuture channelFuture = connectAsync(
         node.getPreferInetSocketAddress().getAddress().getHostAddress(),
         node.getPort(),
-        node.getId() == null ? Hex.toHexString(NetUtil.getNodeId()) : node.getHexId(), false, false);
-    if (future != null) {
+        node.getId() == null ? Hex.toHexString(NetUtil.getNodeId()) : node.getHexId(), false,
+        false);
+    if (ChannelManager.isShutdown) {
+      return null;
+    }
+    if (channelFuture != null && future != null) {
       channelFuture.addListener(future);
     }
     return channelFuture;
   }
 
   public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
-    return connectAsync(node.getPreferInetSocketAddress().getAddress().getHostAddress(),
-        node.getPort(),
-        node.getId() == null ? Hex.toHexString(NetUtil.getNodeId()) : node.getHexId(),
-        discoveryMode, true)
-        .addListener((ChannelFutureListener) future -> {
-          if (!future.isSuccess()) {
-            log.warn("Connect to peer {} fail, cause:{}", node.getPreferInetSocketAddress(),
-                future.cause().getMessage());
-            future.channel().close();
-            if (!discoveryMode) {
-              ChannelManager.triggerConnect(node.getPreferInetSocketAddress());
-            }
+    ChannelFuture channelFuture =
+        connectAsync(node.getPreferInetSocketAddress().getAddress().getHostAddress(),
+            node.getPort(),
+            node.getId() == null ? Hex.toHexString(NetUtil.getNodeId()) : node.getHexId(),
+            discoveryMode, true);
+    if (ChannelManager.isShutdown) {
+      return null;
+    }
+    if (channelFuture != null) {
+      channelFuture.addListener((ChannelFutureListener) future -> {
+        if (!future.isSuccess()) {
+          log.warn("Connect to peer {} fail, cause:{}", node.getPreferInetSocketAddress(),
+              future.cause().getMessage());
+          future.channel().close();
+          if (!discoveryMode) {
+            ChannelManager.triggerConnect(node.getPreferInetSocketAddress());
           }
-        });
+        }
+      });
+    }
+    return channelFuture;
   }
 
   private ChannelFuture connectAsync(String host, int port, String remoteId,
@@ -89,6 +102,9 @@ public class PeerClient {
     b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, Parameter.NODE_CONNECTION_TIMEOUT);
     b.remoteAddress(host, port);
     b.handler(p2pChannelInitializer);
+    if (ChannelManager.isShutdown) {
+      return null;
+    }
     return b.connect();
   }
 }

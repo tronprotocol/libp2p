@@ -68,9 +68,6 @@ public class NodeDetectService implements MessageProcess {
   }
 
   public void work() {
-    if (ChannelManager.isShutdown) {
-      return;
-    }
     trimNodeMap();
     if (nodeStatMap.size() < MIN_NODES) {
       loadNodes();

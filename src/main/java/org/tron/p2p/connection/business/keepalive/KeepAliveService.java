@@ -22,9 +22,6 @@ public class KeepAliveService implements MessageProcess {
 
   public void init() {
     executor.scheduleWithFixedDelay(() -> {
-      if (ChannelManager.isShutdown) {
-        return;
-      }
       try {
         long now = System.currentTimeMillis();
         ChannelManager.getChannels().values().stream()
