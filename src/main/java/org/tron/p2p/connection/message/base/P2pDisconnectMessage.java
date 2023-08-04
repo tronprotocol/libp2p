@@ -22,12 +22,18 @@ public class P2pDisconnectMessage extends Message {
     this.data = p2pDisconnectMessage.toByteArray();
   }
 
-  public DisconnectReason getReason() {
+  private DisconnectReason getReason() {
     return p2pDisconnectMessage.getReason();
   }
 
   @Override
   public boolean valid() {
     return true;
+  }
+
+  @Override
+  public String toString() {
+    return new StringBuilder().append(super.toString()).append("reason: ")
+        .append(getReason()).toString();
   }
 }

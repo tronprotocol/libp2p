@@ -23,6 +23,7 @@ import org.tron.p2p.connection.business.keepalive.KeepAliveService;
 import org.tron.p2p.connection.business.pool.ConnPoolService;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.message.base.P2pDisconnectMessage;
+import org.tron.p2p.connection.message.handshake.HelloMessage;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
 import org.tron.p2p.discover.Node;
@@ -192,6 +193,7 @@ public class ChannelManager {
     nodeDetectService.close();
   }
 
+
   public static void processMessage(Channel channel, byte[] data) throws P2pException {
     if (data == null || data.length == 0) {
       throw new P2pException(TypeEnum.EMPTY_MESSAGE, "");
@@ -203,7 +205,11 @@ public class ChannelManager {
 
     Message message = Message.parse(data);
 
-    log.debug("Receive message from {}, {}", channel.getInetSocketAddress(), message);
+    if (message.needToLog()) {
+      log.info("Receive message from channel: {}, {}", channel.getInetSocketAddress(), message);
+    } else {
+      log.debug("Receive message from channel {}, {}", channel.getInetSocketAddress(), message);
+    }
 
     switch (message.getType()) {
       case KEEP_ALIVE_PING:
@@ -217,9 +223,6 @@ public class ChannelManager {
         nodeDetectService.processMessage(channel, message);
         break;
       case DISCONNECT:
-        P2pDisconnectMessage disconnectMessage = (P2pDisconnectMessage) message;
-        log.info("Disconnect from channel: {}, reason:{}", channel.getInetSocketAddress(),
-            disconnectMessage.getReason());
         channel.close();
         break;
       default:

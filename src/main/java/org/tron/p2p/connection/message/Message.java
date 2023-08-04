@@ -1,7 +1,5 @@
 package org.tron.p2p.connection.message;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import org.apache.commons.lang3.ArrayUtils;
 import org.tron.p2p.connection.message.base.P2pDisconnectMessage;
 import org.tron.p2p.connection.message.detect.StatusMessage;
@@ -33,6 +31,10 @@ public abstract class Message {
   }
 
   public abstract boolean valid();
+
+  public boolean needToLog() {
+    return type.equals(MessageType.DISCONNECT) || type.equals(MessageType.HANDSHAKE_HELLO);
+  }
 
   public static Message parse(byte[] encode) throws P2pException {
     byte type = encode[0];
@@ -69,4 +71,8 @@ public abstract class Message {
     }
   }
 
+  @Override
+  public String toString() {
+    return "type: " + getType() + ", ";
+  }
 }

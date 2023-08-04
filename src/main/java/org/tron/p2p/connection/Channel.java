@@ -97,12 +97,12 @@ public class Channel {
     }
     SocketAddress address = ctx.channel().remoteAddress();
     if (throwable instanceof ReadTimeoutException
-      || throwable instanceof IOException
-      || throwable instanceof CorruptedFrameException) {
+        || throwable instanceof IOException
+        || throwable instanceof CorruptedFrameException) {
       log.warn("Close peer {}, reason: {}", address, throwable.getMessage());
     } else if (baseThrowable instanceof P2pException) {
       log.warn("Close peer {}, type: ({}), info: {}",
-        address, ((P2pException) baseThrowable).getType(), baseThrowable.getMessage());
+          address, ((P2pException) baseThrowable).getType(), baseThrowable.getMessage());
     } else {
       log.error("Close peer {}, exception caught", address, throwable);
     }
@@ -134,12 +134,12 @@ public class Channel {
     close(Parameter.DEFAULT_BAN_TIME);
   }
 
-//  public void send(byte[] data) {
-//    send(data, data[0]);
-//  }
-
   public void send(Message message) {
-    log.debug("Send message to {}, {}", inetSocketAddress, message);
+    if (message.needToLog()) {
+      log.info("Send message to channel {}, {}", inetSocketAddress, message);
+    } else {
+      log.debug("Send message to channel {}, {}", inetSocketAddress, message);
+    }
     send(message.getSendData());
   }
 
@@ -148,7 +148,7 @@ public class Channel {
       byte type = data[0];
       if (isDisconnect) {
         log.warn("Send to {} failed as channel has closed, message-type:{} ",
-                ctx.channel().remoteAddress(), type);
+            ctx.channel().remoteAddress(), type);
         return;
       }
 
@@ -160,14 +160,14 @@ public class Channel {
       ctx.writeAndFlush(byteBuf).addListener((ChannelFutureListener) future -> {
         if (!future.isSuccess() && !isDisconnect) {
           log.warn("Send to {} failed, message-type:{}, cause:{}",
-                  ctx.channel().remoteAddress(), ByteArray.byte2int(type),
-                  future.cause().getMessage());
+              ctx.channel().remoteAddress(), ByteArray.byte2int(type),
+              future.cause().getMessage());
         }
       });
       setLastSendTime(System.currentTimeMillis());
     } catch (Exception e) {
       log.warn("Send message to {} failed, {}", inetSocketAddress, e.getMessage());
-      ctx.channel();
+      ctx.channel().close();
     }
   }
 
@@ -197,7 +197,7 @@ public class Channel {
   @Override
   public String toString() {
     return String.format("%s | %s", inetSocketAddress,
-      StringUtils.isEmpty(nodeId) ? "<null>" : nodeId);
+        StringUtils.isEmpty(nodeId) ? "<null>" : nodeId);
   }
 
 }
