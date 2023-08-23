@@ -50,36 +50,26 @@ public class PeerClient {
   }
 
   public ChannelFuture connect(Node node, ChannelFutureListener future) {
-    ChannelFuture channelFuture;
-    try {
-      channelFuture = connectAsync(
-          node.getPreferInetSocketAddress().getAddress().getHostAddress(),
-          node.getPort(),
-          node.getId() == null ? Hex.toHexString(NetUtil.getNodeId()) : node.getHexId(), false,
-          false);
-      if (channelFuture != null && future != null) {
-        channelFuture.addListener(future);
-      }
-    } catch (Exception e) {
-      log.warn("PeerClient can't connect to {} ({})", node.getPreferInetSocketAddress(),
-          e.getMessage());
+    ChannelFuture channelFuture = connectAsync(
+        node.getPreferInetSocketAddress().getAddress().getHostAddress(),
+        node.getPort(),
+        node.getId() == null ? Hex.toHexString(NetUtil.getNodeId()) : node.getHexId(), false,
+        false);
+    if (ChannelManager.isShutdown) {
       return null;
+    }
+    if (channelFuture != null && future != null) {
+      channelFuture.addListener(future);
     }
     return channelFuture;
   }
 
   public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
-    ChannelFuture channelFuture;
-    try {
-      channelFuture = connectAsync(node.getPreferInetSocketAddress().getAddress().getHostAddress(),
-          node.getPort(),
-          node.getId() == null ? Hex.toHexString(NetUtil.getNodeId()) : node.getHexId(),
-          discoveryMode, true);
-    } catch (Exception e) {
-      log.warn("PeerClient can't connect to {} ({})", node.getPreferInetSocketAddress(),
-          e.getMessage());
-      return null;
-    }
+    ChannelFuture channelFuture =
+        connectAsync(node.getPreferInetSocketAddress().getAddress().getHostAddress(),
+            node.getPort(),
+            node.getId() == null ? Hex.toHexString(NetUtil.getNodeId()) : node.getHexId(),
+            discoveryMode, true);
     if (ChannelManager.isShutdown) {
       return null;
     }
@@ -112,6 +102,9 @@ public class PeerClient {
     b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, Parameter.NODE_CONNECTION_TIMEOUT);
     b.remoteAddress(host, port);
     b.handler(p2pChannelInitializer);
+    if (ChannelManager.isShutdown) {
+      return null;
+    }
     return b.connect();
   }
 }
