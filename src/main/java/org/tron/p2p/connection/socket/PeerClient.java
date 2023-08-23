@@ -80,7 +80,10 @@ public class PeerClient {
           e.getMessage());
       return null;
     }
-    if (!ChannelManager.isShutdown && channelFuture != null) {
+    if (ChannelManager.isShutdown) {
+      return null;
+    }
+    if (channelFuture != null) {
       channelFuture.addListener((ChannelFutureListener) future -> {
         if (!future.isSuccess()) {
           log.warn("Connect to peer {} fail, cause:{}", node.getPreferInetSocketAddress(),
