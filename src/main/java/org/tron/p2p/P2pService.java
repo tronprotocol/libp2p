@@ -22,6 +22,7 @@ import org.tron.p2p.stats.StatsManager;
 public class P2pService {
 
   private StatsManager statsManager = new StatsManager();
+  private volatile boolean isShutdown = false;
 
   public void start(P2pConfig p2pConfig) {
     Parameter.p2pConfig = p2pConfig;
@@ -34,6 +35,10 @@ public class P2pService {
   }
 
   public void close() {
+    if (isShutdown) {
+      return;
+    }
+    isShutdown = true;
     DnsManager.close();
     NodeManager.close();
     ChannelManager.close();
