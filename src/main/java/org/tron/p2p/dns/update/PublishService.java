@@ -12,6 +12,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
@@ -23,7 +24,8 @@ public class PublishService {
 
   private static final long publishDelay = 1 * 60 * 60;
 
-  private ScheduledExecutorService publisher = Executors.newSingleThreadScheduledExecutor();
+  private ScheduledExecutorService publisher = Executors.newSingleThreadScheduledExecutor(
+      new BasicThreadFactory.Builder().namingPattern("publishService").build());
   private Publish publish;
 
   public void init() {
