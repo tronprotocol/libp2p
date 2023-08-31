@@ -33,7 +33,7 @@ public class KeepAliveService implements MessageProcess {
                   p.close();
                 }
               } else {
-                if (now - p.getLastSendTime() > PING_TIMEOUT) {
+                if (now - p.getLastSendTime() > PING_TIMEOUT && p.isFinishHandshake()) {
                   p.send(new PingMessage());
                   p.waitForPong = true;
                   p.pingSent = now;
