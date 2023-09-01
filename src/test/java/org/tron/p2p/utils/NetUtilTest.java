@@ -80,7 +80,6 @@ public class NetUtilTest {
 
   @Test
   public void testGetIP() {
-    long t1 = System.currentTimeMillis();
     String ip1 = null, ip2 = null, ip3 = null;
     try {
       Method method = NetUtil.class.getDeclaredMethod("getExternalIp", String.class);
@@ -91,13 +90,10 @@ public class NetUtilTest {
     } catch (Exception e) {
       Assert.fail();
     }
-    long t2 = System.currentTimeMillis();
     String ip4 = NetUtil.getExternalIpV4();
     Assert.assertEquals(ip1, ip4);
     Assert.assertEquals(ip2, ip4);
     Assert.assertEquals(ip3, ip4);
-    long t3 = System.currentTimeMillis();
-    //Assert.assertTrue(t2 - t1 >= t3 - t2);
   }
 
   @Test
