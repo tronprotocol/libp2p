@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.bouncycastle.util.encoders.Hex;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.P2pEventHandler;
@@ -47,8 +48,10 @@ public class ConnPoolService extends P2pEventHandler {
   private final AtomicInteger activePeersCount = new AtomicInteger(0);
   @Getter
   private final AtomicInteger connectingPeersCount = new AtomicInteger(0);
-  private final ScheduledExecutorService poolLoopExecutor = Executors.newSingleThreadScheduledExecutor();
-  private final ScheduledExecutorService disconnectExecutor = Executors.newSingleThreadScheduledExecutor();
+  private final ScheduledExecutorService poolLoopExecutor = Executors.newSingleThreadScheduledExecutor(
+      new BasicThreadFactory.Builder().namingPattern("connPool").build());
+  private final ScheduledExecutorService disconnectExecutor = Executors.newSingleThreadScheduledExecutor(
+      new BasicThreadFactory.Builder().namingPattern("randomDisconnect").build());
 
   public P2pConfig p2pConfig = Parameter.p2pConfig;
   private PeerClient peerClient;

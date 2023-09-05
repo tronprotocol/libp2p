@@ -14,6 +14,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.business.MessageProcess;
@@ -34,7 +35,8 @@ public class NodeDetectService implements MessageProcess {
   private static final Cache<InetAddress, Long> badNodesCache = CacheBuilder
       .newBuilder().maximumSize(5000).expireAfterWrite(1, TimeUnit.HOURS).build();
 
-  private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+  private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(
+      new BasicThreadFactory.Builder().namingPattern("nodeDetectService").build());
 
   private final long NODE_DETECT_THRESHOLD = 5 * 60 * 1000;
 

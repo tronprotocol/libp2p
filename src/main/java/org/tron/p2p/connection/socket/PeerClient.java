@@ -8,9 +8,8 @@ import io.netty.channel.DefaultMessageSizeEstimator;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.bouncycastle.util.encoders.Hex;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.ChannelManager;
@@ -23,14 +22,8 @@ public class PeerClient {
   private EventLoopGroup workerGroup;
 
   public void init() {
-    workerGroup = new NioEventLoopGroup(0, new ThreadFactory() {
-      private final AtomicInteger cnt = new AtomicInteger(0);
-
-      @Override
-      public Thread newThread(Runnable r) {
-        return new Thread(r, "PeerClient-" + cnt.getAndIncrement());
-      }
-    });
+    workerGroup = new NioEventLoopGroup(0,
+        new BasicThreadFactory.Builder().namingPattern("peerClient-%d").build());
   }
 
   public void close() {
