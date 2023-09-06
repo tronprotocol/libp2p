@@ -6,12 +6,11 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.CorruptedFrameException;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 
 @Slf4j(topic = "net")
 public class P2pProtobufVarint32FrameDecoder extends ByteToMessageDecoder {
-
-  private static final int maxMsgLength = 5 * 1024 * 1024;//5M
 
   private final Channel channel;
 
@@ -73,7 +72,7 @@ public class P2pProtobufVarint32FrameDecoder extends ByteToMessageDecoder {
     in.markReaderIndex();
     int preIndex = in.readerIndex();
     int length = readRawVarint32(in);
-    if (length >= maxMsgLength) {
+    if (length >= Parameter.MAX_MESSAGE_LENGTH) {
       log.warn("recv a big msg, host : {}, msg length is : {}", ctx.channel().remoteAddress(),
           length);
       in.clear();
