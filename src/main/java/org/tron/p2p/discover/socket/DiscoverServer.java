@@ -1,6 +1,5 @@
 package org.tron.p2p.discover.socket;
 
-import java.util.concurrent.TimeUnit;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -8,12 +7,15 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.stats.TrafficStats;
 
 @Slf4j(topic = "net")
 public class DiscoverServer {
+
   private Channel channel;
   private EventHandler eventHandler;
 
@@ -46,7 +48,8 @@ public class DiscoverServer {
   }
 
   private void start() throws Exception {
-    NioEventLoopGroup group = new NioEventLoopGroup(Parameter.UDP_NETTY_WORK_THREAD_NUM);
+    NioEventLoopGroup group = new NioEventLoopGroup(Parameter.UDP_NETTY_WORK_THREAD_NUM,
+        new BasicThreadFactory.Builder().namingPattern("discoverServer").build());
     try {
       while (!shutdown) {
         Bootstrap b = new Bootstrap();

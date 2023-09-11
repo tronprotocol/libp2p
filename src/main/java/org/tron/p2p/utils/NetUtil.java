@@ -10,10 +10,19 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -98,7 +107,7 @@ public class NetUtil {
       return ip;
     } catch (Exception e) {
       log.warn("Fail to get {} by {}, cause:{}",
-          Constant.AMAZONAWS_URL.equals(url) ? "ipv4" : "ipv6", url, e.getMessage());
+          Constant.ipV4Urls.contains(url) ? "ipv4" : "ipv6", url, e.getMessage());
       return ip;
     } finally {
       if (in != null) {
@@ -115,7 +124,7 @@ public class NetUtil {
     try {
       networkInterfaces = NetworkInterface.getNetworkInterfaces();
     } catch (SocketException e) {
-      log.warn("GetOuterIPv6Address failed, {}", e);
+      log.warn("GetOuterIPv6Address failed", e);
       return null;
     }
     while (networkInterfaces.hasMoreElements()) {
@@ -141,7 +150,7 @@ public class NetUtil {
     try {
       networkInterfaces = NetworkInterface.getNetworkInterfaces();
     } catch (SocketException e) {
-      log.warn("GetAllLocalAddress failed, {}", e);
+      log.warn("GetAllLocalAddress failed", e);
       return localIpSet;
     }
     while (networkInterfaces.hasMoreElements()) {
@@ -165,11 +174,11 @@ public class NetUtil {
   }
 
   public static String getExternalIpV4() {
-    return getExternalIp(Constant.AMAZONAWS_URL);
+    return getIp(Constant.ipV4Urls);
   }
 
   public static String getExternalIpV6() {
-    String ipV6 = getExternalIp(Constant.IDENT_URL);
+    String ipV6 = getIp(Constant.ipV6Urls);
     if (null == ipV6) {
       ipV6 = getOuterIPv6Address();
     }
@@ -195,4 +204,30 @@ public class NetUtil {
           + "use ipv4:port or [ipv6]:port", para));
     }
   }
+
+  private static String getIp(List<String> multiSrcUrls) {
+    ExecutorService executor = Executors.newCachedThreadPool();
+    CompletionService<String> completionService = new ExecutorCompletionService<>(executor);
+
+    List<Callable<String>> tasks = new ArrayList<>();
+    multiSrcUrls.forEach(url -> tasks.add(() -> getExternalIp(url)));
+
+    for (Callable<String> task : tasks) {
+      completionService.submit(task);
+    }
+
+    Future<String> future;
+    String result = null;
+    try {
+      future = completionService.take();
+      result = future.get();
+    } catch (InterruptedException | ExecutionException e) {
+      //ignore
+    } finally {
+      executor.shutdownNow();
+    }
+
+    return result;
+  }
+
 }
