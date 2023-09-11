@@ -2,16 +2,6 @@ package org.tron.p2p.connection.business.detect;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
@@ -23,6 +13,11 @@ import org.tron.p2p.connection.message.detect.StatusMessage;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
+
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.*;
+import java.util.concurrent.*;
 
 @Slf4j(topic = "net")
 public class NodeDetectService implements MessageProcess {
@@ -149,7 +144,6 @@ public class NodeDetectService implements MessageProcess {
     if (!channel.isActive()) {
       channel.setDiscoveryMode(true);
       channel.send(new StatusMessage());
-      //channel.send(new P2pDisconnectMessage(DisconnectReason.DETECT_COMPLETE));
       channel.getCtx().close();
       return;
     }
@@ -170,7 +164,6 @@ public class NodeDetectService implements MessageProcess {
     nodeStat.setLastSuccessDetectTime(nodeStat.getLastDetectTime());
     setStatusMessage(nodeStat, statusMessage);
 
-    //channel.send(new P2pDisconnectMessage(DisconnectReason.DETECT_COMPLETE));
     channel.getCtx().close();
   }
 

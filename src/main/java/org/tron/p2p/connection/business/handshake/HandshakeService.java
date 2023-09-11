@@ -56,7 +56,7 @@ public class HandshakeService implements MessageProcess {
             msg.getCode(),
             msg.getNetworkId(),
             msg.getVersion());
-        //channel.close();
+        channel.close();
         return;
       }
     } else {
