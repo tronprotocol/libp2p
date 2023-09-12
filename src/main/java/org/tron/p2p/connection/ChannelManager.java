@@ -57,6 +57,7 @@ public class ChannelManager {
       .newBuilder().maximumSize(2000).build(); //ban timestamp
 
   private static boolean isInit = false;
+  public static volatile boolean isShutdown = false;
 
   public static void init() {
     isInit = true;
@@ -155,9 +156,10 @@ public class ChannelManager {
   }
 
   public static void close() {
-    if (!isInit) {
+    if (!isInit || isShutdown) {
       return;
     }
+    isShutdown = true;
     connPoolService.close();
     keepAliveService.close();
     peerServer.close();
