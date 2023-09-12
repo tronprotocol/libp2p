@@ -6,6 +6,7 @@ import org.tron.p2p.base.Parameter;
 import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.exception.P2pException.TypeEnum;
 import org.tron.p2p.protos.Connect.CompressMessage;
+
 import org.tron.p2p.utils.ProtoUtil;
 
 public class UpgradeController {
