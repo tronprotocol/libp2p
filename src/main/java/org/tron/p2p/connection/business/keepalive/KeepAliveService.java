@@ -12,8 +12,10 @@ import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.connection.business.MessageProcess;
 import org.tron.p2p.connection.message.Message;
+import org.tron.p2p.connection.message.base.P2pDisconnectMessage;
 import org.tron.p2p.connection.message.keepalive.PingMessage;
 import org.tron.p2p.connection.message.keepalive.PongMessage;
+import org.tron.p2p.protos.Connect.DisconnectReason;
 
 @Slf4j(topic = "net")
 public class KeepAliveService implements MessageProcess {
@@ -30,6 +32,7 @@ public class KeepAliveService implements MessageProcess {
             .forEach(p -> {
               if (p.waitForPong) {
                 if (now - p.pingSent > KEEP_ALIVE_TIMEOUT) {
+                  p.send(new P2pDisconnectMessage(DisconnectReason.PING_TIMEOUT));
                   p.close();
                 }
               } else {

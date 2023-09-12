@@ -8,6 +8,8 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
+import org.tron.p2p.connection.message.base.P2pDisconnectMessage;
+import org.tron.p2p.protos.Connect.DisconnectReason;
 
 @Slf4j(topic = "net")
 public class P2pProtobufVarint32FrameDecoder extends ByteToMessageDecoder {
@@ -73,9 +75,10 @@ public class P2pProtobufVarint32FrameDecoder extends ByteToMessageDecoder {
     int preIndex = in.readerIndex();
     int length = readRawVarint32(in);
     if (length >= Parameter.MAX_MESSAGE_LENGTH) {
-      log.warn("recv a big msg, host : {}, msg length is : {}", ctx.channel().remoteAddress(),
-          length);
+      log.warn("Receive a big msg or not encoded msg, host : {}, msg length is : {}",
+          ctx.channel().remoteAddress(), length);
       in.clear();
+      channel.send(new P2pDisconnectMessage(DisconnectReason.BAD_MESSAGE));
       channel.close();
       return;
     }

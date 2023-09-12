@@ -13,6 +13,8 @@ public enum MessageType {
 
   STATUS((byte) 0xfc),
 
+  DISCONNECT((byte) 0xfb),
+
   UNKNOWN((byte) 0x80);
 
   private final byte type;

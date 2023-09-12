@@ -27,12 +27,14 @@ import org.tron.p2p.P2pEventHandler;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
+import org.tron.p2p.connection.message.base.P2pDisconnectMessage;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
 import org.tron.p2p.dns.DnsManager;
 import org.tron.p2p.dns.DnsNode;
 import org.tron.p2p.exception.P2pException;
+import org.tron.p2p.protos.Connect.DisconnectReason;
 import org.tron.p2p.utils.CollectionUtils;
 import org.tron.p2p.utils.NetUtil;
 
@@ -250,6 +252,7 @@ public class ConnPoolService extends P2pEventHandler {
       List<Channel> list = new ArrayList<>(peers);
       Channel peer = list.get(new Random().nextInt(peers.size()));
       log.info("Disconnect with peer randomly: {}", peer);
+      peer.send(new P2pDisconnectMessage(DisconnectReason.RANDOM_ELIMINATION));
       peer.close();
     }
   }
@@ -315,6 +318,7 @@ public class ConnPoolService extends P2pEventHandler {
     try {
       channels.forEach(p -> {
         if (!p.isDisconnect()) {
+          p.send(new P2pDisconnectMessage(DisconnectReason.PEER_QUITING));
           p.close();
         }
       });
