@@ -156,7 +156,7 @@ public class ChannelManager {
   }
 
   public static void close() {
-    if (!isInit) {
+    if (!isInit || isShutdown) {
       return;
     }
     isShutdown = true;
