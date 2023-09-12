@@ -23,7 +23,6 @@ import org.tron.p2p.connection.business.keepalive.KeepAliveService;
 import org.tron.p2p.connection.business.pool.ConnPoolService;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.message.base.P2pDisconnectMessage;
-import org.tron.p2p.connection.message.handshake.HelloMessage;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
 import org.tron.p2p.discover.Node;
@@ -175,6 +174,10 @@ public class ChannelManager {
     return disconnectReason;
   }
 
+  public static void logDisconnectReason(Channel channel, DisconnectReason reason) {
+    log.info("Try to close channel: {}, reason: {}", channel.getInetSocketAddress(), reason.name());
+  }
+
   public static void banNode(InetAddress inetAddress, Long banTime) {
     long now = System.currentTimeMillis();
     if (bannedNodes.getIfPresent(inetAddress) == null
@@ -279,11 +282,11 @@ public class ChannelManager {
     Channel c1 = list.get(0);
     Channel c2 = list.get(1);
     if (c1.getStartTime() > c2.getStartTime()) {
-      log.info("close channel {}, other channel {} is earlier", c1, c2);
+      log.info("Close channel {}, other channel {} is earlier", c1, c2);
       c1.send(new P2pDisconnectMessage(DisconnectReason.DUPLICATE_PEER));
       c1.close();
     } else {
-      log.info("close channel {}, other channel {} is earlier", c2, c1);
+      log.info("Close channel {}, other channel {} is earlier", c2, c1);
       c2.send(new P2pDisconnectMessage(DisconnectReason.DUPLICATE_PEER));
       c2.close();
     }

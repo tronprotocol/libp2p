@@ -1,6 +1,7 @@
 package org.tron.p2p.connection.business.handshake;
 
 import static org.tron.p2p.connection.ChannelManager.getDisconnectReason;
+import static org.tron.p2p.connection.ChannelManager.logDisconnectReason;
 
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
@@ -37,8 +38,7 @@ public class HandshakeService implements MessageProcess {
     DisconnectCode code = ChannelManager.processPeer(channel);
     if (code != DisconnectCode.NORMAL) {
       sendHelloMsg(channel, code);
-      DisconnectReason disconnectReason = getDisconnectReason(code);
-      channel.send(new P2pDisconnectMessage(disconnectReason));
+      logDisconnectReason(channel, getDisconnectReason(code));
       channel.close();
       return;
     }
@@ -59,6 +59,7 @@ public class HandshakeService implements MessageProcess {
             disconnectCode.name(),
             msg.getNetworkId(),
             msg.getVersion());
+        logDisconnectReason(channel, getDisconnectReason(disconnectCode));
         channel.close();
         return;
       }
@@ -68,7 +69,7 @@ public class HandshakeService implements MessageProcess {
         log.info("Peer {} different network id, peer->{}, me->{}",
             channel.getInetSocketAddress(), msg.getNetworkId(), networkId);
         sendHelloMsg(channel, DisconnectCode.DIFFERENT_VERSION);
-        channel.send(new P2pDisconnectMessage(DisconnectReason.DIFFERENT_VERSION));
+        logDisconnectReason(channel, DisconnectReason.DIFFERENT_VERSION);
         channel.close();
         return;
       }
