@@ -1,5 +1,5 @@
 group 'io.github.tronprotocol'
-version '1.2.0'
+version '2.0.1'
 
 buildscript {
     repositories {
@@ -17,8 +17,8 @@ apply plugin: 'com.google.protobuf'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'application'
 
-def protobufVersion = "3.19.2"
-def grpcVersion = "1.14.0"
+def protobufVersion = "3.21.12"
+def grpcVersion = "1.52.1"
 
 mainClassName = 'org.tron.p2p.example.StartApp'
 
@@ -97,12 +97,12 @@ tasks.matching { it instanceof Test }.all {
 protobuf {
     generatedFilesBaseDir = "$projectDir/src"
     protoc {
-        artifact = "com.google.protobuf:protoc:3.5.1-1"
+        artifact = "com.google.protobuf:protoc:$protobufVersion"
     }
 
     plugins {
         grpc {
-            artifact = 'io.grpc:protoc-gen-grpc-java:1.9.0'
+            artifact = "io.grpc:protoc-gen-grpc-java:$grpcVersion"
         }
     }
     generateProtoTasks {
