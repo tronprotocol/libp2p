@@ -26,6 +26,7 @@ import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.tron.p2p.base.Constant;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.protos.Discover;
@@ -174,14 +175,19 @@ public class NetUtil {
   }
 
   public static String getExternalIpV4() {
-    return getIp(Constant.ipV4Urls);
+    long t1 = System.currentTimeMillis();
+    String ipV4 = getIp(Constant.ipV4Urls);
+    log.debug("GetExternalIpV4 cost {} ms", System.currentTimeMillis() - t1);
+    return ipV4;
   }
 
   public static String getExternalIpV6() {
+    long t1 = System.currentTimeMillis();
     String ipV6 = getIp(Constant.ipV6Urls);
     if (null == ipV6) {
       ipV6 = getOuterIPv6Address();
     }
+    log.debug("GetExternalIpV6 cost {} ms", System.currentTimeMillis() - t1);
     return ipV6;
   }
 
@@ -206,7 +212,8 @@ public class NetUtil {
   }
 
   private static String getIp(List<String> multiSrcUrls) {
-    ExecutorService executor = Executors.newCachedThreadPool();
+    ExecutorService executor = Executors.newCachedThreadPool(
+        new BasicThreadFactory.Builder().namingPattern("getIp").build());
     CompletionService<String> completionService = new ExecutorCompletionService<>(executor);
 
     List<Callable<String>> tasks = new ArrayList<>();

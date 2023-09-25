@@ -52,6 +52,7 @@ public class Channel {
   @Getter
   private volatile long disconnectTime;
   @Getter
+  @Setter
   private volatile boolean isDisconnect = false;
   @Getter
   @Setter

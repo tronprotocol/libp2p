@@ -8,6 +8,7 @@ import io.netty.handler.codec.MessageToMessageDecoder;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.discover.message.Message;
 import org.tron.p2p.exception.P2pException;
+import org.tron.p2p.utils.ByteArray;
 
 @Slf4j(topic = "net")
 public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
@@ -37,8 +38,9 @@ public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
             packet.sender());
       }
     } catch (Exception e) {
-      log.error("An exception occurred while parsing the message, type {}, len {}, address {}",
-          encoded[0], encoded.length, packet.sender(), e);
+      log.error("An exception occurred while parsing the message, type {}, len {}, address {}, "
+              + "data {}", encoded[0], encoded.length, packet.sender(),
+          ByteArray.toHexString(encoded), e);
     }
   }
 }
