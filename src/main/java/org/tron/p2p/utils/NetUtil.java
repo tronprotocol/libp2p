@@ -175,14 +175,19 @@ public class NetUtil {
   }
 
   public static String getExternalIpV4() {
-    return getIp(Constant.ipV4Urls);
+    long t1 = System.currentTimeMillis();
+    String ipV4 = getIp(Constant.ipV4Urls);
+    log.debug("GetExternalIpV4 cost {} ms", System.currentTimeMillis() - t1);
+    return ipV4;
   }
 
   public static String getExternalIpV6() {
+    long t1 = System.currentTimeMillis();
     String ipV6 = getIp(Constant.ipV6Urls);
     if (null == ipV6) {
       ipV6 = getOuterIPv6Address();
     }
+    log.debug("GetExternalIpV6 cost {} ms", System.currentTimeMillis() - t1);
     return ipV6;
   }
 
