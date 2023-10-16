@@ -1,7 +1,10 @@
 package org.tron.p2p.utils;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import org.junit.Assert;
 import org.junit.Test;
+import org.tron.p2p.base.Constant;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.protos.Discover;
 
@@ -12,15 +15,15 @@ public class NetUtilTest {
   @Test
   public void testValidIp() {
     boolean flag = NetUtil.validIpV4(null);
-    Assert.assertTrue(!flag);
+    Assert.assertFalse(flag);
     flag = NetUtil.validIpV4("a.1.1.1");
-    Assert.assertTrue(!flag);
+    Assert.assertFalse(flag);
     flag = NetUtil.validIpV4("1.1.1");
-    Assert.assertTrue(!flag);
+    Assert.assertFalse(flag);
     flag = NetUtil.validIpV4("0.0.0.0");
-    Assert.assertTrue(!flag);
+    Assert.assertFalse(flag);
     flag = NetUtil.validIpV4("256.1.2.3");
-    Assert.assertTrue(!flag);
+    Assert.assertFalse(flag);
     flag = NetUtil.validIpV4("1.1.1.1");
     Assert.assertTrue(flag);
   }
@@ -28,7 +31,7 @@ public class NetUtilTest {
   @Test
   public void testValidNode() {
     boolean flag = NetUtil.validNode(null);
-    Assert.assertTrue(!flag);
+    Assert.assertFalse(flag);
 
     InetSocketAddress address = new InetSocketAddress("1.1.1.1", 1000);
     Node node = new Node(address);
@@ -37,11 +40,11 @@ public class NetUtilTest {
 
     node.setId(new byte[10]);
     flag = NetUtil.validNode(node);
-    Assert.assertTrue(!flag);
+    Assert.assertFalse(flag);
 
     node = new Node(NetUtil.getNodeId(), "1.1.1", null, 1000);
     flag = NetUtil.validNode(node);
-    Assert.assertTrue(!flag);
+    Assert.assertFalse(flag);
   }
 
   @Test
@@ -73,6 +76,25 @@ public class NetUtilTest {
     Assert.assertFalse(ip.startsWith("172.29."));
     Assert.assertFalse(ip.startsWith("172.30."));
     Assert.assertFalse(ip.startsWith("172.31."));
+  }
+
+  @Test
+  public void testGetIP() {
+    //notice: please check that you only have one externalIP
+    String ip1 = null, ip2 = null, ip3 = null;
+    try {
+      Method method = NetUtil.class.getDeclaredMethod("getExternalIp", String.class);
+      method.setAccessible(true);
+      ip1 = (String) method.invoke(NetUtil.class, Constant.ipV4Urls.get(0));
+      ip2 = (String) method.invoke(NetUtil.class, Constant.ipV4Urls.get(1));
+      ip3 = (String) method.invoke(NetUtil.class, Constant.ipV4Urls.get(2));
+    } catch (Exception e) {
+      Assert.fail();
+    }
+    String ip4 = NetUtil.getExternalIpV4();
+    Assert.assertEquals(ip1, ip4);
+    Assert.assertEquals(ip2, ip4);
+    Assert.assertEquals(ip3, ip4);
   }
 
   @Test

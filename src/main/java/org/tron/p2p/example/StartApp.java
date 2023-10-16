@@ -33,7 +33,9 @@ public class StartApp {
     Parameter.version = 1;
 
     P2pService p2pService = new P2pService();
+    long t1 = System.currentTimeMillis();
     Parameter.p2pConfig = new P2pConfig();
+    log.debug("P2pConfig cost {} ms", System.currentTimeMillis() - t1);
 
     CommandLine cli = null;
     try {

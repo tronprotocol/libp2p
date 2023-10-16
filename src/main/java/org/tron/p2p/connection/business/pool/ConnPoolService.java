@@ -20,18 +20,21 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.bouncycastle.util.encoders.Hex;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.P2pEventHandler;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
+import org.tron.p2p.connection.message.base.P2pDisconnectMessage;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
 import org.tron.p2p.dns.DnsManager;
 import org.tron.p2p.dns.DnsNode;
 import org.tron.p2p.exception.P2pException;
+import org.tron.p2p.protos.Connect.DisconnectReason;
 import org.tron.p2p.utils.CollectionUtils;
 import org.tron.p2p.utils.NetUtil;
 
@@ -47,8 +50,10 @@ public class ConnPoolService extends P2pEventHandler {
   private final AtomicInteger activePeersCount = new AtomicInteger(0);
   @Getter
   private final AtomicInteger connectingPeersCount = new AtomicInteger(0);
-  private final ScheduledExecutorService poolLoopExecutor = Executors.newSingleThreadScheduledExecutor();
-  private final ScheduledExecutorService disconnectExecutor = Executors.newSingleThreadScheduledExecutor();
+  private final ScheduledExecutorService poolLoopExecutor = Executors.newSingleThreadScheduledExecutor(
+      new BasicThreadFactory.Builder().namingPattern("connPool").build());
+  private final ScheduledExecutorService disconnectExecutor = Executors.newSingleThreadScheduledExecutor(
+      new BasicThreadFactory.Builder().namingPattern("randomDisconnect").build());
 
   public P2pConfig p2pConfig = Parameter.p2pConfig;
   private PeerClient peerClient;
@@ -116,7 +121,8 @@ public class ConnPoolService extends P2pEventHandler {
         Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort()));
 
     p2pConfig.getActiveNodes().forEach(address -> {
-      if (!isFilterActiveNodes && !inetInUse.contains(address) && !addressInUse.contains(address.getAddress())) {
+      if (!isFilterActiveNodes && !inetInUse.contains(address) && !addressInUse.contains(
+          address.getAddress())) {
         addressInUse.add(address.getAddress());
         inetInUse.add(address);
         Node node = new Node(address); //use a random NodeId for config activeNodes
@@ -246,6 +252,7 @@ public class ConnPoolService extends P2pEventHandler {
       List<Channel> list = new ArrayList<>(peers);
       Channel peer = list.get(new Random().nextInt(peers.size()));
       log.info("Disconnect with peer randomly: {}", peer);
+      peer.send(new P2pDisconnectMessage(DisconnectReason.RANDOM_ELIMINATION));
       peer.close();
     }
   }
@@ -262,13 +269,15 @@ public class ConnPoolService extends P2pEventHandler {
     }
     connectingPeersCount.decrementAndGet();
     try {
-      poolLoopExecutor.submit(() -> {
-        try {
-          connect(true);
-        } catch (Exception t) {
-          log.error("Exception in poolLoopExecutor worker", t);
-        }
-      });
+      if (!ChannelManager.isShutdown) {
+        poolLoopExecutor.submit(() -> {
+          try {
+            connect(true);
+          } catch (Exception t) {
+            log.error("Exception in poolLoopExecutor worker", t);
+          }
+        });
+      }
     } catch (Exception e) {
       log.warn("Submit task failed, message:{}", e.getMessage());
     }
@@ -309,6 +318,7 @@ public class ConnPoolService extends P2pEventHandler {
     try {
       channels.forEach(p -> {
         if (!p.isDisconnect()) {
+          p.send(new P2pDisconnectMessage(DisconnectReason.PEER_QUITING));
           p.close();
         }
       });
