@@ -80,6 +80,7 @@ public class NetUtilTest {
 
   @Test
   public void testGetIP() {
+    //notice: please check that you only have one externalIP
     String ip1 = null, ip2 = null, ip3 = null;
     try {
       Method method = NetUtil.class.getDeclaredMethod("getExternalIp", String.class);
