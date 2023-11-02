@@ -3,12 +3,14 @@ version '2.1.0'
 
 buildscript {
     repositories {
+        mavenCentral()
         maven {
             url "https://plugins.gradle.org/m2/"
         }
     }
     dependencies {
         classpath "io.github.gradle-nexus:publish-plugin:1.1.0"
+        classpath 'org.owasp:dependency-check-gradle:8.2.0'
     }
 }
 
@@ -16,6 +18,7 @@ apply plugin: 'java'
 apply plugin: 'com.google.protobuf'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'application'
+apply plugin: 'org.owasp.dependencycheck'
 
 def protobufVersion = "3.21.12"
 def grpcVersion = "1.52.1"
@@ -87,6 +90,15 @@ dependencies {
     })
     implementation group: 'com.aliyun', name: 'alidns20150109', version: '3.0.1'
     implementation group: 'xerces', name: 'xercesImpl', version: '2.12.2'
+}
+
+configurations.all {
+    resolutionStrategy {
+        // add dependency substitution rules
+        dependencySubstitution {
+            substitute module('org.bouncycastle:nbcprov-jdk15on') using module('org.bouncycastle:bcprov-jdk18on:1.76')
+        }
+    }
 }
 
 tasks.matching { it instanceof Test }.all {
