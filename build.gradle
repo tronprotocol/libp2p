@@ -3,14 +3,12 @@ version '2.1.0'
 
 buildscript {
     repositories {
-        mavenCentral()
         maven {
             url "https://plugins.gradle.org/m2/"
         }
     }
     dependencies {
         classpath "io.github.gradle-nexus:publish-plugin:1.1.0"
-        classpath 'org.owasp:dependency-check-gradle:8.2.0'
     }
 }
 
@@ -18,10 +16,10 @@ apply plugin: 'java'
 apply plugin: 'com.google.protobuf'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'application'
-apply plugin: 'org.owasp.dependencycheck'
 
 def protobufVersion = "3.21.12"
 def grpcVersion = "1.52.1"
+def bcprovVersion = "1.76"
 
 mainClassName = 'org.tron.p2p.example.StartApp'
 
@@ -66,7 +64,7 @@ dependencies {
     implementation group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
     implementation group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
-    implementation group: 'org.bouncycastle', name: 'bcprov-jdk18on', version: '1.76'
+    implementation group: 'org.bouncycastle', name: 'bcprov-jdk18on', version: bcprovVersion
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.4'
     implementation group: 'commons-cli', name: 'commons-cli', version: '1.5.0'
 
@@ -95,7 +93,7 @@ dependencies {
 configurations.all {
     resolutionStrategy.eachDependency { details ->
         if (details.requested.group == 'org.bouncycastle' && details.requested.name == "bcprov-jdk15on") {
-            details.useTarget group: 'org.bouncycastle', name: 'bcprov-jdk18on', version: '1.76'
+            details.useTarget group: 'org.bouncycastle', name: 'bcprov-jdk18on', version: bcprovVersion
         }
     }
 }
