@@ -93,10 +93,9 @@ dependencies {
 }
 
 configurations.all {
-    resolutionStrategy {
-        // add dependency substitution rules
-        dependencySubstitution {
-            substitute module('org.bouncycastle:nbcprov-jdk15on') using module('org.bouncycastle:bcprov-jdk18on:1.76')
+    resolutionStrategy.eachDependency { details ->
+        if (details.requested.group == 'org.bouncycastle' && details.requested.name == "bcprov-jdk15on") {
+            details.useTarget group: 'org.bouncycastle', name: 'bcprov-jdk18on', version: '1.76'
         }
     }
 }
