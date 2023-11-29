@@ -87,7 +87,6 @@ dependencies {
         exclude group: 'io.netty', module: 'netty-transport-native-unix-common'
     })
     implementation group: 'com.aliyun', name: 'alidns20150109', version: '3.0.1'
-    implementation group: 'xerces', name: 'xercesImpl', version: '2.12.2'
 }
 
 configurations.all {
