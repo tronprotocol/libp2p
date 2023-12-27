@@ -7,6 +7,7 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
+import java.net.Socket;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -237,4 +238,14 @@ public class NetUtil {
     return result;
   }
 
+  public static String getLanIP() {
+    String lanIP;
+    try (Socket s = new Socket("www.baidu.com", 80)) {
+      lanIP = s.getLocalAddress().getHostAddress();
+    } catch (IOException e) {
+      log.warn("Can't get lan IP. Fall back to 127.0.0.1: " + e);
+      lanIP = "127.0.0.1";
+    }
+    return lanIP;
+  }
 }
