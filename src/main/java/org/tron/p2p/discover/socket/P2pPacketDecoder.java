@@ -1,5 +1,6 @@
 package org.tron.p2p.discover.socket;
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import java.util.List;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -37,6 +38,10 @@ public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
         log.info("Parse msg failed, type {}, len {}, address {}", encoded[0], encoded.length,
             packet.sender());
       }
+    } catch (InvalidProtocolBufferException e) {
+      log.warn("An exception occurred while parsing the message, type {}, len {}, address {}, "
+              + "data {}, cause: {}", encoded[0], encoded.length, packet.sender(),
+          ByteArray.toHexString(encoded), e.getMessage());
     } catch (Exception e) {
       log.error("An exception occurred while parsing the message, type {}, len {}, address {}, "
               + "data {}", encoded[0], encoded.length, packet.sender(),
