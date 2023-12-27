@@ -18,7 +18,7 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'application'
 
 def protobufVersion = "3.21.12"
-def grpcVersion = "1.60.0"
+def grpcVersion = "1.52.1"
 
 mainClassName = 'org.tron.p2p.example.StartApp'
 
