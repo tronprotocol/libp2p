@@ -17,6 +17,7 @@ public class P2pConfig {
   private List<InetAddress> trustNodes = new CopyOnWriteArrayList<>();
   private byte[] nodeID = NetUtil.getNodeId();
   private String ip = NetUtil.getExternalIpV4();
+  private String lanIp = NetUtil.getLanIP();
   private String ipv6 = NetUtil.getExternalIpV6();
   private int port = 18888;
   private int networkId = 1;

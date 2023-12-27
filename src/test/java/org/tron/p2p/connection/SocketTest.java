@@ -2,17 +2,13 @@ package org.tron.p2p.connection;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
-import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.message.Message;
-import org.tron.p2p.connection.message.keepalive.PingMessage;
-import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
 
 public class SocketTest {

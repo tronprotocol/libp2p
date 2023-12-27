@@ -98,6 +98,12 @@ public class NetUtilTest {
   }
 
   @Test
+  public void testGetLanIP() {
+    String lanIpv4 = NetUtil.getLanIP();
+    Assert.assertNotNull(lanIpv4);
+  }
+
+  @Test
   public void testIPv6Format() {
     String std = "fe80:0:0:0:204:61ff:fe9d:f156";
     int randomPort = 10001;
