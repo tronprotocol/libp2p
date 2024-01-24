@@ -52,7 +52,7 @@ public class MessageTest {
 
   @Test
   public void testHandShakeHello() {
-    HelloMessage helloMessage = new HelloMessage(DisconnectCode.NORMAL);
+    HelloMessage helloMessage = new HelloMessage(DisconnectCode.NORMAL, 0);
     byte[] messageData = helloMessage.getSendData();
     try {
       Message message = Message.parse(messageData);
