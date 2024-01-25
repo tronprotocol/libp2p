@@ -14,7 +14,7 @@ public class HelloMessageTest {
   @Test
   public void testHelloMessage() throws Exception {
     p2pConfig = new P2pConfig();
-    HelloMessage m1 = new HelloMessage(DisconnectCode.NORMAL);
+    HelloMessage m1 = new HelloMessage(DisconnectCode.NORMAL, 0);
     Assert.assertEquals(0, m1.getCode());
 
     Assert.assertTrue(Arrays.equals(p2pConfig.getNodeID(), m1.getFrom().getId()));

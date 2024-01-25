@@ -19,7 +19,7 @@ public class HandshakeService implements MessageProcess {
   private final int networkId = Parameter.p2pConfig.getNetworkId();
 
   public void startHandshake(Channel channel) {
-    sendHelloMsg(channel, DisconnectCode.NORMAL);
+    sendHelloMsg(channel, DisconnectCode.NORMAL, channel.getStartTime());
   }
 
   @Override
@@ -37,7 +37,9 @@ public class HandshakeService implements MessageProcess {
 
     DisconnectCode code = ChannelManager.processPeer(channel);
     if (code != DisconnectCode.NORMAL) {
-      sendHelloMsg(channel, code);
+      if (!channel.isActive()) {
+        sendHelloMsg(channel, code, msg.getTimestamp());
+      }
       logDisconnectReason(channel, getDisconnectReason(code));
       channel.close();
       return;
@@ -68,20 +70,20 @@ public class HandshakeService implements MessageProcess {
       if (msg.getNetworkId() != networkId) {
         log.info("Peer {} different network id, peer->{}, me->{}",
             channel.getInetSocketAddress(), msg.getNetworkId(), networkId);
-        sendHelloMsg(channel, DisconnectCode.DIFFERENT_VERSION);
+        sendHelloMsg(channel, DisconnectCode.DIFFERENT_VERSION, msg.getTimestamp());
         logDisconnectReason(channel, DisconnectReason.DIFFERENT_VERSION);
         channel.close();
         return;
       }
-      sendHelloMsg(channel, DisconnectCode.NORMAL);
+      sendHelloMsg(channel, DisconnectCode.NORMAL, msg.getTimestamp());
     }
     channel.setFinishHandshake(true);
     channel.updateAvgLatency(System.currentTimeMillis() - channel.getStartTime());
     Parameter.handlerList.forEach(h -> h.onConnect(channel));
   }
 
-  private void sendHelloMsg(Channel channel, DisconnectCode code) {
-    HelloMessage helloMessage = new HelloMessage(code);
+  private void sendHelloMsg(Channel channel, DisconnectCode code, long time) {
+    HelloMessage helloMessage = new HelloMessage(code, time);
     channel.send(helloMessage);
   }
 
