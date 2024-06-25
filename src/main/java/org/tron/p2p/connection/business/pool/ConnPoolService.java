@@ -54,6 +54,7 @@ public class ConnPoolService extends P2pEventHandler {
       new BasicThreadFactory.Builder().namingPattern("connPool").build());
   private final ScheduledExecutorService disconnectExecutor = Executors.newSingleThreadScheduledExecutor(
       new BasicThreadFactory.Builder().namingPattern("randomDisconnect").build());
+  private static final int inActiveInterval = 300_000; //ms
 
   public P2pConfig p2pConfig = Parameter.p2pConfig;
   private PeerClient peerClient;
@@ -245,6 +246,7 @@ public class ConnPoolService extends P2pEventHandler {
         .filter(peer -> !peer.isDisconnect())
         .filter(peer -> !peer.isTrustPeer())
         .filter(peer -> !peer.isActive())
+        .filter(peer -> System.currentTimeMillis() - peer.getLastActiveTime() < inActiveInterval)
         .collect(Collectors.toList());
 
     // if len(peers) >= 0, disconnect randomly

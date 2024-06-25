@@ -60,6 +60,9 @@ public class Channel {
   @Getter
   private final long startTime = System.currentTimeMillis();
   @Getter
+  @Setter
+  private long lastActiveTime = System.currentTimeMillis();
+  @Getter
   private boolean isActive = false;
   @Getter
   private boolean isTrustPeer;
