@@ -27,6 +27,8 @@ public class P2pConfig {
   private int maxConnectionsWithSameIp = 2;
   private boolean discoverEnable = true;
   private boolean disconnectionPolicyEnable = false;
+  // only if peer is not active last more than this interval (milliseconds), peer might be disconnected randomly
+  private int notActiveInterval = 300_000;
   private boolean nodeDetectEnable = false;
 
   //dns read config
