@@ -18,7 +18,7 @@ public class HelloMessage extends Message {
     this.helloMessage = Connect.HelloMessage.parseFrom(data);
   }
 
-  public HelloMessage(DisconnectCode code) {
+  public HelloMessage(DisconnectCode code, long time) {
     super(MessageType.HANDSHAKE_HELLO, null);
     Discover.Endpoint endpoint = Parameter.getHomeNode();
     this.helloMessage = Connect.HelloMessage.newBuilder()
@@ -26,7 +26,7 @@ public class HelloMessage extends Message {
       .setNetworkId(Parameter.p2pConfig.getNetworkId())
       .setCode(code.getValue())
       .setVersion(Parameter.version)
-      .setTimestamp(System.currentTimeMillis()).build();
+      .setTimestamp(time).build();
     this.data = helloMessage.toByteArray();
   }
 

@@ -1,5 +1,5 @@
 group 'io.github.tronprotocol'
-version '2.1.0'
+version '2.2.4'
 
 buildscript {
     repositories {
@@ -17,7 +17,7 @@ apply plugin: 'com.google.protobuf'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'application'
 
-def protobufVersion = "3.21.12"
+def protobufVersion = "3.25.5"
 def grpcVersion = "1.52.1"
 
 mainClassName = 'org.tron.p2p.example.StartApp'
