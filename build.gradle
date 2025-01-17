@@ -1,5 +1,5 @@
 group 'io.github.tronprotocol'
-version '2.2.4'
+version '2.2.5'
 
 buildscript {
     repositories {
@@ -18,7 +18,7 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'application'
 
 def protobufVersion = "3.25.5"
-def grpcVersion = "1.52.1"
+def grpcVersion = "1.60.0"
 
 mainClassName = 'org.tron.p2p.example.StartApp'
 
@@ -57,13 +57,13 @@ dependencies {
     testImplementation group: 'junit', name: 'junit', version: '4.12'
 
     implementation group: 'org.xerial.snappy', name: 'snappy-java', version: '1.1.10.5'
-    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.9'
-    implementation group: 'ch.qos.logback', name: 'logback-core', version: '1.2.9'
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.13'
+    implementation group: 'ch.qos.logback', name: 'logback-core', version: '1.2.13'
     implementation group: 'com.google.protobuf', name: 'protobuf-java', version: protobufVersion
     implementation group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
     implementation group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
-    implementation group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.69'
+    implementation group: 'org.bouncycastle', name: 'bcprov-jdk18on', version: '1.79'
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.4'
     implementation group: 'commons-cli', name: 'commons-cli', version: '1.5.0'
 
@@ -71,7 +71,7 @@ dependencies {
     testImplementation group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
     annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
 
-    implementation group: 'dnsjava', name: 'dnsjava', version: '3.5.2'
+    implementation group: 'dnsjava', name: 'dnsjava', version: '3.6.2'
     implementation group: 'org.web3j', name: 'crypto', version: '5.0.0'
     implementation('software.amazon.awssdk:route53:2.18.41', {
         exclude group: 'io.netty', module: 'netty-codec-http2'
