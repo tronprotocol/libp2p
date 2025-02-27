@@ -34,6 +34,8 @@ public class Parameter {
 
   public static final long DEFAULT_BAN_TIME = 60_000;
 
+  public static final long BAN_TIME_ONE_HOUR = 3600 * 1000;
+
   public static final int MAX_MESSAGE_LENGTH = 5 * 1024 * 1024;
 
   public static volatile P2pConfig p2pConfig;
