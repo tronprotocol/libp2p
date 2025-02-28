@@ -13,6 +13,8 @@ import org.tron.p2p.discover.message.kad.PongMessage;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collections;
 
 public class NodeHandlerTest {
 
@@ -79,6 +81,29 @@ public class NodeHandlerTest {
 
     Assert.assertFalse(kadService.getTable().contains(oldNode));
     Assert.assertTrue(kadService.getTable().contains(replaceNode));
+  }
+
+  @Test
+  public void testHandleFindNode() throws Exception {
+    NodeHandler nodeHandler = new NodeHandler(new Node(new byte[1], "", "", 0), null);
+    Field field = nodeHandler.getClass().getDeclaredField("rcvFindNodeMsgTime");
+    field.setAccessible(true);
+    long time = (Long) field.get(nodeHandler);
+    Assert.assertEquals(time, 0);
+
+    try {
+      nodeHandler.handleFindNode(null);
+    } catch (Exception e) {}
+
+    time = (Long) field.get(nodeHandler);
+    Assert.assertTrue(time > 0);
+
+    try {
+      nodeHandler.handleFindNode(null);
+    } catch (Exception e) {}
+
+    long time2 = (Long) field.get(nodeHandler);
+    Assert.assertEquals(time, time2);
   }
 
   @AfterClass
