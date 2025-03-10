@@ -49,7 +49,7 @@ buildscript {
 
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
-        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.12'
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.9.1'
     }
 }
 
@@ -146,6 +146,8 @@ compileTestJava {
 task sourcesJar(type: Jar) {
     archiveClassifier.set('sources')
     from sourceSets.main.allJava
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    dependsOn(generateProto) // explicit_dependency
 }
 
 task javadocJar(type: Jar) {
@@ -173,4 +175,4 @@ artifacts {
     archives javadocJar, sourcesJar
 }
 
-
+processResources.dependsOn(generateProto) // explicit_dependency
