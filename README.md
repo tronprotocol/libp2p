@@ -5,6 +5,32 @@ libp2p is a p2p network SDK implemented in java language. The functional modules
 * publish nodes on dns domain and node discovery by dns,
 * support compressed message transmission among nodes
 
+# Note
+Starting from version 2.2.6, `libp2p` has removed the logback component and adopted the logger facade. If logging is required, you need to introduce a logging framework manually.  
+Here’s how to include logback in your project using Gradle:
+
+1. Add the following dependencies to your build.gradle file
+  ```
+  dependencies {
+      implementation group: 'ch.qos.logback', name: 'logback-classic', version: 'x.x.xx'
+  }
+  ```
+2. Create or edit logback.xml in src/main/resources to configure logging. Here is an example of logback.xml:
+  ```xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <configuration>
+      <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+          <encoder>
+              <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+          </encoder>
+      </appender>
+      <root level="INFO">
+          <appender-ref ref="STDOUT" />
+      </root>
+  </configuration>
+```
+
+
 # Build
 Building libp2p requires `git` and `Oracle JDK 1.8` to be installed, other JDK versions are not supported yet. Make sure you operate on `Linux` and `MacOS` operating systems.
 
@@ -43,7 +69,7 @@ repositories {
 Then add the required packages as dependencies. Please add dependencies locally.
 ```bash
 dependencies {
-    implementation group: 'io.github.tronprotocol', name: 'libp2p', version: '2.2.5'
+    implementation group: 'io.github.tronprotocol', name: 'libp2p', version: '2.2.6'
 }
 ```
 Or if you are using the jar files as your dependencies:
@@ -66,7 +92,7 @@ dependencies {
 <dependency>
     <groupId>io.github.tronprotocol</groupId>
     <artifactId>libp2p</artifactId>
-    <version>2.2.5</version>
+    <version>2.2.6</version>
 </dependency>
 ```
 
