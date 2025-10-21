@@ -1,13 +1,14 @@
 package org.tron.p2p.utils;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.InetSocketAddress;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
 import org.tron.p2p.base.Constant;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.protos.Discover;
+
+import java.net.InetSocketAddress;
 
 public class NetUtilTest {
 
@@ -187,18 +188,6 @@ public class NetUtilTest {
     InetSocketAddress address5 = NetUtil.parseInetSocketAddress(
         "192.168.0.1:18888");
     Assert.assertNotNull(address5);
-  }
-
-  @Test
-  public void testGetExternalIPv6ByDoh() {
-    try {
-      String ipV6OfDomain = NetUtil.getExternalIPv6ByDoh("v6.ident.me");
-      if (StringUtils.isNotEmpty(ipV6OfDomain)) {
-        Assert.assertTrue(NetUtil.validIpV6(ipV6OfDomain));
-      }
-    } catch (Exception e) {
-      Assert.fail();
-    }
   }
 
 }
