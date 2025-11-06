@@ -1,0 +1,388 @@
+name: Build - Artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref (branch/tag/commit)'
+        required: false
+        default: 'main'
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  # build.gradle $buildDir/repo
+  CUSTOM_REPO_PATH: ${{ github.workspace }}/build/repo
+  CUSTOM_DOWNLOAD_PATH: ${{ github.workspace }}/download/artifacts
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      group: ${{ steps.set-outputs.outputs.group }}
+      project: ${{ steps.set-outputs.outputs.project }}
+      version: ${{ steps.set-outputs.outputs.version }}
+
+    steps:
+      - name: Validate trigger source
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "✅: Manual workflow dispatch"
+          else
+            echo "❌: This workflow should only be manually dispatched"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v5
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: false
+
+      - name: Extract Project Info
+        run: |
+          set -euo pipefail
+          GROUP=$(grep -E "^group\s+'[^']+'" build.gradle | sed -E "s/.*'([^']+)'.*/\1/" || true)
+          VERSION=$(grep -E "^version\s+'[^']+'" build.gradle | sed -E "s/.*'([^']+)'.*/\1/" || true)
+          PROJECT=$(grep -E "^rootProject\.name\s*=\s*'[^']+'" build.gradle | sed -E "s/.*'([^']+)'.*/\1/" || true)
+          if [ -z "$PROJECT" ] && [ -f "settings.gradle" ]; then
+            PROJECT=$(grep -E "^rootProject\.name\s*=\s*'[^']+'" settings.gradle | sed -E "s/.*'([^']+)'.*/\1/" || true)
+          fi
+
+          if [ -z "$GROUP" ] || [ -z "$PROJECT" ] || [ -z "$VERSION" ]; then
+            echo "❌: Missing group/project/version in build.gradle"
+            exit 1
+          fi
+          
+          echo "group=$GROUP" >> $GITHUB_ENV
+          echo "project=$PROJECT" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_ENV
+
+          GROUP_PATH=$(echo "$GROUP" | tr '.' '/')
+          echo "MAVEN_GROUP_PATH=$GROUP_PATH" >> $GITHUB_ENV
+
+          ARTIFACT_PATH="${{ env.CUSTOM_REPO_PATH }}/$GROUP_PATH/$PROJECT/$VERSION"
+          echo "ARTIFACT_PATH=$ARTIFACT_PATH" >> $GITHUB_ENV
+          
+          echo "✅ Project: $PROJECT, Version: $VERSION, Group: $GROUP"
+
+      - name: Publish to CI Maven repository
+        run: ./gradlew clean -xtest -xcheck --refresh-dependencies publishAllPublicationsToCiLocalRepository
+
+      - name: Verify artifacts and checksums
+        run: |
+          set -euo pipefail
+          if [ ! -d "${{ env.ARTIFACT_PATH }}" ]; then
+            echo "❌: Artifacts not found at ${{ env.ARTIFACT_PATH }}"
+            exit 1
+          fi
+          
+          REQUIRED_FILES=(
+            "${{ env.project }}-${{ env.version }}.jar"
+            "${{ env.project }}-${{ env.version }}.jar.md5"
+            "${{ env.project }}-${{ env.version }}.jar.sha1"
+            "${{ env.project }}-${{ env.version }}.jar.sha256"
+            "${{ env.project }}-${{ env.version }}.jar.sha512"
+            "${{ env.project }}-${{ env.version }}.module"
+            "${{ env.project }}-${{ env.version }}.module.md5"
+            "${{ env.project }}-${{ env.version }}.module.sha1"
+            "${{ env.project }}-${{ env.version }}.module.sha256"
+            "${{ env.project }}-${{ env.version }}.module.sha512"
+            "${{ env.project }}-${{ env.version }}.pom"
+            "${{ env.project }}-${{ env.version }}.pom.md5"
+            "${{ env.project }}-${{ env.version }}.pom.sha1"
+            "${{ env.project }}-${{ env.version }}.pom.sha256"
+            "${{ env.project }}-${{ env.version }}.pom.sha512"
+            "${{ env.project }}-${{ env.version }}-javadoc.jar"
+            "${{ env.project }}-${{ env.version }}-javadoc.jar.md5"
+            "${{ env.project }}-${{ env.version }}-javadoc.jar.sha1"
+            "${{ env.project }}-${{ env.version }}-javadoc.jar.sha256"
+            "${{ env.project }}-${{ env.version }}-javadoc.jar.sha512"
+            "${{ env.project }}-${{ env.version }}-sources.jar"
+            "${{ env.project }}-${{ env.version }}-sources.jar.md5"
+            "${{ env.project }}-${{ env.version }}-sources.jar.sha1"
+            "${{ env.project }}-${{ env.version }}-sources.jar.sha256"
+            "${{ env.project }}-${{ env.version }}-sources.jar.sha512"
+          )
+
+          MISSING_FILES=()
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "${{ env.ARTIFACT_PATH }}/$file" ]; then
+              MISSING_FILES+=("$file")
+            fi
+          done
+          
+          if [ ${#MISSING_FILES[@]} -gt 0 ]; then
+            echo "❌ Missing required files:"
+            for f in "${MISSING_FILES[@]}"; do echo "  - $f"; done
+            exit 1
+          fi
+          
+          echo "✅ All required files verified (${#REQUIRED_FILES[@]} files)"
+
+      - name: Remove Maven metadata files
+        run: |
+          set -euo pipefail
+          DELETED_COUNT=$(find ${{ env.CUSTOM_REPO_PATH }} -name "maven-metadata*" -type f -delete -print | wc -l)
+          echo "✅ Removed $DELETED_COUNT Maven metadata files"
+
+      - name: Upload publish files
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.project }}-${{ env.version }}-artifacts
+          path: ${{ env.CUSTOM_REPO_PATH }}/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Set Outputs
+        id: set-outputs
+        run: |
+          set -euo pipefail
+          echo "group=${{ env.MAVEN_GROUP_PATH }}" >> $GITHUB_OUTPUT
+          echo "project=${{ env.project }}" >> $GITHUB_OUTPUT
+          echo "version=${{ env.version }}" >> $GITHUB_OUTPUT
+
+      - name: Generate summary
+        run: |
+          set -euo pipefail
+          COMMIT_ID=$(git rev-parse HEAD)
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Project:** ${{ env.project }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** ${{ env.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Group:** ${{ env.MAVEN_GROUP_PATH }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Git Ref:** ${{ inputs.ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit ID:** $COMMIT_ID" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit Message:** $COMMIT_MSG" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### Local Repository Files" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          ls -lh "${{ env.ARTIFACT_PATH }}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Artifact Check:** ✓ All required files present" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+  sign-and-upload:
+    runs-on: self-hosted
+    needs: build
+    steps:
+      - name: Validate secrets
+        run: |
+          set -euo pipefail
+          if [ -z "${{ secrets.GPG_FINGERPRINT }}" ]; then
+            echo "❌: GPG_FINGERPRINT secret not configured"
+            exit 1
+          fi
+          if [ -z "${{ secrets.S3_BUCKET_PRE_STAGE }}" ]; then
+            echo "❌: S3_BUCKET_PRE_STAGE secret not configured"
+            exit 1
+          fi
+          if [ -z "${{ secrets.AWS_ROLE_ARN_PRE_STAGE_UPLOAD }}" ]; then
+            echo "❌: AWS_ROLE_ARN_PRE_STAGE_UPLOAD secret not configured"
+            exit 1
+          fi
+          if [ -z "${{ secrets.AWS_REGION }}" ]; then
+            echo "❌: AWS_REGION secret not configured"
+            exit 1
+          fi
+          echo "✅ All required secrets configured"
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.project }}-${{ needs.build.outputs.version }}-artifacts
+          path: ${{ env.CUSTOM_DOWNLOAD_PATH }}
+
+      - name: Verify downloaded artifacts
+        run: |
+          set -euo pipefail
+          FULL_PATH="${{ env.CUSTOM_DOWNLOAD_PATH }}/${{ needs.build.outputs.group }}/${{ needs.build.outputs.project }}/${{ needs.build.outputs.version }}"
+          if [ ! -d "$FULL_PATH" ]; then
+            echo "❌: Downloaded artifacts not found at expected path"
+            exit 1
+          fi
+          FILE_COUNT=$(find "$FULL_PATH" -type f | wc -l)
+          echo "✅: Downloaded $FILE_COUNT files to $FULL_PATH"
+          echo "FULL_PATH=$FULL_PATH" >> $GITHUB_ENV
+
+      - name: Wait for hardware key (YubiKey/HSM)
+        run: |
+          set -euo pipefail
+          echo "⏳ Waiting for GPG hardware key..."
+          MAX_RETRIES=60
+          RETRY_INTERVAL=2
+          for i in $(seq 1 $MAX_RETRIES); do
+            if gpg --card-status > /dev/null 2>&1; then
+              echo "✅: GPG hardware key detected and ready (after $((i*RETRY_INTERVAL))s)"
+              break
+            fi
+            echo "[$i/$MAX_RETRIES] Hardware key not detected, retrying in ${RETRY_INTERVAL}s..."
+            sleep $RETRY_INTERVAL
+          done
+
+          if ! gpg --card-status > /dev/null 2>&1; then
+            echo "❌ Timeout waiting for hardware key after $((MAX_RETRIES*RETRY_INTERVAL)) seconds"
+            exit 1
+          fi
+
+      - name: Sign artifacts
+        run: |
+          set -euo pipefail
+          cd "${{ env.FULL_PATH }}"
+
+          PREFIX="${{ needs.build.outputs.project }}-${{ needs.build.outputs.version }}"
+          FILES=(
+            "${PREFIX}.jar"
+            "${PREFIX}.module"
+            "${PREFIX}-sources.jar"
+            "${PREFIX}-javadoc.jar"
+            "${PREFIX}.pom"
+          )
+          
+          compute_md5() {
+            if command -v md5sum >/dev/null 2>&1; then
+              md5sum "$1" | awk '{print $1}'
+            else
+              md5 "$1" | awk '{print $4}'
+            fi
+          }
+
+          SIGNED_COUNT=0
+          for file in "${FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Missing file to sign: $file"
+              exit 1
+            fi
+            echo "Signing $file..."
+            gpg --quiet --batch --yes --local-user ${{ secrets.GPG_FINGERPRINT }} --armor --detach-sign "$file"
+            compute_md5 ${file}.asc > ${file}.asc.md5
+            shasum -a 1 ${file}.asc | awk '{print $1}' > ${file}.asc.sha1
+            shasum -a 256 ${file}.asc | awk '{print $1}' > ${file}.asc.sha256
+            shasum -a 512 ${file}.asc | awk '{print $1}' > ${file}.asc.sha512
+            SIGNED_COUNT=$((SIGNED_COUNT + 1))
+          done
+          echo "✓ Successfully signed $SIGNED_COUNT files"
+
+      - name: Verify signatures
+        run: |
+          set -euo pipefail
+          cd "${{ env.FULL_PATH }}"
+          VERIFIED_COUNT=0
+          FAILED_SIGS=()
+          for sig in *.asc; do
+            if [ -f "$sig" ]; then
+              echo "Verifying $sig..."
+              if ! gpg --verify "$sig" "${sig%.asc}" > /dev/null 2>&1; then
+                FAILED_SIGS+=("$sig")
+              else
+                VERIFIED_COUNT=$((VERIFIED_COUNT + 1))
+              fi
+            fi
+          done
+          
+          if [ ${#FAILED_SIGS[@]} -gt 0 ]; then
+            echo "❌ Signature verification failed for: ${FAILED_SIGS[*]}"
+            exit 1
+          fi
+          echo "✅ All $VERIFIED_COUNT signatures verified"
+
+      - name: Zip signed artifacts
+        run: |
+          set -euo pipefail
+          cd ${{ env.CUSTOM_DOWNLOAD_PATH }}
+          BUNDLE_NAME="${{ needs.build.outputs.project }}-${{ needs.build.outputs.version }}-bundle.zip"
+          zip -r "$BUNDLE_NAME" ${{ needs.build.outputs.group }} >/dev/null
+          if [ ! -f "$BUNDLE_NAME" ]; then
+            echo "❌ Error: Bundle file not created"
+            exit 1
+          fi
+          
+          BUNDLE_SIZE=$(du -h "$BUNDLE_NAME" | cut -f1)
+          echo "✓ Bundle created: $BUNDLE_NAME (${BUNDLE_SIZE})"
+          echo "BUNDLE_NAME=$BUNDLE_NAME" >> $GITHUB_ENV
+          echo "BUNDLE_SIZE=$BUNDLE_SIZE" >> $GITHUB_ENV
+
+      - name: Verify bundle contents
+        run: |
+          set -euo pipefail
+          cd ${{ env.CUSTOM_DOWNLOAD_PATH }}
+          echo "Bundle contents:"
+          unzip -l "${{ env.BUNDLE_NAME }}" | head -50
+          
+          ASC_COUNT=$(unzip -l "${{ env.BUNDLE_NAME }}" | grep -c "\.asc$" || true)
+          if [ "$ASC_COUNT" -lt 5 ]; then
+            echo "❌ Bundle missing signature files (found $ASC_COUNT)"
+            exit 1
+          fi
+          echo "✅ Bundle verified: contains $ASC_COUNT signature files"
+
+      - name: Upload signed bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.project }}-${{ needs.build.outputs.version }}-bundle
+          path: ${{ env.CUSTOM_DOWNLOAD_PATH }}/${{ env.BUNDLE_NAME }}
+          retention-days: 30
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PRE_STAGE_UPLOAD }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload artifacts to S3
+        run: |
+          set -euo pipefail
+          cd ${{ env.CUSTOM_DOWNLOAD_PATH }}
+          
+          DEST="s3://${{ secrets.S3_BUCKET_PRE_STAGE }}"
+          if [ -n "${{ secrets.S3_PREFIX }}" ]; then
+            DEST="$DEST/${{ secrets.S3_PREFIX }}"
+          fi
+          DEST="$DEST/${{ needs.build.outputs.version }}"
+          echo "Uploading ${{ env.BUNDLE_NAME }}"
+          aws s3 cp "${{ env.BUNDLE_NAME }}" "$DEST/" --only-show-errors
+          echo "✅ Successfully uploaded to S3"
+
+      - name: Generate upload summary
+        if: success()
+        run: |
+          set -euo pipefail
+          echo "## ✅ Artifact Signing & Upload Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Project Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **Project:** ${{ needs.build.outputs.project }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** ${{ needs.build.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Group Path:** ${{ needs.build.outputs.group }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Bundle Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Bundle Name:** \`${{ env.BUNDLE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Bundle Size:** ${{ env.BUNDLE_SIZE }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Signed Files" >> $GITHUB_STEP_SUMMARY
+          find "${{ env.FULL_PATH }}" -type f -name "*.asc" -exec basename {} \; | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Upload Time:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Cleanup downloaded artifacts
+        if: always()
+        run: |
+          set -euo pipefail
+          rm -rf "${{ env.CUSTOM_DOWNLOAD_PATH }}" || true
+          echo "✅ Cleaned up downloaded artifacts"

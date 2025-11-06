@@ -191,6 +191,13 @@ artifacts {
 processResources.dependsOn(generateProto) // explicit_dependency
 
 publishing {
+    repositories {
+        // CI
+        maven {
+            name = 'ciLocal'
+            url =  "$buildDir/repo"
+        }
+    }
     publications {
         mavenJava(MavenPublication) {
             from components.java
