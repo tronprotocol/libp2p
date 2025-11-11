@@ -55,6 +55,12 @@ buildscript {
     }
 }
 
+configurations.configureEach {
+    resolutionStrategy {
+        force("com.squareup.okio:okio:1.17.6")
+    }
+}
+
 dependencies {
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
 
