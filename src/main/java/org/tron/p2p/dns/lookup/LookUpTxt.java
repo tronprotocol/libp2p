@@ -61,8 +61,16 @@ public class LookUpTxt {
     TXTRecord txt = null;
     log.info("LookUp name: {}", name);
     Lookup lookup = new Lookup(name, Type.TXT);
+    // Use the system's default resolver (reads from /etc/resolv.conf or OS DNS config).
+    Record[] records = lookup.run();
+    for (Record item : records) {
+      txt = (TXTRecord) item;
+    }
+    if (txt != null) {
+      log.debug("Succeed to use default dns, cost: {}ms", txt.getTTL());
+      return txt;
+    }
     int times = 0;
-    Record[] records = null;
     long start = System.currentTimeMillis();
     while (times < maxRetryTimes) {
       String publicDns;
