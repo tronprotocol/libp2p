@@ -226,10 +226,10 @@ New p2p config instance
 P2pConfig config = new P2pConfig();
 ```
 
-Set p2p version
+Set p2p networkId (also called p2p version)
 
 ```bash
-config.setVersion(11111);
+config.setNetworkId(11111);
 ```
 
 Set TCP and UDP listen port
@@ -416,6 +416,6 @@ p2pService.start(config);
 ```
 
 For details please
-check [ImportUsing](https://github.com/tronprotocol/libp2p/blob/develop/src/main/java/org/tron/p2p/example/ImportUsing.java), [DnsExample1](https://github.com/tronprotocol/libp2p/blob/develop/src/main/java/org/tron/p2p/example/DnsExample1.java), [DnsExample2](https://github.com/tronprotocol/libp2p/blob/develop/src/main/java/org/tron/p2p/example/DnsExample2.java)
+check [ImportUsing](ImportUsing.java), [DnsExample1](DnsExample1.java), [DnsExample2](DnsExample2.java)
 
 

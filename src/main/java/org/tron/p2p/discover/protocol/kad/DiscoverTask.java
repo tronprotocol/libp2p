@@ -15,7 +15,7 @@ import org.tron.p2p.utils.NetUtil;
 public class DiscoverTask {
 
   private ScheduledExecutorService discoverer = Executors.newSingleThreadScheduledExecutor(
-      new BasicThreadFactory.Builder().namingPattern("discoverTask").build());
+      BasicThreadFactory.builder().namingPattern("discoverTask").build());
 
   private KadService kadService;
 

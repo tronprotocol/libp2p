@@ -16,6 +16,8 @@ public class Node implements Serializable, Cloneable {
 
   private static final long serialVersionUID = -4267600517925770636L;
 
+  @Setter
+  @Getter
   private byte[] id;
 
   @Getter
@@ -24,6 +26,8 @@ public class Node implements Serializable, Cloneable {
   @Getter
   protected String hostV6;
 
+  @Setter
+  @Getter
   protected int port;
 
   @Setter
@@ -32,6 +36,7 @@ public class Node implements Serializable, Cloneable {
   @Setter
   private int p2pVersion;
 
+  @Getter
   private long updateTime;
 
   public Node(InetSocketAddress address) {
@@ -111,24 +116,8 @@ public class Node implements Serializable, Cloneable {
     return getIdShort(getHexId());
   }
 
-  public byte[] getId() {
-    return id;
-  }
-
-  public void setId(byte[] id) {
-    this.id = id;
-  }
-
   public String getHostKey() {
     return getPreferInetSocketAddress().getAddress().getHostAddress();
-  }
-
-  public int getPort() {
-    return port;
-  }
-
-  public void setPort(int port) {
-    this.port = port;
   }
 
   public String getIdString() {
@@ -136,10 +125,6 @@ public class Node implements Serializable, Cloneable {
       return null;
     }
     return new String(id);
-  }
-
-  public long getUpdateTime() {
-    return updateTime;
   }
 
   public void touch() {
@@ -179,8 +164,8 @@ public class Node implements Serializable, Cloneable {
     return false;
   }
 
-  private String getIdShort(String Id) {
-    return Id == null ? "<null>" : Id.substring(0, 8);
+  private String getIdShort(String hexId) {
+    return hexId == null ? "<null>" : hexId.substring(0, 8);
   }
 
   public InetSocketAddress getInetSocketAddressV4() {

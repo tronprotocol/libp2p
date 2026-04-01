@@ -6,33 +6,26 @@ libp2p is a p2p network SDK implemented in java language. The functional modules
 * support compressed message transmission among nodes
 
 # Note
-Starting from version 2.2.6, `libp2p` has removed the logback component and adopted the logger facade. If logging is required, you need to introduce a logging framework manually.  
+Starting from version 2.2.7, `libp2p` has removed the logback component and adopted the logger facade. If logging is required, you need to introduce a logging framework manually.  
 Here’s how to include logback in your project using Gradle:
 
-1. Add the following dependencies to your build.gradle file
+1. Uncomment the ch.qos.logback:logback-classic dependency in build.gradle file
   ```
   dependencies {
-      implementation group: 'ch.qos.logback', name: 'logback-classic', version: 'x.x.xx'
+      implementation("ch.qos.logback:logback-classic:1.2.13") {
+         ...
+      }
   }
   ```
-2. Create or edit logback.xml in src/main/resources to configure logging. Here is an example of logback.xml:
-  ```xml
-  <?xml version="1.0" encoding="UTF-8"?>
-  <configuration>
-      <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-          <encoder>
-              <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
-          </encoder>
-      </appender>
-      <root level="INFO">
-          <appender-ref ref="STDOUT" />
-      </root>
-  </configuration>
+2.  Refresh the dependency verification metadata to prevent verification failures
+```bash
+$ ./gradlew clean --refresh-dependencies --write-verification-metadata sha256
 ```
+3. Rename or copy logback.xml.example in src/main/resources to logback.xml.
 
 
 # Build
-Building libp2p requires `git` and `Oracle JDK 1.8` to be installed, other JDK versions are not supported yet. Make sure you operate on `Linux` and `MacOS` operating systems.
+Building libp2p requires `git`, `JDK 17` or `Oracle JDK 1.8` to be installed, other JDK versions are not supported yet. Make sure you operate on `Linux` and `MacOS` operating systems.
 
 Clone the repo and switch to the `main` branch
 
@@ -50,12 +43,12 @@ $ ./gradlew clean build -x test
 libp2p can run independently or be imported into other projects.
 
 ## Run independently
-Running libp2p requires Oracle JDK 1.8 to be installed, other JDK versions are not supported yet. Make sure you operate on Linux and MacOS operating systems.
+Running libp2p requires JDK 17 or Oracle JDK 1.8 to be installed, other JDK versions are not supported yet. Make sure you operate on Linux and MacOS operating systems.
 then run the following command to start the node:
 ```bash
 $ nohup java -jar libp2p.jar [options] >> start.log 2>&1 &
 ```
-See the manual for details on [options](https://github.com/tronprotocol/libp2p/tree/develop/src/main/java/org/tron/p2p/example/README.md)
+See the manual for details on [options](src/main/java/org/tron/p2p/example/README.md)
 
 ## How to include the dependency
 ### Gradle Setting
@@ -69,7 +62,7 @@ repositories {
 Then add the required packages as dependencies. Please add dependencies locally.
 ```bash
 dependencies {
-    implementation group: 'io.github.tronprotocol', name: 'libp2p', version: '2.2.6'
+    implementation group: 'io.github.tronprotocol', name: 'libp2p', version: '2.2.7'
 }
 ```
 Or if you are using the jar files as your dependencies:
@@ -92,12 +85,12 @@ dependencies {
 <dependency>
     <groupId>io.github.tronprotocol</groupId>
     <artifactId>libp2p</artifactId>
-    <version>2.2.6</version>
+    <version>2.2.7</version>
 </dependency>
 ```
 
 ## Example
-For some examples please check our [example package](https://github.com/tronprotocol/libp2p/tree/develop/src/main/java/org/tron/p2p/example). 
+For some examples please check our [example package](src/main/java/org/tron/p2p/example).
 
 # Integrity Check
 * After February 21, 2023， releases are signed the gpg key:

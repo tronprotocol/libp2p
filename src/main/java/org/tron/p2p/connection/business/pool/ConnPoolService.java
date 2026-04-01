@@ -14,6 +14,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -42,7 +43,7 @@ import org.tron.p2p.utils.NetUtil;
 public class ConnPoolService extends P2pEventHandler {
 
   private final List<Channel> activePeers = Collections.synchronizedList(new ArrayList<>());
-  private Cache<InetAddress, Long> peerClientCache = CacheBuilder.newBuilder()
+  private final Cache<InetAddress, Long> peerClientCache = CacheBuilder.newBuilder()
       .maximumSize(1000).expireAfterWrite(120, TimeUnit.SECONDS).recordStats().build();
   @Getter
   private final AtomicInteger passivePeersCount = new AtomicInteger(0);
@@ -50,14 +51,15 @@ public class ConnPoolService extends P2pEventHandler {
   private final AtomicInteger activePeersCount = new AtomicInteger(0);
   @Getter
   private final AtomicInteger connectingPeersCount = new AtomicInteger(0);
-  private final ScheduledExecutorService poolLoopExecutor = Executors.newSingleThreadScheduledExecutor(
-      new BasicThreadFactory.Builder().namingPattern("connPool").build());
-  private final ScheduledExecutorService disconnectExecutor = Executors.newSingleThreadScheduledExecutor(
-      new BasicThreadFactory.Builder().namingPattern("randomDisconnect").build());
+  private final ScheduledThreadPoolExecutor poolLoopExecutor = new ScheduledThreadPoolExecutor(1,
+      BasicThreadFactory.builder().namingPattern("connPool").build());
+  private final ScheduledExecutorService disconnectExecutor =
+      Executors.newSingleThreadScheduledExecutor(
+          BasicThreadFactory.builder().namingPattern("randomDisconnect").build());
 
   public P2pConfig p2pConfig = Parameter.p2pConfig;
   private PeerClient peerClient;
-  private List<InetSocketAddress> configActiveNodes = new ArrayList<>();
+  private final List<InetSocketAddress> configActiveNodes = new ArrayList<>();
   private int minCandidateSize = 50;
 
   public ConnPoolService() {
@@ -66,6 +68,7 @@ public class ConnPoolService extends P2pEventHandler {
       Parameter.addP2pEventHandle(this);
       configActiveNodes.addAll(p2pConfig.getActiveNodes());
     } catch (P2pException e) {
+      //no exception will throw
     }
   }
 
@@ -274,6 +277,10 @@ public class ConnPoolService extends P2pEventHandler {
       return;
     }
     connectingPeersCount.decrementAndGet();
+    if (poolLoopExecutor.getQueue().size() >= Parameter.CONN_MAX_QUEUE_SIZE) {
+      log.warn("ConnPool task' size is greater than or equal to {}", Parameter.CONN_MAX_QUEUE_SIZE);
+      return;
+    }
     try {
       if (!ChannelManager.isShutdown) {
         poolLoopExecutor.submit(() -> {
@@ -317,6 +324,7 @@ public class ConnPoolService extends P2pEventHandler {
 
   @Override
   public void onMessage(Channel channel, byte[] data) {
+    //do nothing
   }
 
   public void close() {
@@ -329,6 +337,7 @@ public class ConnPoolService extends P2pEventHandler {
         }
       });
       poolLoopExecutor.shutdownNow();
+      disconnectExecutor.shutdownNow();
     } catch (Exception e) {
       log.warn("Problems shutting down executor", e);
     }

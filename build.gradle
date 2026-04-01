@@ -1,5 +1,5 @@
 group 'io.github.tronprotocol'
-version '2.2.6'
+version '2.2.7'
 
 buildscript {
     repositories {
@@ -16,9 +16,11 @@ apply plugin: 'java'
 apply plugin: 'com.google.protobuf'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'application'
+apply plugin: 'maven-publish'
 
-def protobufVersion = "3.25.5"
-def grpcVersion = "1.60.0"
+def protobufVersion = "3.25.8"
+def grpcVersion = "1.75.0"
+def protocGenVersion = '1.60.0' // https://github.com/grpc/grpc-java/pull/11371 , 1.64.x is not supported CentOS 7.
 
 mainClassName = 'org.tron.p2p.example.StartApp'
 
@@ -64,12 +66,12 @@ dependencies {
     implementation group: 'org.bouncycastle', name: 'bcprov-jdk18on', version: '1.79'
     implementation group: 'org.bouncycastle', name: 'bcpkix-jdk18on', version: '1.79'
 
-    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.4'
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.18.0'
     implementation group: 'commons-cli', name: 'commons-cli', version: '1.5.0'
 
-    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
-    testImplementation group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
-    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.12'
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.34'
+    testImplementation group: 'org.projectlombok', name: 'lombok', version: '1.18.34'
+    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.34'
 
     implementation group: 'dnsjava', name: 'dnsjava', version: '3.6.2'
     implementation('software.amazon.awssdk:route53:2.18.41', {
@@ -84,10 +86,21 @@ dependencies {
         exclude group: 'io.netty', module: 'netty-transport-classes-epoll'
         exclude group: 'io.netty', module: 'netty-transport-native-unix-common'
     })
-    implementation group: 'com.aliyun', name: 'alidns20150109', version: '3.0.1',{
+    implementation group: 'com.aliyun', name: 'alidns20150109', version: '3.0.1', {
         exclude group: 'org.bouncycastle', module: 'bcprov-jdk15on'
         exclude group: 'org.bouncycastle', module: 'bcpkix-jdk15on'
+        exclude group: 'pull-parser', module: 'pull-parser'
+        exclude group: 'xpp3', module: 'xpp3'
     }
+
+    //If logging is required, uncomment this dependency
+    //implementation("ch.qos.logback:logback-classic:1.2.13") {
+    //    exclude group: 'jaxen', module: 'jaxen'
+    //    exclude group: 'javax.xml.stream', module: 'stax-api'
+    //    exclude group: 'net.java.dev.msv', module: 'xsdlib'
+    //    exclude group: 'pull-parser', module: 'pull-parser'
+    //    exclude group: 'xpp3', module: 'xpp3'
+    //}
 }
 
 tasks.matching { it instanceof Test }.all {
@@ -103,7 +116,7 @@ protobuf {
 
     plugins {
         grpc {
-            artifact = "io.grpc:protoc-gen-grpc-java:$grpcVersion"
+            artifact = "io.grpc:protoc-gen-grpc-java:$protocGenVersion"
         }
     }
     generateProtoTasks {
@@ -176,3 +189,42 @@ artifacts {
 }
 
 processResources.dependsOn(generateProto) // explicit_dependency
+
+publishing {
+    repositories {
+        // CI
+        maven {
+            name = 'ciLocal'
+            url =  "$buildDir/repo"
+        }
+    }
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifact sourcesJar
+            artifact javadocJar
+            pom {
+                name = 'libp2p'
+                description = 'libp2p is a p2p network SDK implemented in java language.'
+                url = 'https://github.com/tronprotocol/libp2p'
+                licenses {
+                    license {
+                        name = 'The Apache Software License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        name = 'chengtx01'
+                        email = 'ctxhorse@gmail.com'
+                    }
+                }
+                scm {
+                    url = 'https://github.com/tronprotocol/libp2p'
+                    connection = 'scm:git:git://github.com/tronprotocol/libp2p.git'
+                    developerConnection = 'scm:git:ssh://git@github.com:tronprotocol/libp2p.git'
+                }
+            }
+        }
+    }
+}

@@ -25,7 +25,7 @@ public class PublishService {
   private static final long publishDelay = 1 * 60 * 60;
 
   private ScheduledExecutorService publisher = Executors.newSingleThreadScheduledExecutor(
-      new BasicThreadFactory.Builder().namingPattern("publishService").build());
+      BasicThreadFactory.builder().namingPattern("publishService").build());
   private Publish publish;
 
   public void init() {

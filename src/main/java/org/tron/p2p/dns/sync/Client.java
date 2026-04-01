@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +41,7 @@ public class Client {
   private final Map<String, ClientTree> clientTrees = new HashMap<>();
 
   private final ScheduledExecutorService syncer = Executors.newSingleThreadScheduledExecutor(
-      new BasicThreadFactory.Builder().namingPattern("dnsSyncer").build());
+      BasicThreadFactory.builder().namingPattern("dnsSyncer").build());
 
   public Client() {
     this.cache = CacheBuilder.newBuilder()

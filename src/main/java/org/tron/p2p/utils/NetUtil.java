@@ -3,6 +3,7 @@ package org.tron.p2p.utils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -11,15 +12,12 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -44,6 +42,8 @@ public class NetUtil {
   //https://codeantenna.com/a/jvrULhCbdj
   public static final Pattern PATTERN_IPv6 = Pattern.compile(
       "^\\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:)))(%.+)?\\s*$");
+
+  private static final String IPADDRESS_LOCALHOST = "127.0.0.1";
 
   public static boolean validIpV4(String ip) {
     if (StringUtils.isEmpty(ip)) {
@@ -91,31 +91,36 @@ public class NetUtil {
     return id;
   }
 
-  private static String getExternalIp(String url) {
+  private static String getExternalIp(String url, boolean isAskIpv4) {
     BufferedReader in = null;
     String ip = null;
     try {
       URLConnection urlConnection = new URL(url).openConnection();
+      urlConnection.setConnectTimeout(10_000); //ms
+      urlConnection.setReadTimeout(10_000); //ms
       in = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
       ip = in.readLine();
       if (ip == null || ip.trim().isEmpty()) {
         throw new IOException("Invalid address: " + ip);
       }
-      try {
-        InetAddress.getByName(ip);
-      } catch (Exception e) {
+      InetAddress inetAddress = InetAddress.getByName(ip);
+      if (isAskIpv4 && !validIpV4(inetAddress.getHostAddress())) {
+        throw new IOException("Invalid address: " + ip);
+      }
+      if (!isAskIpv4 && !validIpV6(inetAddress.getHostAddress())) {
         throw new IOException("Invalid address: " + ip);
       }
       return ip;
     } catch (Exception e) {
       log.warn("Fail to get {} by {}, cause:{}",
           Constant.ipV4Urls.contains(url) ? "ipv4" : "ipv6", url, e.getMessage());
-      return ip;
+      return null;
     } finally {
       if (in != null) {
         try {
           in.close();
         } catch (IOException e) {
+          //ignore
         }
       }
     }
@@ -177,14 +182,14 @@ public class NetUtil {
 
   public static String getExternalIpV4() {
     long t1 = System.currentTimeMillis();
-    String ipV4 = getIp(Constant.ipV4Urls);
+    String ipV4 = getIp(Constant.ipV4Urls, true);
     log.debug("GetExternalIpV4 cost {} ms", System.currentTimeMillis() - t1);
     return ipV4;
   }
 
   public static String getExternalIpV6() {
     long t1 = System.currentTimeMillis();
-    String ipV6 = getIp(Constant.ipV6Urls);
+    String ipV6 = getIp(Constant.ipV6Urls, false);
     if (null == ipV6) {
       ipV6 = getOuterIPv6Address();
     }
@@ -212,40 +217,64 @@ public class NetUtil {
     }
   }
 
-  private static String getIp(List<String> multiSrcUrls) {
-    ExecutorService executor = Executors.newCachedThreadPool(
-        new BasicThreadFactory.Builder().namingPattern("getIp").build());
+  private static String getIp(List<String> multiSrcUrls, boolean isAskIpv4) {
+    int threadSize = multiSrcUrls.size();
+    ExecutorService executor = Executors.newFixedThreadPool(threadSize,
+        BasicThreadFactory.builder().namingPattern("getIp-%d").build());
     CompletionService<String> completionService = new ExecutorCompletionService<>(executor);
 
-    List<Callable<String>> tasks = new ArrayList<>();
-    multiSrcUrls.forEach(url -> tasks.add(() -> getExternalIp(url)));
-
-    for (Callable<String> task : tasks) {
-      completionService.submit(task);
+    for (String url : multiSrcUrls) {
+      completionService.submit(() -> getExternalIp(url, isAskIpv4));
     }
 
-    Future<String> future;
-    String result = null;
-    try {
-      future = completionService.take();
-      result = future.get();
-    } catch (InterruptedException | ExecutionException e) {
-      //ignore
-    } finally {
-      executor.shutdownNow();
+    String ip = null;
+    for (int i = 0; i < threadSize; i++) {
+      try {
+        //block until any result return
+        Future<String> f = completionService.take();
+        String result = f.get();
+        if (StringUtils.isNotEmpty(result)) {
+          ip = result;
+          break;
+        }
+      } catch (Exception ignored) {
+        //ignore
+      }
     }
 
-    return result;
+    executor.shutdownNow();
+    return ip;
   }
 
   public static String getLanIP() {
-    String lanIP;
-    try (Socket s = new Socket("www.baidu.com", 80)) {
-      lanIP = s.getLocalAddress().getHostAddress();
-    } catch (IOException e) {
-      log.warn("Can't get lan IP. Fall back to 127.0.0.1: " + e);
-      lanIP = "127.0.0.1";
+    Enumeration<NetworkInterface> networkInterfaces;
+    try {
+      networkInterfaces = NetworkInterface.getNetworkInterfaces();
+    } catch (SocketException e) {
+      log.warn("Can't get lan IP. Fall back to {}", IPADDRESS_LOCALHOST, e);
+      return IPADDRESS_LOCALHOST;
     }
-    return lanIP;
+    while (networkInterfaces.hasMoreElements()) {
+      NetworkInterface ni = networkInterfaces.nextElement();
+      try {
+        if (!ni.isUp() || ni.isLoopback() || ni.isVirtual()) {
+          continue;
+        }
+      } catch (SocketException e) {
+        continue;
+      }
+      Enumeration<InetAddress> inetAds = ni.getInetAddresses();
+      while (inetAds.hasMoreElements()) {
+        InetAddress inetAddress = inetAds.nextElement();
+        if (inetAddress instanceof Inet4Address && !isReservedAddress(inetAddress)) {
+          String ipAddress = inetAddress.getHostAddress();
+          if (PATTERN_IPv4.matcher(ipAddress).find()) {
+            return ipAddress;
+          }
+        }
+      }
+    }
+    log.warn("Can't get lan IP. Fall back to {}", IPADDRESS_LOCALHOST);
+    return IPADDRESS_LOCALHOST;
   }
 }

@@ -1,14 +1,14 @@
 package org.tron.p2p.utils;
 
-import java.lang.reflect.InvocationTargetException;
+import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import org.junit.Assert;
 import org.junit.Test;
 import org.tron.p2p.base.Constant;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.protos.Discover;
-
-import java.net.InetSocketAddress;
 
 public class NetUtilTest {
 
@@ -83,11 +83,11 @@ public class NetUtilTest {
     //notice: please check that you only have one externalIP
     String ip1 = null, ip2 = null, ip3 = null;
     try {
-      Method method = NetUtil.class.getDeclaredMethod("getExternalIp", String.class);
+      Method method = NetUtil.class.getDeclaredMethod("getExternalIp", String.class, boolean.class);
       method.setAccessible(true);
-      ip1 = (String) method.invoke(NetUtil.class, Constant.ipV4Urls.get(0));
-      ip2 = (String) method.invoke(NetUtil.class, Constant.ipV4Urls.get(1));
-      ip3 = (String) method.invoke(NetUtil.class, Constant.ipV4Urls.get(2));
+      ip1 = (String) method.invoke(NetUtil.class, Constant.ipV4Urls.get(0), true);
+      ip2 = (String) method.invoke(NetUtil.class, Constant.ipV4Urls.get(1), true);
+      ip3 = (String) method.invoke(NetUtil.class, Constant.ipV4Urls.get(2), true);
     } catch (Exception e) {
       Assert.fail();
     }
@@ -97,10 +97,22 @@ public class NetUtilTest {
     Assert.assertEquals(ip3, ip4);
   }
 
+  private String getLanIP2() {
+    String lanIP;
+    try (Socket s = new Socket("www.baidu.com", 80)) {
+      lanIP = s.getLocalAddress().getHostAddress();
+    } catch (IOException e) {
+      lanIP = "127.0.0.1";
+    }
+    return lanIP;
+  }
+
   @Test
   public void testGetLanIP() {
     String lanIpv4 = NetUtil.getLanIP();
     Assert.assertNotNull(lanIpv4);
+    String lanIpv4Old = getLanIP2();
+    Assert.assertEquals(lanIpv4, lanIpv4Old);
   }
 
   @Test
