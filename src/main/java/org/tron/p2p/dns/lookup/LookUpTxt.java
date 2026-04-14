@@ -1,6 +1,8 @@
 package org.tron.p2p.dns.lookup;
 
 
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
@@ -8,8 +10,8 @@ import java.util.Random;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.base.Parameter;
-import org.xbill.DNS.ARecord;
 import org.xbill.DNS.AAAARecord;
+import org.xbill.DNS.ARecord;
 import org.xbill.DNS.Lookup;
 import org.xbill.DNS.Record;
 import org.xbill.DNS.SimpleResolver;
@@ -99,7 +101,7 @@ public class LookUpTxt {
   }
 
   /**
-   * Resolves a domain name to an IP address string.
+   * Resolves a domain name to an IP address.
    *
    * <p>Resolution order:
    * <ol>
@@ -110,28 +112,34 @@ public class LookUpTxt {
    * </ol>
    *
    * @param domain the domain name to resolve (e.g. {@code "nodes.example.com"})
+   * @param useIPv4 {@code true} to query A records (IPv4); {@code false} to query AAAA records (IPv6)
    * @return the resolved {@link InetAddress}, or {@code null} if resolution fails
    */
-  public static InetAddress lookUpIp(String domain) {
-    log.info("LookUp IP for domain: {}", domain);
+  public static InetAddress lookUpIp(String domain, boolean useIPv4) {
+    log.info("LookUp {} for domain: {}", useIPv4 ? "IPv4" : "IPv6", domain);
 
     // Step 1: OS name resolver — honours /etc/hosts, so LAN mappings work without a DNS query.
+    // getAllByName may return both IPv4 and IPv6 addresses; pick the one matching useIPv4.
     try {
-      InetAddress address = InetAddress.getByName(domain);
-      log.debug("Resolved {} via OS name resolver (may be /etc/hosts): {}", domain,
-          address.getHostAddress());
-      return address;
+      for (InetAddress addr : InetAddress.getAllByName(domain)) {
+        if (useIPv4 && addr instanceof Inet4Address
+            || !useIPv4 && addr instanceof Inet6Address) {
+          log.debug("Resolved {} via OS name resolver (may be /etc/hosts): {}", domain,
+              addr.getHostAddress());
+          return addr;
+        }
+      }
     } catch (UnknownHostException e) {
       log.debug("OS name resolver failed for {}: {}", domain, e.getMessage());
     }
 
     // Step 2: query A/AAAA record via the system default DNS resolver.
-    int recordType = StringUtils.isNotEmpty(Parameter.p2pConfig.getIp()) ? Type.A : Type.AAAA;
+    int recordType = useIPv4 ? Type.A : Type.AAAA;
     try {
       Lookup lookup = new Lookup(domain, recordType);
       Record[] records = lookup.run();
       if (records != null && records.length > 0) {
-        InetAddress address = recordType == Type.A
+        InetAddress address = useIPv4
             ? ((ARecord) records[0]).getAddress()
             : ((AAAARecord) records[0]).getAddress();
         log.debug("Resolved {} via default DNS: {}", domain, address.getHostAddress());
@@ -142,35 +150,34 @@ public class LookUpTxt {
     }
 
     // Step 3: fall back to random public DNS servers.
+    String[] publicDns = useIPv4 ? publicDnsV4 : publicDnsV6;
     long start = System.currentTimeMillis();
     for (int times = 0; times < maxRetryTimes; times++) {
-      String publicDns = recordType == Type.A
-          ? publicDnsV4[random.nextInt(publicDnsV4.length)]
-          : publicDnsV6[random.nextInt(publicDnsV6.length)];
+      String dns = publicDns[random.nextInt(publicDns.length)];
       try {
         Lookup lookup = new Lookup(domain, recordType);
-        SimpleResolver simpleResolver = new SimpleResolver(InetAddress.getByName(publicDns));
+        SimpleResolver simpleResolver = new SimpleResolver(InetAddress.getByName(dns));
         simpleResolver.setTimeout(Duration.ofMillis(1000));
         lookup.setResolver(simpleResolver);
         long thisTime = System.currentTimeMillis();
         Record[] records = lookup.run();
         long end = System.currentTimeMillis();
         if (records != null && records.length > 0) {
-          InetAddress address = recordType == Type.A
+          InetAddress address = useIPv4
               ? ((ARecord) records[0]).getAddress()
               : ((AAAARecord) records[0]).getAddress();
           log.debug("Resolved {} via public DNS {}, cur cost: {}ms, total cost: {}ms",
-              domain, publicDns, end - thisTime, end - start);
+              domain, dns, end - thisTime, end - start);
           return address;
         }
-        log.debug("Public DNS {} failed for {}, cur cost: {}ms", publicDns, domain,
+        log.debug("Public DNS {} failed for {}, cur cost: {}ms", dns, domain,
             System.currentTimeMillis() - thisTime);
       } catch (TextParseException | UnknownHostException e) {
-        log.debug("Public DNS {} error for {}: {}", publicDns, domain, e.getMessage());
+        log.debug("Public DNS {} error for {}: {}", dns, domain, e.getMessage());
       }
     }
 
-    log.error("Failed to resolve IP for domain: {}", domain);
+    log.error("Failed to resolve {} for domain: {}", useIPv4 ? "IPv4" : "IPv6", domain);
     return null;
   }
 

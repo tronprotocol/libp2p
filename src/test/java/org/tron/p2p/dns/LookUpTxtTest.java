@@ -1,5 +1,7 @@
 package org.tron.p2p.dns;
 
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.util.Arrays;
 import org.junit.Assert;
@@ -46,12 +48,19 @@ public class LookUpTxtTest {
    * locally without issuing any DNS query — this validates the /etc/hosts fast path.
    */
   @Test
-  public void testLookUpIp_localhost_resolvesViaHosts() {
-    InetAddress address = LookUpTxt.lookUpIp("localhost");
+  public void testLookUpIp_localhost_ipv4_resolvesViaHosts() {
+    InetAddress address = LookUpTxt.lookUpIp("localhost", true);
     Assert.assertNotNull("localhost must resolve via /etc/hosts", address);
-    // /etc/hosts maps localhost to the loopback interface
-    Assert.assertTrue("Expected loopback address, got: " + address.getHostAddress(),
-        address.isLoopbackAddress());
+    Assert.assertTrue("Expected IPv4 loopback", address instanceof Inet4Address);
+    Assert.assertTrue("Expected loopback address", address.isLoopbackAddress());
+  }
+
+  @Test
+  public void testLookUpIp_localhost_ipv6_resolvesViaHosts() {
+    InetAddress address = LookUpTxt.lookUpIp("localhost", false);
+    Assert.assertNotNull("localhost must resolve via /etc/hosts", address);
+    Assert.assertTrue("Expected IPv6 loopback", address instanceof Inet6Address);
+    Assert.assertTrue("Expected loopback address", address.isLoopbackAddress());
   }
 
   /**
@@ -59,11 +68,17 @@ public class LookUpTxtTest {
    * This validates the normal DNS resolution path (Step 1 via OS resolver).
    */
   @Test
-  public void testLookUpIp_wellKnownDomain_returnsNonNull() {
-    InetAddress address = LookUpTxt.lookUpIp("example.com");
-    Assert.assertNotNull("example.com should resolve to an InetAddress", address);
-    Assert.assertFalse("Resolved address must not be a wildcard",
-        address.isAnyLocalAddress());
+  public void testLookUpIp_wellKnownDomain_ipv4_returnsNonNull() {
+    InetAddress address = LookUpTxt.lookUpIp("example.com", true);
+    Assert.assertNotNull("example.com should resolve to an IPv4 address", address);
+    Assert.assertTrue("Expected Inet4Address", address instanceof Inet4Address);
+  }
+
+  @Test
+  public void testLookUpIp_noArg_defaultsToIPv4() {
+    InetAddress address = LookUpTxt.lookUpIp("example.com", true);
+    Assert.assertNotNull(address);
+    Assert.assertTrue("No-arg overload should return IPv4", address instanceof Inet4Address);
   }
 
   /**
@@ -78,7 +93,7 @@ public class LookUpTxtTest {
     int saved = (int) field.get(null);
     field.set(null, 1);
     try {
-      InetAddress address = LookUpTxt.lookUpIp("this.domain.absolutely.does.not.exist.invalid");
+      InetAddress address = LookUpTxt.lookUpIp("this.domain.absolutely.does.not.exist.invalid", true);
       Assert.assertNull("Non-existent domain should return null", address);
     } finally {
       field.set(null, saved);
