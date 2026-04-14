@@ -8,6 +8,8 @@ import java.util.Random;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.base.Parameter;
+import org.xbill.DNS.ARecord;
+import org.xbill.DNS.AAAARecord;
 import org.xbill.DNS.Lookup;
 import org.xbill.DNS.Record;
 import org.xbill.DNS.SimpleResolver;
@@ -61,16 +63,8 @@ public class LookUpTxt {
     TXTRecord txt = null;
     log.info("LookUp name: {}", name);
     Lookup lookup = new Lookup(name, Type.TXT);
-    // Use the system's default resolver (reads from /etc/resolv.conf or OS DNS config).
-    Record[] records = lookup.run();
-    for (Record item : records) {
-      txt = (TXTRecord) item;
-    }
-    if (txt != null) {
-      log.debug("Succeed to use default dns, cost: {}ms", txt.getTTL());
-      return txt;
-    }
     int times = 0;
+    Record[] records = null;
     long start = System.currentTimeMillis();
     while (times < maxRetryTimes) {
       String publicDns;
@@ -102,6 +96,82 @@ public class LookUpTxt {
       txt = (TXTRecord) item;
     }
     return txt;
+  }
+
+  /**
+   * Resolves a domain name to an IP address string.
+   *
+   * <p>Resolution order:
+   * <ol>
+   *   <li>OS name resolver ({@link InetAddress}) — reads {@code /etc/hosts} first,
+   *       so LAN IP mappings configured there are returned immediately without a DNS query.</li>
+   *   <li>System default DNS resolver (from {@code /etc/resolv.conf} or OS DNS config).</li>
+   *   <li>Random public DNS server (fallback, retried up to {@link #maxRetryTimes} times).</li>
+   * </ol>
+   *
+   * @param domain the domain name to resolve (e.g. {@code "nodes.example.com"})
+   * @return the resolved {@link InetAddress}, or {@code null} if resolution fails
+   */
+  public static InetAddress lookUpIp(String domain) {
+    log.info("LookUp IP for domain: {}", domain);
+
+    // Step 1: OS name resolver — honours /etc/hosts, so LAN mappings work without a DNS query.
+    try {
+      InetAddress address = InetAddress.getByName(domain);
+      log.debug("Resolved {} via OS name resolver (may be /etc/hosts): {}", domain,
+          address.getHostAddress());
+      return address;
+    } catch (UnknownHostException e) {
+      log.debug("OS name resolver failed for {}: {}", domain, e.getMessage());
+    }
+
+    // Step 2: query A/AAAA record via the system default DNS resolver.
+    int recordType = StringUtils.isNotEmpty(Parameter.p2pConfig.getIp()) ? Type.A : Type.AAAA;
+    try {
+      Lookup lookup = new Lookup(domain, recordType);
+      Record[] records = lookup.run();
+      if (records != null && records.length > 0) {
+        InetAddress address = recordType == Type.A
+            ? ((ARecord) records[0]).getAddress()
+            : ((AAAARecord) records[0]).getAddress();
+        log.debug("Resolved {} via default DNS: {}", domain, address.getHostAddress());
+        return address;
+      }
+    } catch (TextParseException e) {
+      log.debug("Default DNS lookup failed for {}: {}", domain, e.getMessage());
+    }
+
+    // Step 3: fall back to random public DNS servers.
+    long start = System.currentTimeMillis();
+    for (int times = 0; times < maxRetryTimes; times++) {
+      String publicDns = recordType == Type.A
+          ? publicDnsV4[random.nextInt(publicDnsV4.length)]
+          : publicDnsV6[random.nextInt(publicDnsV6.length)];
+      try {
+        Lookup lookup = new Lookup(domain, recordType);
+        SimpleResolver simpleResolver = new SimpleResolver(InetAddress.getByName(publicDns));
+        simpleResolver.setTimeout(Duration.ofMillis(1000));
+        lookup.setResolver(simpleResolver);
+        long thisTime = System.currentTimeMillis();
+        Record[] records = lookup.run();
+        long end = System.currentTimeMillis();
+        if (records != null && records.length > 0) {
+          InetAddress address = recordType == Type.A
+              ? ((ARecord) records[0]).getAddress()
+              : ((AAAARecord) records[0]).getAddress();
+          log.debug("Resolved {} via public DNS {}, cur cost: {}ms, total cost: {}ms",
+              domain, publicDns, end - thisTime, end - start);
+          return address;
+        }
+        log.debug("Public DNS {} failed for {}, cur cost: {}ms", publicDns, domain,
+            System.currentTimeMillis() - thisTime);
+      } catch (TextParseException | UnknownHostException e) {
+        log.debug("Public DNS {} error for {}: {}", publicDns, domain, e.getMessage());
+      }
+    }
+
+    log.error("Failed to resolve IP for domain: {}", domain);
+    return null;
   }
 
   public static String joinTXTRecord(TXTRecord txtRecord) {
