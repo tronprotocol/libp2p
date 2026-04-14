@@ -5,10 +5,7 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.util.Arrays;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
-import org.tron.p2p.P2pConfig;
-import org.tron.p2p.base.Parameter;
 import org.tron.p2p.dns.lookup.LookUpTxt;
 import org.xbill.DNS.DClass;
 import org.xbill.DNS.Name;
@@ -16,11 +13,6 @@ import org.xbill.DNS.TXTRecord;
 import org.xbill.DNS.TextParseException;
 
 public class LookUpTxtTest {
-
-  @Before
-  public void setUp() {
-    Parameter.p2pConfig = new P2pConfig();
-  }
 
   @Test
   public void testJoinTXTRecord_singleString() throws TextParseException {
@@ -93,7 +85,8 @@ public class LookUpTxtTest {
     int saved = (int) field.get(null);
     field.set(null, 1);
     try {
-      InetAddress address = LookUpTxt.lookUpIp("this.domain.absolutely.does.not.exist.invalid", true);
+      InetAddress address =
+          LookUpTxt.lookUpIp("this.domain.absolutely.does.not.exist.invalid", true);
       Assert.assertNull("Non-existent domain should return null", address);
     } finally {
       field.set(null, saved);
