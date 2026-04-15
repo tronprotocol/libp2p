@@ -116,7 +116,10 @@ public class LookUpTxt {
    * @return the resolved {@link InetAddress}, or {@code null} if resolution fails
    */
   public static InetAddress lookUpIp(String domain, boolean useIPv4) {
-    log.info("LookUp {} for domain: {}", useIPv4 ? "IPv4" : "IPv6", domain);
+    if (StringUtils.isEmpty(domain)) {
+      return null;
+    }
+    log.debug("LookUp {} for domain: {}", useIPv4 ? "IPv4" : "IPv6", domain);
 
     // Step 1: OS name resolver — honours /etc/hosts, so LAN mappings work without a DNS query.
     // getAllByName may return both IPv4 and IPv6 addresses; pick the one matching useIPv4.
@@ -133,23 +136,8 @@ public class LookUpTxt {
       log.debug("OS name resolver failed for {}: {}", domain, e.getMessage());
     }
 
-    // Step 2: query A/AAAA record via the system default DNS resolver.
+    // Step 2: fall back to random public DNS servers.
     int recordType = useIPv4 ? Type.A : Type.AAAA;
-    try {
-      Lookup lookup = new Lookup(domain, recordType);
-      Record[] records = lookup.run();
-      if (records != null && records.length > 0) {
-        InetAddress address = useIPv4
-            ? ((ARecord) records[0]).getAddress()
-            : ((AAAARecord) records[0]).getAddress();
-        log.debug("Resolved {} via default DNS: {}", domain, address.getHostAddress());
-        return address;
-      }
-    } catch (TextParseException e) {
-      log.debug("Default DNS lookup failed for {}: {}", domain, e.getMessage());
-    }
-
-    // Step 3: fall back to random public DNS servers.
     String[] publicDns = useIPv4 ? publicDnsV4 : publicDnsV6;
     long start = System.currentTimeMillis();
     for (int times = 0; times < maxRetryTimes; times++) {
