@@ -165,7 +165,7 @@ public class LookUpTxt {
       }
     }
 
-    log.error("Failed to resolve {} for domain: {}", useIPv4 ? "IPv4" : "IPv6", domain);
+    log.warn("Failed to resolve {} for domain: {}", useIPv4 ? "IPv4" : "IPv6", domain);
     return null;
   }
 
