@@ -1,12 +1,18 @@
 package org.tron.p2p.dns.lookup;
 
 
+import com.google.common.annotations.VisibleForTesting;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.base.Parameter;
@@ -53,6 +59,11 @@ public class LookUpTxt {
 
   static int maxRetryTimes = 5;
   static Random random = new Random();
+  static final ExecutorService OS_RESOLVER_EXECUTOR = Executors.newCachedThreadPool(r -> {
+    Thread t = new Thread(r, "dns-os-resolver");
+    t.setDaemon(true);
+    return t;
+  });
 
   public static TXTRecord lookUpTxt(String hash, String domain)
       throws TextParseException, UnknownHostException {
@@ -101,15 +112,10 @@ public class LookUpTxt {
   }
 
   /**
-   * Resolves a domain name to an IP address.
-   *
-   * <p>Resolution order:
-   * <ol>
+   * Resolves a domain name to an IP address. Resolution order:
    *   <li>OS name resolver ({@link InetAddress}) — reads {@code /etc/hosts} first,
    *       so LAN IP mappings configured there are returned immediately without a DNS query.</li>
-   *   <li>System default DNS resolver (from {@code /etc/resolv.conf} or OS DNS config).</li>
    *   <li>Random public DNS server (fallback, retried up to {@link #maxRetryTimes} times).</li>
-   * </ol>
    *
    * @param domain the domain name to resolve (e.g. {@code "nodes.example.com"})
    * @param useIPv4 {@code true} to query A records (IPv4); {@code false} to query AAAA records (IPv6)
@@ -122,9 +128,10 @@ public class LookUpTxt {
     log.debug("LookUp {} for domain: {}", useIPv4 ? "IPv4" : "IPv6", domain);
 
     // Step 1: OS name resolver — honours /etc/hosts, so LAN mappings work without a DNS query.
-    // getAllByName may return both IPv4 and IPv6 addresses; pick the one matching useIPv4.
+    Future<InetAddress[]> future = OS_RESOLVER_EXECUTOR.submit(
+        () -> InetAddress.getAllByName(domain));
     try {
-      for (InetAddress addr : InetAddress.getAllByName(domain)) {
+      for (InetAddress addr : future.get(2000, TimeUnit.MILLISECONDS)) {
         if ((useIPv4 && addr instanceof Inet4Address)
             || (!useIPv4 && addr instanceof Inet6Address)) {
           log.debug("Resolved {} via OS name resolver (may be /etc/hosts): {}", domain,
@@ -132,7 +139,10 @@ public class LookUpTxt {
           return addr;
         }
       }
-    } catch (UnknownHostException e) {
+    } catch (TimeoutException e) {
+      future.cancel(true);
+      log.debug("OS name resolver timed out for {}", domain);
+    } catch (Exception e) {
       log.debug("OS name resolver failed for {}: {}", domain, e.getMessage());
     }
 
