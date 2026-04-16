@@ -66,13 +66,6 @@ public class LookUpTxtTest {
     Assert.assertTrue("Expected Inet4Address", address instanceof Inet4Address);
   }
 
-  @Test
-  public void testLookUpIp_noArg_defaultsToIPv4() {
-    InetAddress address = LookUpTxt.lookUpIp("example.com", true);
-    Assert.assertNotNull(address);
-    Assert.assertTrue("No-arg overload should return IPv4", address instanceof Inet4Address);
-  }
-
   /**
    * The ".invalid" TLD is RFC 2606-reserved and guaranteed never to resolve.
    * All three resolution steps (OS, default DNS, public DNS) should fail, returning null.

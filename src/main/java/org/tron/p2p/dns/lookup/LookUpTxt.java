@@ -125,8 +125,8 @@ public class LookUpTxt {
     // getAllByName may return both IPv4 and IPv6 addresses; pick the one matching useIPv4.
     try {
       for (InetAddress addr : InetAddress.getAllByName(domain)) {
-        if (useIPv4 && addr instanceof Inet4Address
-            || !useIPv4 && addr instanceof Inet6Address) {
+        if ((useIPv4 && addr instanceof Inet4Address)
+            || (!useIPv4 && addr instanceof Inet6Address)) {
           log.debug("Resolved {} via OS name resolver (may be /etc/hosts): {}", domain,
               addr.getHostAddress());
           return addr;
