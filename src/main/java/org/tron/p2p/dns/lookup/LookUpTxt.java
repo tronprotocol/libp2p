@@ -8,6 +8,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -143,8 +144,11 @@ public class LookUpTxt {
     } catch (TimeoutException e) {
       future.cancel(true);
       log.debug("OS name resolver timed out for {}", domain);
-    } catch (Exception e) {
-      log.debug("OS name resolver failed for {}: {}", domain, e.getMessage());
+    } catch (ExecutionException e) {
+      log.debug("OS name resolver failed for {}: {}", domain, e.getCause().getMessage());
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt(); // restore interrupt flag
+      log.debug("OS name resolver interrupted for {}", domain);
     }
 
     // Step 2: fall back to random public DNS servers.
