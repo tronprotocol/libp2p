@@ -58,7 +58,7 @@ public class LookUpTxt {
   };
 
   @VisibleForTesting
-  public static int maxRetryTimes = 5;
+  static int maxRetryTimes = 5;
   static Random random = new Random();
   static final ExecutorService OS_RESOLVER_EXECUTOR = Executors.newCachedThreadPool(r -> {
     Thread t = new Thread(r, "dns-os-resolver");

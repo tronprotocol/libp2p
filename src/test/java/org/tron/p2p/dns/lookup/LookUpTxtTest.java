@@ -1,4 +1,4 @@
-package org.tron.p2p.dns;
+package org.tron.p2p.dns.lookup;
 
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -6,7 +6,6 @@ import java.net.InetAddress;
 import java.util.Arrays;
 import org.junit.Assert;
 import org.junit.Test;
-import org.tron.p2p.dns.lookup.LookUpTxt;
 import org.xbill.DNS.DClass;
 import org.xbill.DNS.Name;
 import org.xbill.DNS.TXTRecord;
