@@ -71,18 +71,15 @@ public class LookUpTxtTest {
    * All three resolution steps (OS, default DNS, public DNS) should fail, returning null.
    */
   @Test
-  public void testLookUpIp_nonexistentDomain_returnsNull() throws Exception {
-    // Limit public-DNS retries to 1 via reflection so the test exits quickly.
-    java.lang.reflect.Field field = LookUpTxt.class.getDeclaredField("maxRetryTimes");
-    field.setAccessible(true);
-    int saved = (int) field.get(null);
-    field.set(null, 1);
+  public void testLookUpIp_nonexistentDomain_returnsNull() {
+    int saved = LookUpTxt.maxRetryTimes;
+    LookUpTxt.maxRetryTimes = 1;
     try {
       InetAddress address =
           LookUpTxt.lookUpIp("this.domain.absolutely.does.not.exist.invalid", true);
       Assert.assertNull("Non-existent domain should return null", address);
     } finally {
-      field.set(null, saved);
+      LookUpTxt.maxRetryTimes = saved;
     }
   }
 }

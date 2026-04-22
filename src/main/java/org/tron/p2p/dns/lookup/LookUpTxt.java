@@ -57,7 +57,8 @@ public class LookUpTxt {
       "2a00:5a60::ad1:0ff", "2a00:5a60::ad2:0ff" //AdGuard
   };
 
-  static int maxRetryTimes = 5;
+  @VisibleForTesting
+  public static int maxRetryTimes = 5;
   static Random random = new Random();
   static final ExecutorService OS_RESOLVER_EXECUTOR = Executors.newCachedThreadPool(r -> {
     Thread t = new Thread(r, "dns-os-resolver");
