@@ -10,7 +10,8 @@ import java.time.Duration;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -61,11 +62,16 @@ public class LookUpTxt {
   @VisibleForTesting
   static int maxRetryTimes = 5;
   static Random random = new Random();
-  static final ExecutorService OS_RESOLVER_EXECUTOR = Executors.newCachedThreadPool(r -> {
-    Thread t = new Thread(r, "dns-os-resolver");
-    t.setDaemon(true);
-    return t;
-  });
+  static final ExecutorService OS_RESOLVER_EXECUTOR = new ThreadPoolExecutor(
+      1, 8, 60L, TimeUnit.SECONDS,
+      new LinkedBlockingQueue<>(16),
+      r -> {
+        Thread t = new Thread(r, "dns-os-resolver");
+        t.setDaemon(true);
+        return t;
+      },
+      new ThreadPoolExecutor.AbortPolicy()
+  );
 
   public static TXTRecord lookUpTxt(String hash, String domain)
       throws TextParseException, UnknownHostException {
@@ -142,6 +148,10 @@ public class LookUpTxt {
         }
       }
     } catch (TimeoutException e) {
+      // cancel(true) sends an interrupt, but InetAddress.getAllByName() is a
+      // native blocking call and does NOT respond to interrupts. The thread
+      // will keep running until the OS-level resolution completes or times out.
+      // This is an accepted limitation of wrapping non-interruptible I/O in a Future.
       future.cancel(true);
       log.debug("OS name resolver timed out for {}", domain);
     } catch (ExecutionException e) {
