@@ -1,13 +1,25 @@
 package org.tron.p2p.dns.lookup;
 
 
+import com.google.common.annotations.VisibleForTesting;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.base.Parameter;
+import org.xbill.DNS.AAAARecord;
+import org.xbill.DNS.ARecord;
 import org.xbill.DNS.Lookup;
 import org.xbill.DNS.Record;
 import org.xbill.DNS.SimpleResolver;
@@ -47,8 +59,19 @@ public class LookUpTxt {
       "2a00:5a60::ad1:0ff", "2a00:5a60::ad2:0ff" //AdGuard
   };
 
+  @VisibleForTesting
   static int maxRetryTimes = 5;
   static Random random = new Random();
+  static final ExecutorService OS_RESOLVER_EXECUTOR = new ThreadPoolExecutor(
+      1, 8, 60L, TimeUnit.SECONDS,
+      new LinkedBlockingQueue<>(16),
+      r -> {
+        Thread t = new Thread(r, "dns-os-resolver");
+        t.setDaemon(true);
+        return t;
+      },
+      new ThreadPoolExecutor.AbortPolicy()
+  );
 
   public static TXTRecord lookUpTxt(String hash, String domain)
       throws TextParseException, UnknownHostException {
@@ -94,6 +117,81 @@ public class LookUpTxt {
       txt = (TXTRecord) item;
     }
     return txt;
+  }
+
+  /**
+   * Resolves a domain name to an IP address. Resolution order:
+   *   <li>OS name resolver ({@link InetAddress}) — reads {@code /etc/hosts} first,
+   *       so LAN IP mappings configured there are returned immediately without a DNS query.</li>
+   *   <li>Random public DNS server (fallback, retried up to {@link #maxRetryTimes} times).</li>
+   *
+   * @param domain the domain name to resolve (e.g. {@code "nodes.example.com"})
+   * @param useIPv4 {@code true} to query A records (IPv4); {@code false} to query AAAA records (IPv6)
+   * @return the resolved {@link InetAddress}, or {@code null} if resolution fails
+   */
+  public static InetAddress lookUpIp(String domain, boolean useIPv4) {
+    if (StringUtils.isEmpty(domain)) {
+      return null;
+    }
+    log.debug("LookUp {} for domain: {}", useIPv4 ? "IPv4" : "IPv6", domain);
+
+    // Step 1: OS name resolver — honours /etc/hosts, so LAN mappings work without a DNS query.
+    Future<InetAddress[]> future = OS_RESOLVER_EXECUTOR.submit(
+        () -> InetAddress.getAllByName(domain));
+    try {
+      for (InetAddress addr : future.get(2000, TimeUnit.MILLISECONDS)) {
+        if ((useIPv4 && addr instanceof Inet4Address)
+            || (!useIPv4 && addr instanceof Inet6Address)) {
+          log.debug("Resolved {} via OS name resolver (may be /etc/hosts): {}", domain,
+              addr.getHostAddress());
+          return addr;
+        }
+      }
+    } catch (TimeoutException e) {
+      // cancel(true) sends an interrupt, but InetAddress.getAllByName() is a
+      // native blocking call and does NOT respond to interrupts. The thread
+      // will keep running until the OS-level resolution completes or times out.
+      // This is an accepted limitation of wrapping non-interruptible I/O in a Future.
+      future.cancel(true);
+      log.debug("OS name resolver timed out for {}", domain);
+    } catch (ExecutionException e) {
+      log.debug("OS name resolver failed for {}: {}", domain, e.getCause().getMessage());
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt(); // restore interrupt flag
+      log.debug("OS name resolver interrupted for {}", domain);
+    }
+
+    // Step 2: fall back to random public DNS servers.
+    int recordType = useIPv4 ? Type.A : Type.AAAA;
+    String[] publicDns = useIPv4 ? publicDnsV4 : publicDnsV6;
+    long start = System.currentTimeMillis();
+    for (int times = 0; times < maxRetryTimes; times++) {
+      String dns = publicDns[random.nextInt(publicDns.length)];
+      try {
+        Lookup lookup = new Lookup(domain, recordType);
+        SimpleResolver simpleResolver = new SimpleResolver(InetAddress.getByName(dns));
+        simpleResolver.setTimeout(Duration.ofMillis(1000));
+        lookup.setResolver(simpleResolver);
+        long thisTime = System.currentTimeMillis();
+        Record[] records = lookup.run();
+        long end = System.currentTimeMillis();
+        if (records != null && records.length > 0) {
+          InetAddress address = useIPv4
+              ? ((ARecord) records[0]).getAddress()
+              : ((AAAARecord) records[0]).getAddress();
+          log.debug("Resolved {} via public DNS {}, cur cost: {}ms, total cost: {}ms",
+              domain, dns, end - thisTime, end - start);
+          return address;
+        }
+        log.debug("Public DNS {} failed for {}, cur cost: {}ms", dns, domain,
+            System.currentTimeMillis() - thisTime);
+      } catch (TextParseException | UnknownHostException e) {
+        log.debug("Public DNS {} error for {}: {}", dns, domain, e.getMessage());
+      }
+    }
+
+    log.warn("Failed to resolve {} for domain: {}", useIPv4 ? "IPv4" : "IPv6", domain);
+    return null;
   }
 
   public static String joinTXTRecord(TXTRecord txtRecord) {

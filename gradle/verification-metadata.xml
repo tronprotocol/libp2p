@@ -3,6 +3,10 @@
    <configuration>
       <verify-metadata>true</verify-metadata>
       <verify-signatures>false</verify-signatures>
+      <trusted-artifacts>
+         <trust file=".*-sources\.jar" regex="true"/>
+         <trust file=".*-javadoc\.jar" regex="true"/>
+      </trusted-artifacts>
    </configuration>
    <components>
       <component group="com.aliyun" name="alibabacloud-gateway-spi" version="0.0.1">
