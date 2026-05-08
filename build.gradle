@@ -19,7 +19,7 @@ apply plugin: 'application'
 apply plugin: 'maven-publish'
 
 def protobufVersion = "3.25.8"
-def grpcVersion = "1.75.0"
+def grpcVersion = "1.81.0"
 def protocGenVersion = '1.60.0' // https://github.com/grpc/grpc-java/pull/11371 , 1.64.x is not supported CentOS 7.
 
 mainClassName = 'org.tron.p2p.example.StartApp'
@@ -63,8 +63,8 @@ dependencies {
     implementation group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
     implementation group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.36'
-    implementation group: 'org.bouncycastle', name: 'bcprov-jdk18on', version: '1.79'
-    implementation group: 'org.bouncycastle', name: 'bcpkix-jdk18on', version: '1.79'
+    implementation group: 'org.bouncycastle', name: 'bcprov-jdk18on', version: '1.84'
+    implementation group: 'org.bouncycastle', name: 'bcpkix-jdk18on', version: '1.84'
 
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.18.0'
     implementation group: 'commons-cli', name: 'commons-cli', version: '1.5.0'
