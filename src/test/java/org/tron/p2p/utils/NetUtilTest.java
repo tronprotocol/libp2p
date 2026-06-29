@@ -39,6 +39,13 @@ public class NetUtilTest {
     // a trailing line terminator must not be accepted (matches() vs find())
     flag = NetUtil.validIpV6("2001:db8::1\n");
     Assert.assertFalse(flag);
+    // a scope id may not contain whitespace (%\\S+, not %.+)
+    flag = NetUtil.validIpV6("fe80::1%eth0");
+    Assert.assertTrue(flag);
+    flag = NetUtil.validIpV6("fe80::1%eth0 ");
+    Assert.assertFalse(flag);
+    flag = NetUtil.validIpV6("fe80::1%e t h0");
+    Assert.assertFalse(flag);
   }
 
   @Test
