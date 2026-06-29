@@ -2,6 +2,7 @@ package org.tron.p2p.discover;
 
 import java.io.Serializable;
 import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import lombok.Getter;
 import lombok.Setter;
@@ -95,7 +96,8 @@ public class Node implements Serializable, Cloneable {
         this.hostV6 = null;
         return;
       }
-      this.hostV6 = new InetSocketAddress(hostV6, port).getAddress().getHostAddress();
+      InetAddress address = new InetSocketAddress(hostV6, port).getAddress();
+      this.hostV6 = address == null ? null : address.getHostAddress();
     }
   }
 
