@@ -49,14 +49,14 @@ public class NetUtil {
     if (StringUtils.isEmpty(ip)) {
       return false;
     }
-    return PATTERN_IPv4.matcher(ip).find();
+    return PATTERN_IPv4.matcher(ip).matches();
   }
 
   public static boolean validIpV6(String ip) {
     if (StringUtils.isEmpty(ip)) {
       return false;
     }
-    return PATTERN_IPv6.matcher(ip).find();
+    return PATTERN_IPv6.matcher(ip).matches();
   }
 
   public static boolean validNode(Node node) {
