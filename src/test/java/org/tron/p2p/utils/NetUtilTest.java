@@ -26,6 +26,19 @@ public class NetUtilTest {
     Assert.assertFalse(flag);
     flag = NetUtil.validIpV4("1.1.1.1");
     Assert.assertTrue(flag);
+    // a trailing line terminator must not be accepted (matches() vs find())
+    flag = NetUtil.validIpV4("1.1.1.1\n");
+    Assert.assertFalse(flag);
+
+    flag = NetUtil.validIpV6(null);
+    Assert.assertFalse(flag);
+    flag = NetUtil.validIpV6("evil.example.com");
+    Assert.assertFalse(flag);
+    flag = NetUtil.validIpV6("2001:db8::1");
+    Assert.assertTrue(flag);
+    // a trailing line terminator must not be accepted (matches() vs find())
+    flag = NetUtil.validIpV6("2001:db8::1\n");
+    Assert.assertFalse(flag);
   }
 
   @Test
