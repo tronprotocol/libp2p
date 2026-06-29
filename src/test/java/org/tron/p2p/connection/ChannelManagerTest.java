@@ -1,11 +1,19 @@
 package org.tron.p2p.connection;
 
+import com.google.protobuf.ByteString;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.embedded.EmbeddedChannel;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ArrayUtils;
 import org.junit.Assert;
 import org.junit.Test;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
+import org.tron.p2p.connection.message.MessageType;
+import org.tron.p2p.protos.Connect;
+import org.tron.p2p.protos.Discover;
 
 import java.lang.reflect.Field;
 import java.net.InetAddress;
@@ -126,5 +134,53 @@ public class ChannelManagerTest {
   private void clearChannels() {
     ChannelManager.getChannels().clear();
     ChannelManager.getBannedNodes().invalidateAll();
+  }
+
+  @Test
+  public synchronized void testDiscoveryModeRejectsHelloMessage() throws Exception {
+    clearChannels();
+    Parameter.p2pConfig = new P2pConfig();
+
+    Channel channel = new Channel();
+    channel.setDiscoveryMode(true);
+
+    InetSocketAddress addr = new InetSocketAddress("100.1.1.5", 18888);
+    Field f = channel.getClass().getDeclaredField("inetSocketAddress");
+    f.setAccessible(true);
+    f.set(channel, addr);
+    f = channel.getClass().getDeclaredField("inetAddress");
+    f.setAccessible(true);
+    f.set(channel, addr.getAddress());
+
+    EmbeddedChannel ec = new EmbeddedChannel(new ChannelInboundHandlerAdapter());
+    ChannelHandlerContext ctx = ec.pipeline().firstContext();
+    f = channel.getClass().getDeclaredField("ctx");
+    f.setAccessible(true);
+    f.set(channel, ctx);
+
+    byte[] helloBytes = buildHelloMessageBytes();
+
+    ChannelManager.processMessage(channel, helloBytes);
+
+    Assert.assertTrue(channel.isDisconnect());
+    Assert.assertNull(channel.getHelloMessage());
+    Assert.assertFalse(channel.isFinishHandshake());
+    Assert.assertFalse(ChannelManager.getChannels().containsKey(addr));
+  }
+
+  private byte[] buildHelloMessageBytes() {
+    Discover.Endpoint endpoint = Discover.Endpoint.newBuilder()
+        .setNodeId(ByteString.copyFrom(new byte[64]))
+        .setAddress(ByteString.copyFromUtf8("127.0.0.1"))
+        .setPort(18888)
+        .build();
+    Connect.HelloMessage hello = Connect.HelloMessage.newBuilder()
+        .setFrom(endpoint)
+        .setNetworkId(1)
+        .setCode(DisconnectCode.NORMAL.getValue())
+        .setVersion(1)
+        .setTimestamp(System.currentTimeMillis())
+        .build();
+    return ArrayUtils.add(hello.toByteArray(), 0, MessageType.HANDSHAKE_HELLO.getType());
   }
 }

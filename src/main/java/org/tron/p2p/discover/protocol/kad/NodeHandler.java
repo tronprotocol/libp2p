@@ -24,6 +24,8 @@ public class NodeHandler {
   private AtomicInteger pingTrials = new AtomicInteger(3);
   private volatile boolean waitForPong = false;
   private volatile boolean waitForNeighbors = false;
+  private volatile int findNodeFail;
+  private static int maxFindNodeFailures = 5;
 
   public NodeHandler(Node node, KadService kadService) {
     this.node = node;
@@ -130,6 +132,7 @@ public class NodeHandler {
       log.warn("Receive neighbors from {} without send find nodes", sender);
       return;
     }
+    findNodeFail = 0;
     waitForNeighbors = false;
     for (Node n : msg.getNodes()) {
       if (!kadService.getPublicHomeNode().getHexId().equals(n.getHexId())) {
@@ -182,6 +185,15 @@ public class NodeHandler {
   }
 
   public void sendFindNode(byte[] target) {
+    if (waitForNeighbors) {
+      findNodeFail++;
+      if (findNodeFail >= maxFindNodeFailures) {
+        if (kadService.getTable().failFindNode(node)) {
+          changeState(State.DEAD);
+          return;
+        }
+      }
+    }
     waitForNeighbors = true;
     FindNodeMessage msg = new FindNodeMessage(kadService.getPublicHomeNode(), target);
     sendMessage(msg);

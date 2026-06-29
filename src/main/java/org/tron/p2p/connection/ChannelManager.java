@@ -22,6 +22,7 @@ import org.tron.p2p.connection.business.handshake.HandshakeService;
 import org.tron.p2p.connection.business.keepalive.KeepAliveService;
 import org.tron.p2p.connection.business.pool.ConnPoolService;
 import org.tron.p2p.connection.message.Message;
+import org.tron.p2p.connection.message.MessageType;
 import org.tron.p2p.connection.message.base.P2pDisconnectMessage;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.connection.socket.PeerServer;
@@ -214,6 +215,13 @@ public class ChannelManager {
       log.info("Receive message from channel: {}, {}", channel.getInetSocketAddress(), message);
     } else {
       log.debug("Receive message from channel {}, {}", channel.getInetSocketAddress(), message);
+    }
+
+    if (channel.isDiscoveryMode() && message.getType() != MessageType.STATUS) {
+      log.debug("Discovery channel {} received unexpected message {}, close it",
+          channel.getInetSocketAddress(), message.getType());
+      channel.close();
+      return;
     }
 
     switch (message.getType()) {

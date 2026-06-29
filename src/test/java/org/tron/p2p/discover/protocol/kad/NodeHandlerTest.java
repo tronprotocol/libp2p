@@ -1,5 +1,6 @@
 package org.tron.p2p.discover.protocol.kad;
 
+import org.checkerframework.checker.units.qual.N;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -9,6 +10,7 @@ import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.message.kad.PingMessage;
 import org.tron.p2p.discover.message.kad.PongMessage;
+import org.tron.p2p.utils.NetUtil;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -79,6 +81,32 @@ public class NodeHandlerTest {
 
     Assert.assertFalse(kadService.getTable().contains(oldNode));
     Assert.assertTrue(kadService.getTable().contains(replaceNode));
+  }
+
+  @Test
+  public void testSendFindNode() throws Exception {
+    byte[] nodeId = NetUtil.getNodeId();
+    Node node = new Node(nodeId, "127.0.0.1", "", 1);
+    NodeHandler handler = new NodeHandler(node, kadService);
+
+    kadService.getTable().addNode(node);
+
+    for (int i = 0; i < 2; i++) {
+      String ip = "127.0.1." + i;
+      kadService.getTable().addNode(new Node(nodeId, ip, "", 1));
+    }
+
+    for (int i = 0; i < 6; i++) {
+      handler.sendFindNode(NetUtil.getNodeId());
+    }
+
+    Assert.assertFalse(handler.getState().equals(NodeHandler.State.DEAD));
+
+    kadService.getTable().addNode(new Node(nodeId, "127.0.1.4", "", 1));
+
+    handler.sendFindNode(NetUtil.getNodeId());
+
+    Assert.assertTrue(handler.getState().equals(NodeHandler.State.DEAD));
   }
 
   @AfterClass

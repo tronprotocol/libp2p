@@ -38,6 +38,15 @@ public class NodeTest {
   }
 
   @Test
+  public void hostV6NonLiteralRejectedWithoutDnsTest() {
+    // A non-literal hostV6 (e.g. an attacker-supplied domain) must be rejected by formatHostV6
+    // without performing a blocking DNS lookup. Guard against the I/O-thread DoS regression.
+    Node node = new Node(NetUtil.getNodeId(), null,
+        "rnd-" + System.nanoTime() + ".attacker-zone.invalid", 10002);
+    Assert.assertNull(node.getHostV6());
+  }
+
+  @Test
   public void ipV4CompatibleTest() {
     Parameter.p2pConfig.setIp("127.0.0.1");
     Parameter.p2pConfig.setIpv6(null);

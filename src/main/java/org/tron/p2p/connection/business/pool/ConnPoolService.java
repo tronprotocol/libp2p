@@ -60,6 +60,7 @@ public class ConnPoolService extends P2pEventHandler {
   public P2pConfig p2pConfig = Parameter.p2pConfig;
   private PeerClient peerClient;
   private final List<InetSocketAddress> configActiveNodes = new ArrayList<>();
+  private int minCandidateSize = 50;
 
   public ConnPoolService() {
     this.messageTypes = new HashSet<>(); //no message type registers
@@ -217,6 +218,11 @@ public class ConnPoolService extends P2pEventHandler {
     }
 
     filtered.sort(Comparator.comparingLong(node -> -node.getUpdateTime()));
+    int candidateSize = Math.max(limit * 10, minCandidateSize);
+    if (filtered.size() > candidateSize) {
+      filtered = filtered.subList(0, candidateSize);
+    }
+    Collections.shuffle(filtered);
     return CollectionUtils.truncate(filtered, limit);
   }
 

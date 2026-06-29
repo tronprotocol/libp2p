@@ -2,6 +2,7 @@ package org.tron.p2p.discover;
 
 import java.io.Serializable;
 import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import lombok.Getter;
 import lombok.Setter;
@@ -89,7 +90,14 @@ public class Node implements Serializable, Cloneable {
   //use standard ipv6 format
   private void formatHostV6() {
     if (StringUtils.isNotEmpty(this.hostV6)) {
-      this.hostV6 = new InetSocketAddress(hostV6, port).getAddress().getHostAddress();
+      // Only canonicalize valid IPv6 literals. a non-literal triggers a blocking JVM DNS lookup
+      // on the calling (netty I/O) thread
+      if (!NetUtil.validIpV6(this.hostV6)) {
+        this.hostV6 = null;
+        return;
+      }
+      InetAddress address = new InetSocketAddress(hostV6, port).getAddress();
+      this.hostV6 = address == null ? null : address.getHostAddress();
     }
   }
 

@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import org.tron.p2p.discover.Node;
 
+import static org.tron.p2p.discover.protocol.kad.table.KademliaOptions.BUCKET_SIZE;
+
 public class NodeTable {
   private final Node node;  // our node
   private transient NodeBucket[] buckets;
@@ -91,6 +93,19 @@ public class NodeTable {
     return new ArrayList<>(nodes.values());
   }
 
+  public synchronized boolean failFindNode(Node n) {
+    NodeEntry entry = nodes.get(n.getHostKey());
+    if (entry == null) {
+      return false;
+    }
+    if (buckets[getBucketId(entry)].getNodes().size() >= BUCKET_SIZE / 4) {
+      nodes.remove(n.getHostKey());
+      buckets[getBucketId(entry)].dropNode(entry);
+      return true;
+    }
+    return false;
+  }
+
   public synchronized List<Node> getClosestNodes(byte[] targetId) {
     List<NodeEntry> closestEntries = getAllNodes();
     List<Node> closestNodes = new ArrayList<>();
@@ -98,8 +113,8 @@ public class NodeTable {
       closestNodes.add((Node) e.getNode().clone());
     }
     Collections.sort(closestNodes, new DistanceComparator(targetId));
-    if (closestNodes.size() > KademliaOptions.BUCKET_SIZE) {
-      closestNodes = closestNodes.subList(0, KademliaOptions.BUCKET_SIZE);
+    if (closestNodes.size() > BUCKET_SIZE) {
+      closestNodes = closestNodes.subList(0, BUCKET_SIZE);
     }
     return closestNodes;
   }
