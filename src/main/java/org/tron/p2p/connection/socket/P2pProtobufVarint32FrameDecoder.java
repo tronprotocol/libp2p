@@ -71,12 +71,28 @@ public class P2pProtobufVarint32FrameDecoder extends ByteToMessageDecoder {
 
   @Override
   protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
+    // Evict a still-un-handshaked inbound connection once it passes the handshake deadline.
+    // A slow-trickle peer keeps this connection alive by sending bytes; every such byte lands
+    // here, so its own keep-alive traffic triggers the eviction (no timer / no polling needed).
+    if (!channel.isActive() && !channel.isFinishHandshake() && !channel.isTrustPeer()
+        && System.currentTimeMillis() - channel.getStartTime() > Parameter.HANDSHAKE_TIMEOUT_MS) {
+      log.info("Close pending peer {}, handshake not finished within {} ms",
+          ctx.channel().remoteAddress(), Parameter.HANDSHAKE_TIMEOUT_MS);
+      in.clear();
+      channel.close();
+      return;
+    }
     in.markReaderIndex();
     int preIndex = in.readerIndex();
     int length = readRawVarint32(in);
-    if (length >= Parameter.MAX_MESSAGE_LENGTH) {
-      log.warn("Receive a big msg or not encoded msg, host : {}, msg length is : {}",
-          ctx.channel().remoteAddress(), length);
+    // Before the handshake completes, only a tiny HELLO is expected. Cap the accepted frame
+    // length so an un-handshaked peer cannot make the decoder buffer up to ~5 MB per connection.
+    int maxLength = channel.isFinishHandshake()
+        ? Parameter.MAX_MESSAGE_LENGTH : Parameter.MAX_PRE_HANDSHAKE_LENGTH;
+    if (length >= maxLength) {
+      log.warn("Receive a big msg or not encoded msg, host : {}, msg length is : {}, "
+              + "finishHandshake : {}", ctx.channel().remoteAddress(), length,
+          channel.isFinishHandshake());
       in.clear();
       channel.send(new P2pDisconnectMessage(DisconnectReason.BAD_MESSAGE));
       channel.close();

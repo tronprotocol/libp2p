@@ -53,6 +53,9 @@ public class ChannelManager {
   private static HandshakeService handshakeService;
 
   @Getter
+  private static final InboundAdmission inboundAdmission = new InboundAdmission();
+
+  @Getter
   private static final Map<InetSocketAddress, Channel> channels = new ConcurrentHashMap<>();
 
   @Getter

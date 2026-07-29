@@ -38,6 +38,17 @@ public class Parameter {
 
   public static final int MAX_MESSAGE_LENGTH = 5 * 1024 * 1024;
 
+  // Max declared frame length accepted from a connection that has NOT finished the handshake.
+  // The largest pre-handshake message (HELLO / discovery STATUS) is ~150-200 bytes; this
+  // bounds pre-handshake decoder buffering with a generous margin.
+  public static final int MAX_PRE_HANDSHAKE_LENGTH = 1024;
+
+  // Global cap on inbound connections that have not yet finished the handshake.
+  public static final int MAX_PENDING_CONNECTIONS = 1000;
+
+  // A pending (un-handshaked) inbound connection is evicted after this long.
+  public static final long HANDSHAKE_TIMEOUT_MS = 8_000;
+
   public static volatile P2pConfig p2pConfig;
 
   public static volatile List<P2pEventHandler> handlerList = new ArrayList<>();

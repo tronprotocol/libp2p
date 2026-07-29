@@ -7,6 +7,7 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
+import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.business.upgrade.UpgradeController;
 import org.tron.p2p.connection.message.base.P2pDisconnectMessage;
 import org.tron.p2p.connection.message.detect.StatusMessage;
@@ -31,6 +32,18 @@ public class MessageHandler extends ByteToMessageDecoder {
   public void channelActive(ChannelHandlerContext ctx) {
     log.debug("Channel active, {}", ctx.channel().remoteAddress());
     channel.setChannelHandlerContext(ctx);
+    // Inbound, un-handshaked connection: enforce pending-pool admission (global + per-IP caps)
+    // at accept time, before any bytes are read, so slow/never-handshaking peers can no longer
+    // bypass the connection limits. Established peers are still managed by processPeer.
+    if (!channel.isActive() && !channel.isDiscoveryMode() && !channel.isTrustPeer()) {
+      DisconnectCode code = ChannelManager.getInboundAdmission().register(channel);
+      if (!DisconnectCode.NORMAL.equals(code)) {
+        channel.send(new P2pDisconnectMessage(ChannelManager.getDisconnectReason(code)));
+        channel.close();
+        return;
+      }
+      // release happens in P2pChannelInitializer's closeFuture callback (fires on any close)
+    }
     if (channel.isActive()) {
       if (channel.isDiscoveryMode()) {
         channel.send(new StatusMessage());
