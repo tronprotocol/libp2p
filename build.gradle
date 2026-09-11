@@ -31,9 +31,6 @@ repositories {
 
 sourceSets {
     main {
-        proto {
-            srcDir 'src/main/protos'
-        }
         java {
             srcDir 'src/main/java'
         }
