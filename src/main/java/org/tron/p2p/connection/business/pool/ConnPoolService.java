@@ -42,6 +42,8 @@ import org.tron.p2p.utils.NetUtil;
 @Slf4j(topic = "net")
 public class ConnPoolService extends P2pEventHandler {
 
+  // A remote host supporting TCP port reuse can connect from its listening port.
+  // Incoming and outgoing channels can then share a remote address; track instances separately.
   private final List<Channel> activePeers = Collections.synchronizedList(new ArrayList<>());
   private final Cache<InetAddress, Long> peerClientCache = CacheBuilder.newBuilder()
       .maximumSize(1000).expireAfterWrite(120, TimeUnit.SECONDS).recordStats().build();
@@ -298,7 +300,10 @@ public class ConnPoolService extends P2pEventHandler {
 
   @Override
   public synchronized void onConnect(Channel peer) {
-    if (!activePeers.contains(peer)) {
+    // cannot use activePeers.contains(peer) to judge whether channel is already exist,
+    // because two channels may have the same hashcode(address + port)
+    // when remote host supporting TCP port reuse
+    if (activePeers.stream().noneMatch(channel -> channel == peer)) {
       if (!peer.isActive()) {
         passivePeersCount.incrementAndGet();
       } else {
@@ -311,13 +316,12 @@ public class ConnPoolService extends P2pEventHandler {
 
   @Override
   public synchronized void onDisconnect(Channel peer) {
-    if (activePeers.contains(peer)) {
+    if (activePeers.removeIf(channel -> channel == peer)) {
       if (!peer.isActive()) {
         passivePeersCount.decrementAndGet();
       } else {
         activePeersCount.decrementAndGet();
       }
-      activePeers.remove(peer);
     }
     logActivePeers();
   }
