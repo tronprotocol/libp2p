@@ -142,6 +142,10 @@ public class NodeHandler {
   }
 
   public void handleFindNode(FindNodeMessage msg) {
+    // Only serve nodes that have passed the existing Ping/Pong checks.
+    if (state != State.ALIVE && state != State.ACTIVE && state != State.EVICTCANDIDATE) {
+      return;
+    }
     List<Node> closest = kadService.getTable().getClosestNodes(msg.getTargetId());
     sendNeighbours(closest, msg.getTimestamp());
   }
