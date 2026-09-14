@@ -2,16 +2,37 @@ package org.tron.p2p.discover.socket;
 
 import io.netty.channel.Channel;
 import java.lang.reflect.Field;
+import java.net.BindException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.net.DatagramSocket;
 import org.junit.Assert;
 import org.junit.Test;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.base.Parameter;
 
 public class DiscoverServerTest {
+
+  @Test(timeout = 15000)
+  public void initialUdpBindFailureReachesCaller() throws Exception {
+    P2pConfig previousConfig = Parameter.p2pConfig;
+    try (DatagramSocket occupied = new DatagramSocket(0)) {
+      Parameter.p2pConfig = new P2pConfig();
+      Parameter.p2pConfig.setPort(occupied.getLocalPort());
+      DiscoverServer server = new DiscoverServer();
+      try {
+        IllegalStateException error = Assert.assertThrows(IllegalStateException.class,
+            () -> server.init(new NoopEventHandler()));
+        Assert.assertTrue(error.getCause() instanceof BindException);
+      } finally {
+        server.close();
+      }
+    } finally {
+      Parameter.p2pConfig = previousConfig;
+    }
+  }
 
   @Test(timeout = 15000)
   public void closeDuringBindReleasesChannelAndEventLoop() throws Exception {
@@ -24,7 +45,7 @@ public class DiscoverServerTest {
     AtomicReference<Channel> udpChannel = new AtomicReference<>();
     AtomicReference<Throwable> failure = new AtomicReference<>();
     try {
-      server.init(new EventHandler() {
+      EventHandler eventHandler = new EventHandler() {
         @Override
         public void channelActivated() {
         }
@@ -45,7 +66,15 @@ public class DiscoverServerTest {
             failure.set(error);
           }
         }
+      };
+      Thread startup = new Thread(() -> {
+        try {
+          server.init(eventHandler);
+        } catch (Throwable error) {
+          failure.set(error);
+        }
       });
+      startup.start();
       Assert.assertTrue(initializing.await(5, TimeUnit.SECONDS));
       // Pause before bind completes, when DiscoverServer.close() cannot yet see its channel.
       server.close();
@@ -60,5 +89,11 @@ public class DiscoverServerTest {
       server.close();
       Parameter.p2pConfig = previousConfig;
     }
+  }
+
+  private static class NoopEventHandler implements EventHandler {
+    @Override public void channelActivated() { }
+    @Override public void handleEvent(UdpEvent event) { }
+    @Override public void setMessageSender(Consumer<UdpEvent> sender) { }
   }
 }

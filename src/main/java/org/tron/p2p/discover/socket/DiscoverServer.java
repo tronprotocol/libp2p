@@ -8,6 +8,8 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.tron.p2p.base.Parameter;
@@ -19,10 +21,11 @@ public class DiscoverServer {
   private volatile Channel channel;
   private EventHandler eventHandler;
 
-  private static final int SERVER_RESTART_WAIT = 5;
+  private static final int SERVER_RESTART_WAIT_SECONDS = 5;
   private final int SERVER_CLOSE_WAIT = 10;
   private final int port = Parameter.p2pConfig.getPort();
   private volatile boolean shutdown = false;
+  private final CompletableFuture<Void> initialBind = new CompletableFuture<>();
 
   public void init(EventHandler eventHandler) {
     this.eventHandler = eventHandler;
@@ -30,9 +33,19 @@ public class DiscoverServer {
       try {
         start();
       } catch (Exception e) {
+        initialBind.completeExceptionally(e);
         log.error("Discovery server start failed", e);
       }
     }, "DiscoverServer").start();
+    try {
+      initialBind.get();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Interrupted while starting discovery server", e);
+    } catch (ExecutionException e) {
+      throw new IllegalStateException("Failed to bind UDP discovery port " + port,
+          e.getCause());
+    }
   }
 
   public void close() {
@@ -76,6 +89,7 @@ public class DiscoverServer {
         }
 
         log.info("Discovery server started, bind port {}", port);
+        initialBind.complete(null);
 
         channel.closeFuture().sync();
         if (shutdown) {
@@ -83,12 +97,13 @@ public class DiscoverServer {
           break;
         }
         log.warn("Restart discovery server after 5 sec pause...");
-        Thread.sleep(SERVER_RESTART_WAIT * 1000);
+        Thread.sleep(TimeUnit.SECONDS.toMillis(SERVER_RESTART_WAIT_SECONDS));
       }
     } catch (InterruptedException e) {
       log.warn("Discover server interrupted");
       Thread.currentThread().interrupt();
     } catch (Exception e) {
+      initialBind.completeExceptionally(e);
       log.error("Start discovery server with port {} failed", port, e);
     } finally {
       group.shutdownGracefully().sync();
