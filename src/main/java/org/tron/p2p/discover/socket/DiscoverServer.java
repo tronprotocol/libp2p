@@ -7,9 +7,10 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.tron.p2p.base.Parameter;
@@ -22,7 +23,8 @@ public class DiscoverServer {
   private EventHandler eventHandler;
 
   private static final int SERVER_RESTART_WAIT_SECONDS = 5;
-  private final int SERVER_CLOSE_WAIT = 10;
+  private static final int SERVER_CLOSE_WAIT_SECONDS = 10;
+  private static final int SERVER_START_WAIT_SECONDS = 10;
   private final int port = Parameter.p2pConfig.getPort();
   private volatile boolean shutdown = false;
   private final CompletableFuture<Void> initialBind = new CompletableFuture<>();
@@ -38,13 +40,16 @@ public class DiscoverServer {
       }
     }, "DiscoverServer").start();
     try {
-      initialBind.get();
+      initialBind.get(SERVER_START_WAIT_SECONDS, TimeUnit.SECONDS);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Interrupted while starting discovery server", e);
     } catch (ExecutionException e) {
       throw new IllegalStateException("Failed to bind UDP discovery port " + port,
           e.getCause());
+    } catch (TimeoutException e) {
+      close();
+      throw new IllegalStateException("Timed out while starting discovery server", e);
     }
   }
 
@@ -53,7 +58,7 @@ public class DiscoverServer {
     shutdown = true;
     if (channel != null) {
       try {
-        channel.close().awaitUninterruptibly(SERVER_CLOSE_WAIT, TimeUnit.SECONDS);
+        channel.close().awaitUninterruptibly(SERVER_CLOSE_WAIT_SECONDS, TimeUnit.SECONDS);
       } catch (Exception e) {
         log.error("Closing discovery server failed", e);
       }
@@ -85,6 +90,8 @@ public class DiscoverServer {
         channel = b.bind(port).sync().channel();
         if (shutdown) {
           channel.close().sync();
+          initialBind.completeExceptionally(
+              new IllegalStateException("Discovery server startup was cancelled"));
           break;
         }
 
@@ -102,10 +109,15 @@ public class DiscoverServer {
     } catch (InterruptedException e) {
       log.warn("Discover server interrupted");
       Thread.currentThread().interrupt();
+      initialBind.completeExceptionally(e);
     } catch (Exception e) {
       initialBind.completeExceptionally(e);
       log.error("Start discovery server with port {} failed", port, e);
     } finally {
+      if (!initialBind.isDone()) {
+        initialBind.completeExceptionally(
+            new IllegalStateException("Discovery server stopped before initial bind"));
+      }
       group.shutdownGracefully().sync();
     }
   }

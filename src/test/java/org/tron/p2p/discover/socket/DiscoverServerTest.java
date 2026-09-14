@@ -3,17 +3,34 @@ package org.tron.p2p.discover.socket;
 import io.netty.channel.Channel;
 import java.lang.reflect.Field;
 import java.net.BindException;
+import java.net.DatagramSocket;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.net.DatagramSocket;
 import org.junit.Assert;
 import org.junit.Test;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.base.Parameter;
 
 public class DiscoverServerTest {
+
+  @Test(timeout = 15000)
+  public void shutdownBeforeStartupCompletesInitialBindExceptionally() {
+    P2pConfig previousConfig = Parameter.p2pConfig;
+    Parameter.p2pConfig = new P2pConfig();
+    Parameter.p2pConfig.setPort(0);
+    DiscoverServer server = new DiscoverServer();
+    try {
+      server.close();
+      IllegalStateException error = Assert.assertThrows(IllegalStateException.class,
+          () -> server.init(new NoopEventHandler()));
+      Assert.assertTrue(error.getCause() instanceof IllegalStateException);
+    } finally {
+      server.close();
+      Parameter.p2pConfig = previousConfig;
+    }
+  }
 
   @Test(timeout = 15000)
   public void initialUdpBindFailureReachesCaller() throws Exception {
@@ -83,7 +100,7 @@ public class DiscoverServerTest {
       Assert.assertTrue(channel.closeFuture().await(5, TimeUnit.SECONDS));
       Assert.assertTrue(channel.eventLoop().terminationFuture().await(5, TimeUnit.SECONDS));
       Assert.assertFalse(channel.isOpen());
-      Assert.assertNull(failure.get());
+      Assert.assertTrue(failure.get() instanceof IllegalStateException);
     } finally {
       continueBind.countDown();
       server.close();
