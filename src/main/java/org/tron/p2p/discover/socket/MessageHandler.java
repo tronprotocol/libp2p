@@ -60,8 +60,7 @@ public class MessageHandler extends SimpleChannelInboundHandler<UdpEvent>
 
   @Override
   public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-    log.warn("Exception caught in udp message handler, {} {}",
-        ctx.channel().remoteAddress(), cause.getMessage());
+    log.warn("Exception caught in UDP message handler", cause);
     ctx.close();
   }
 }
