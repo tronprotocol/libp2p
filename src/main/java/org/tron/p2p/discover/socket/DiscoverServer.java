@@ -19,7 +19,7 @@ public class DiscoverServer {
   private volatile Channel channel;
   private EventHandler eventHandler;
 
-  private final int SERVER_RESTART_WAIT = 5000;
+  private static final int SERVER_RESTART_WAIT = 5;
   private final int SERVER_CLOSE_WAIT = 10;
   private final int port = Parameter.p2pConfig.getPort();
   private volatile boolean shutdown = false;
@@ -83,7 +83,7 @@ public class DiscoverServer {
           break;
         }
         log.warn("Restart discovery server after 5 sec pause...");
-        Thread.sleep(SERVER_RESTART_WAIT);
+        Thread.sleep(SERVER_RESTART_WAIT * 1000);
       }
     } catch (InterruptedException e) {
       log.warn("Discover server interrupted");
