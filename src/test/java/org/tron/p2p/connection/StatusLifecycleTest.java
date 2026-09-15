@@ -199,6 +199,7 @@ public class StatusLifecycleTest {
     }).sync();
     awaitClosed(channel);
     Assert.assertTrue(ChannelManager.getChannels().isEmpty());
+    Assert.assertTrue(channel.getDisconnectTime() > 0);
     Assert.assertEquals(0, pool.getPassivePeersCount().get());
     Assert.assertEquals(1, disconnected.get());
   }
