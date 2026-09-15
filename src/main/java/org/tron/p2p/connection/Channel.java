@@ -137,9 +137,16 @@ public class Channel {
     return disconnectNotified.compareAndSet(false, true);
   }
 
+  /** Marks the channel as disconnected and records the first disconnect time. */
+  public synchronized void markDisconnected() {
+    isDisconnect = true;
+    if (disconnectTime == 0) {
+      disconnectTime = System.currentTimeMillis();
+    }
+  }
+
   public void close(long banTime) {
-    this.isDisconnect = true;
-    this.disconnectTime = System.currentTimeMillis();
+    markDisconnected();
     ChannelManager.banNode(this.inetAddress, banTime);
     ctx.close();
   }

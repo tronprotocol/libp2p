@@ -36,7 +36,7 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
 
       // be aware of channel closing
       ch.closeFuture().addListener((ChannelFutureListener) future -> {
-        channel.setDisconnect(true);
+        channel.markDisconnected();
         if (channel.isDiscoveryMode() && !channel.isRegisteredPeer()) {
           ChannelManager.getNodeDetectService().notifyDisconnect(channel);
         } else {
