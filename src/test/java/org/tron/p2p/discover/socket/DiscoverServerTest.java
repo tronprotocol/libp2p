@@ -96,6 +96,8 @@ public class DiscoverServerTest {
       // Pause before bind completes, when DiscoverServer.close() cannot yet see its channel.
       server.close();
       continueBind.countDown();
+      startup.join(5000);
+      Assert.assertFalse("Discovery startup thread is still running", startup.isAlive());
       Channel channel = udpChannel.get();
       Assert.assertTrue(channel.closeFuture().await(5, TimeUnit.SECONDS));
       Assert.assertTrue(channel.eventLoop().terminationFuture().await(5, TimeUnit.SECONDS));
