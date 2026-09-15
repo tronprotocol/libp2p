@@ -19,6 +19,15 @@ import org.tron.p2p.stats.TrafficStats;
 @Slf4j(topic = "net")
 public class DiscoverServer {
 
+  /** Indicates that discovery startup was cancelled before the initial bind completed. */
+  public static class StartupCancelledException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+
+    public StartupCancelledException() {
+      super("Discovery server startup was cancelled");
+    }
+  }
+
   private volatile Channel channel;
   private EventHandler eventHandler;
 
@@ -45,8 +54,10 @@ public class DiscoverServer {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Interrupted while starting discovery server", e);
     } catch (ExecutionException e) {
-      throw new IllegalStateException("Failed to bind UDP discovery port " + port,
-          e.getCause());
+      if (e.getCause() instanceof StartupCancelledException) {
+        throw (StartupCancelledException) e.getCause();
+      }
+      throw new IllegalStateException("Failed to bind UDP discovery port " + port, e.getCause());
     } catch (TimeoutException e) {
       close();
       throw new IllegalStateException("Timed out while starting discovery server", e);
@@ -90,8 +101,7 @@ public class DiscoverServer {
         channel = b.bind(port).sync().channel();
         if (shutdown) {
           channel.close().sync();
-          initialBind.completeExceptionally(
-              new IllegalStateException("Discovery server startup was cancelled"));
+          initialBind.completeExceptionally(new StartupCancelledException());
           break;
         }
 
@@ -115,8 +125,9 @@ public class DiscoverServer {
       log.error("Start discovery server with port {} failed", port, e);
     } finally {
       if (!initialBind.isDone()) {
-        initialBind.completeExceptionally(
-            new IllegalStateException("Discovery server stopped before initial bind"));
+        initialBind.completeExceptionally(shutdown
+            ? new StartupCancelledException()
+            : new IllegalStateException("Discovery server stopped before initial bind"));
       }
       group.shutdownGracefully().sync();
     }

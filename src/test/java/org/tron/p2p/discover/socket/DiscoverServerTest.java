@@ -23,9 +23,10 @@ public class DiscoverServerTest {
     DiscoverServer server = new DiscoverServer();
     try {
       server.close();
-      IllegalStateException error = Assert.assertThrows(IllegalStateException.class,
+      DiscoverServer.StartupCancelledException error =
+          Assert.assertThrows(DiscoverServer.StartupCancelledException.class,
           () -> server.init(new NoopEventHandler()));
-      Assert.assertTrue(error.getCause() instanceof IllegalStateException);
+      Assert.assertEquals("Discovery server startup was cancelled", error.getMessage());
     } finally {
       server.close();
       Parameter.p2pConfig = previousConfig;
@@ -102,7 +103,7 @@ public class DiscoverServerTest {
       Assert.assertTrue(channel.closeFuture().await(5, TimeUnit.SECONDS));
       Assert.assertTrue(channel.eventLoop().terminationFuture().await(5, TimeUnit.SECONDS));
       Assert.assertFalse(channel.isOpen());
-      Assert.assertTrue(failure.get() instanceof IllegalStateException);
+      Assert.assertTrue(failure.get() instanceof DiscoverServer.StartupCancelledException);
     } finally {
       continueBind.countDown();
       server.close();
