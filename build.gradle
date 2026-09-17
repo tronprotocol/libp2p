@@ -29,17 +29,6 @@ repositories {
     mavenCentral()
 }
 
-sourceSets {
-    main {
-        proto {
-            srcDir 'src/main/protos'
-        }
-        java {
-            srcDir 'src/main/java'
-        }
-    }
-}
-
 buildscript {
     repositories {
         mavenLocal()
