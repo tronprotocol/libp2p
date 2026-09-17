@@ -34,7 +34,7 @@ public class KadService implements DiscoverService {
 
   private static final int MAX_NODES = 2000;
   private static final int NODES_TRIM_THRESHOLD = 3000;
-  static final int MAX_PENDING_PONG_TASKS = 2000;
+  static final int MAX_PENDING_PONG_TASKS = 20000;
   @Getter
   @Setter
   private static long pingTimeout = 15_000;
