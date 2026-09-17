@@ -19,15 +19,6 @@ import org.tron.p2p.stats.TrafficStats;
 @Slf4j(topic = "net")
 public class DiscoverServer {
 
-  /** Indicates that discovery startup was cancelled before the initial bind completed. */
-  public static class StartupCancelledException extends RuntimeException {
-    private static final long serialVersionUID = 1L;
-
-    public StartupCancelledException() {
-      super("Discovery server startup was cancelled");
-    }
-  }
-
   private volatile Channel channel;
   private EventHandler eventHandler;
 
@@ -54,8 +45,8 @@ public class DiscoverServer {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Interrupted while starting discovery server", e);
     } catch (ExecutionException e) {
-      if (e.getCause() instanceof StartupCancelledException) {
-        throw (StartupCancelledException) e.getCause();
+      if (e.getCause() instanceof IllegalStateException) {
+        throw (IllegalStateException) e.getCause();
       }
       throw new IllegalStateException("Failed to bind UDP discovery port " + port, e.getCause());
     } catch (TimeoutException e) {
@@ -101,7 +92,8 @@ public class DiscoverServer {
         channel = b.bind(port).sync().channel();
         if (shutdown) {
           channel.close().sync();
-          initialBind.completeExceptionally(new StartupCancelledException());
+          initialBind.completeExceptionally(
+              new IllegalStateException("Discovery server startup was cancelled"));
           break;
         }
 
@@ -126,7 +118,7 @@ public class DiscoverServer {
     } finally {
       if (!initialBind.isDone()) {
         initialBind.completeExceptionally(shutdown
-            ? new StartupCancelledException()
+            ? new IllegalStateException("Discovery server startup was cancelled")
             : new IllegalStateException("Discovery server stopped before initial bind"));
       }
       group.shutdownGracefully().sync();
