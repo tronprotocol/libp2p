@@ -109,15 +109,6 @@ public class ChannelManager {
     return cnt;
   }
 
-  public static synchronized DisconnectCode processPeer(Channel channel) {
-    DisconnectCode code = checkPeer(channel);
-    if (code != DisconnectCode.NORMAL) {
-      return code;
-    }
-    addPeer(channel);
-    return DisconnectCode.NORMAL;
-  }
-
   /**
    * Checks peer admission. Callers must hold the ChannelManager class lock until addPeer
    * to prevent another connection from taking the checked capacity.

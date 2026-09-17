@@ -263,7 +263,7 @@ public class HandshakeAdmissionTest {
   public void wrongNetworkCannotEvictAnExistingPeer() throws Exception {
     TestChannel unverified = newChannel(false, 10001);
     TestChannel existing = newChannel(false, 10002);
-    // Force the unverified connection to be older, so a premature processPeer would evict existing.
+    // Force the unverified connection to be older, so a premature checkPeer would evict existing.
     Field startTime = Channel.class.getDeclaredField("startTime");
     startTime.setAccessible(true);
     startTime.set(unverified, existing.getStartTime() - 1);
