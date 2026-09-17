@@ -2,8 +2,11 @@ package org.tron.p2p.discover.protocol.kad;
 
 import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.Node;
@@ -17,7 +20,10 @@ import org.tron.p2p.discover.socket.UdpEvent;
 @Slf4j(topic = "net")
 public class NodeHandler {
 
+  @Setter
+  @Getter
   private Node node;
+  @Getter
   private volatile State state;
   private KadService kadService;
   private NodeHandler replaceCandidate;
@@ -34,18 +40,6 @@ public class NodeHandler {
     if (node.getPreferInetSocketAddress() != null) {
       changeState(State.DISCOVERED);
     }
-  }
-
-  public Node getNode() {
-    return node;
-  }
-
-  public void setNode(Node node) {
-    this.node = node;
-  }
-
-  public State getState() {
-    return state;
   }
 
   private void challengeWith(NodeHandler replaceCandidate) {
@@ -167,16 +161,21 @@ public class NodeHandler {
     if (kadService.getPongTimer().isShutdown()) {
       return;
     }
-    kadService.getPongTimer().schedule(() -> {
-      try {
-        if (waitForPong) {
-          waitForPong = false;
-          handleTimedOut();
+    try {
+      kadService.getPongTimer().schedule(() -> {
+        try {
+          if (waitForPong) {
+            waitForPong = false;
+            handleTimedOut();
+          }
+        } catch (Exception e) {
+          log.error("Unhandled exception in pong timer schedule", e);
         }
-      } catch (Exception e) {
-        log.error("Unhandled exception in pong timer schedule", e);
-      }
-    }, KadService.getPingTimeout(), TimeUnit.MILLISECONDS);
+      }, KadService.getPingTimeout(), TimeUnit.MILLISECONDS);
+    } catch (RejectedExecutionException e) {
+      log.debug("Skip pong timeout for {}, timer stopped or queue full",
+          node.getPreferInetSocketAddress());
+    }
   }
 
   public void sendPong() {
