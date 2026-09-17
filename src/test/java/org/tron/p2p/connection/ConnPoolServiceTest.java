@@ -1,7 +1,6 @@
 package org.tron.p2p.connection;
 
 
-import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -58,19 +57,10 @@ public class ConnPoolServiceTest {
   }
 
   @Test
-  public void getNodes_orderByUpdateTimeDesc() throws Exception {
+  public void getNodes_respectsLimit() {
     clearChannels();
     Node node1 = new Node(new InetSocketAddress(localIp, 90));
-    Field field = node1.getClass().getDeclaredField("updateTime");
-    field.setAccessible(true);
-    field.set(node1, System.currentTimeMillis());
-
     Node node2 = new Node(new InetSocketAddress(localIp, 100));
-    field = node2.getClass().getDeclaredField("updateTime");
-    field.setAccessible(true);
-    field.set(node2, System.currentTimeMillis() + 10);
-
-    Assert.assertTrue(node1.getUpdateTime() < node2.getUpdateTime());
 
     List<Node> connectableNodes = new ArrayList<>();
     connectableNodes.add(node1);
@@ -80,12 +70,14 @@ public class ConnPoolServiceTest {
     List<Node> nodes = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes,
         2);
     Assert.assertEquals(2, nodes.size());
-    Assert.assertTrue(nodes.get(0).getUpdateTime() > nodes.get(1).getUpdateTime());
+    // getNodes shuffles candidates, so compare their contents without assuming an order.
+    Assert.assertEquals(new HashSet<>(connectableNodes), new HashSet<>(nodes));
 
     int limit = 1;
     List<Node> nodes2 = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes,
         limit);
     Assert.assertEquals(limit, nodes2.size());
+    Assert.assertTrue(connectableNodes.containsAll(nodes2));
   }
 
   @Test
