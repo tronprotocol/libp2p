@@ -5,7 +5,6 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
@@ -37,8 +36,8 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
 
       // be aware of channel closing
       ch.closeFuture().addListener((ChannelFutureListener) future -> {
-        channel.setDisconnect(true);
-        if (channel.isDiscoveryMode()) {
+        channel.markDisconnected();
+        if (channel.isDiscoveryMode() && !channel.isRegisteredPeer()) {
           ChannelManager.getNodeDetectService().notifyDisconnect(channel);
         } else {
           try {

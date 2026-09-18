@@ -91,7 +91,17 @@ public class ChannelManager {
       log.warn("Notify Disconnect peer has no address.");
       return;
     }
-    channels.remove(channel.getInetSocketAddress());
+    if (!channel.markDisconnectNotified()) {
+      return;
+    }
+    // Share the registration lock in processPeer to keep the identity check and removal atomic.
+    synchronized (ChannelManager.class) {
+      InetSocketAddress address = channel.getInetSocketAddress();
+      // Channel.equals compares socket addresses; match the actual channel instance instead.
+      if (channels.get(address) == channel) {
+        channels.remove(address);
+      }
+    }
     Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
     InetAddress inetAddress = channel.getInetAddress();
     if (inetAddress != null) {
@@ -144,6 +154,7 @@ public class ChannelManager {
       }
     }
 
+    channel.markRegisteredPeer();
     channels.put(channel.getInetSocketAddress(), channel);
 
     log.info("Add peer {}, total channels: {}", channel.getInetSocketAddress(), channels.size());
