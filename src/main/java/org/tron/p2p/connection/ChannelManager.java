@@ -109,7 +109,11 @@ public class ChannelManager {
     return cnt;
   }
 
-  public static synchronized DisconnectCode processPeer(Channel channel) {
+  /**
+   * Checks peer admission. Callers must hold the ChannelManager class lock until addPeer
+   * to prevent another connection from taking the checked capacity.
+   */
+  public static synchronized DisconnectCode checkPeer(Channel channel) {
 
     if (!channel.isActive() && !channel.isTrustPeer()) {
       InetAddress inetAddress = channel.getInetAddress();
@@ -132,6 +136,10 @@ public class ChannelManager {
     }
 
     if (StringUtils.isNotEmpty(channel.getNodeId())) {
+      if (channel.getNodeId().equals(Hex.toHexString(Parameter.p2pConfig.getNodeID()))) {
+        log.info("Channel {} is myself", channel.getInetSocketAddress());
+        return DisconnectCode.DUPLICATE_PEER;
+      }
       for (Channel c : channels.values()) {
         if (channel.getNodeId().equals(c.getNodeId())) {
           if (c.getStartTime() > channel.getStartTime()) {
@@ -144,10 +152,13 @@ public class ChannelManager {
       }
     }
 
+    return DisconnectCode.NORMAL;
+  }
+
+  public static synchronized void addPeer(Channel channel) {
     channels.put(channel.getInetSocketAddress(), channel);
 
     log.info("Add peer {}, total channels: {}", channel.getInetSocketAddress(), channels.size());
-    return DisconnectCode.NORMAL;
   }
 
   public static DisconnectReason getDisconnectReason(DisconnectCode code) {
@@ -255,15 +266,11 @@ public class ChannelManager {
     }
 
     if (!channel.isFinishHandshake()) {
-      channel.setFinishHandshake(true);
-      DisconnectCode code = processPeer(channel);
-      if (!DisconnectCode.NORMAL.equals(code)) {
-        DisconnectReason disconnectReason = getDisconnectReason(code);
-        channel.send(new P2pDisconnectMessage(disconnectReason));
-        channel.getCtx().close();
-        return;
-      }
-      Parameter.handlerList.forEach(h -> h.onConnect(channel));
+      log.warn("Close channel {}, application message received before handshake",
+          channel.getInetSocketAddress());
+      channel.send(new P2pDisconnectMessage(DisconnectReason.BAD_PROTOCOL));
+      channel.close();
+      return;
     }
 
     handler.onMessage(channel, data);
