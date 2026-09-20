@@ -10,6 +10,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -20,7 +22,9 @@ import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.business.pool.ConnPoolService;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.discover.Node;
+import org.tron.p2p.discover.DiscoverService;
 import org.tron.p2p.discover.NodeManager;
+import org.tron.p2p.discover.protocol.kad.KadService;
 
 public class ConnPoolServiceTest {
 
@@ -136,6 +140,99 @@ public class ConnPoolServiceTest {
   }
 
   @Test
+  public void runtimeAddedActiveNodeRetriesAfterFailure() throws Exception {
+    List<InetSocketAddress> activeNodes = new ArrayList<>();
+    Parameter.p2pConfig.setActiveNodes(activeNodes);
+    Parameter.p2pConfig.setMinConnections(0);
+    Parameter.p2pConfig.setMinActiveConnections(0);
+    try {
+      ConnPoolService connPoolService = new ConnPoolService();
+      InetSocketAddress activeNode = new InetSocketAddress("127.0.0.5", 18888);
+      activeNodes.add(activeNode);
+      AtomicInteger attempts = new AtomicInteger();
+      PeerClient peerClient = new PeerClient() {
+        @Override
+        public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
+          attempts.incrementAndGet();
+          connPoolService.triggerConnect(node.getPreferInetSocketAddress());
+          return null;
+        }
+      };
+      Method connect = setPeerClientAndGetConnectMethod(connPoolService, peerClient);
+      connect.invoke(connPoolService, false);
+      connect.invoke(connPoolService, false);
+
+      Assert.assertEquals(2, attempts.get());
+    } finally {
+      Parameter.p2pConfig.setActiveNodes(Collections.emptyList());
+      Parameter.p2pConfig.setMinConnections(8);
+      Parameter.p2pConfig.setMinActiveConnections(3);
+    }
+  }
+
+  @Test
+  public void runtimeAddedActiveNodeFailureReplenishesWithoutRedialingIt()
+      throws Exception {
+    List<InetSocketAddress> activeNodes = new ArrayList<>();
+    Parameter.p2pConfig.setActiveNodes(activeNodes);
+    Parameter.p2pConfig.setMinConnections(1);
+    Parameter.p2pConfig.setMinActiveConnections(0);
+    Field discoveryField = NodeManager.class.getDeclaredField("discoverService");
+    discoveryField.setAccessible(true);
+    DiscoverService previousDiscovery = (DiscoverService) discoveryField.get(null);
+    ConnPoolService connPoolService = null;
+    try {
+      connPoolService = new ConnPoolService();
+      InetSocketAddress activeNode = new InetSocketAddress("127.0.0.6", 18888);
+      InetSocketAddress otherNode = new InetSocketAddress("127.0.0.7", 18888);
+      activeNodes.add(activeNode);
+      Node candidate = new Node(new byte[64], "127.0.0.6", "", 18888);
+      Node otherCandidate = new Node(new byte[64], "127.0.0.7", "", 18888);
+      discoveryField.set(null, new KadService() {
+        @Override
+        public List<Node> getConnectableNodes() {
+          List<Node> nodes = new ArrayList<>();
+          nodes.add(candidate);
+          nodes.add(otherCandidate);
+          return nodes;
+        }
+      });
+      AtomicInteger attempts = new AtomicInteger();
+      List<InetSocketAddress> dialed = Collections.synchronizedList(new ArrayList<>());
+      ConnPoolService pool = connPoolService;
+      PeerClient peerClient = new PeerClient() {
+        @Override
+        public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
+          dialed.add(node.getPreferInetSocketAddress());
+          if (attempts.incrementAndGet() == 1) {
+            pool.triggerConnect(node.getPreferInetSocketAddress());
+          }
+          return null;
+        }
+      };
+      Method connect = setPeerClientAndGetConnectMethod(pool, peerClient);
+      connect.invoke(pool, false);
+      Field executorField = ConnPoolService.class.getDeclaredField("poolLoopExecutor");
+      executorField.setAccessible(true);
+      ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) executorField.get(pool);
+      executor.submit(() -> { }).get(5, TimeUnit.SECONDS);
+
+      Assert.assertEquals(2, attempts.get());
+      Assert.assertEquals(activeNode, dialed.get(0));
+      Assert.assertEquals(otherNode, dialed.get(1));
+      Assert.assertEquals(1, pool.getConnectingPeersCount().get());
+    } finally {
+      if (connPoolService != null) {
+        connPoolService.close();
+      }
+      discoveryField.set(null, previousDiscovery);
+      Parameter.p2pConfig.setActiveNodes(Collections.emptyList());
+      Parameter.p2pConfig.setMinConnections(8);
+      Parameter.p2pConfig.setMinActiveConnections(3);
+    }
+  }
+
+  @Test
   public void getNodes_chooseHomeNode() {
     InetSocketAddress localAddress = new InetSocketAddress(Parameter.p2pConfig.getIp(),
         Parameter.p2pConfig.getPort());
@@ -156,19 +253,10 @@ public class ConnPoolServiceTest {
   }
 
   @Test
-  public void getNodes_orderByUpdateTimeDesc() throws Exception {
+  public void getNodes_respectsLimit() {
     clearChannels();
     Node node1 = new Node(new InetSocketAddress(localIp, 90));
-    Field field = node1.getClass().getDeclaredField("updateTime");
-    field.setAccessible(true);
-    field.set(node1, System.currentTimeMillis());
-
     Node node2 = new Node(new InetSocketAddress(localIp, 100));
-    field = node2.getClass().getDeclaredField("updateTime");
-    field.setAccessible(true);
-    field.set(node2, System.currentTimeMillis() + 10);
-
-    Assert.assertTrue(node1.getUpdateTime() < node2.getUpdateTime());
 
     List<Node> connectableNodes = new ArrayList<>();
     connectableNodes.add(node1);
@@ -178,12 +266,14 @@ public class ConnPoolServiceTest {
     List<Node> nodes = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes,
         2);
     Assert.assertEquals(2, nodes.size());
-    Assert.assertTrue(nodes.get(0).getUpdateTime() > nodes.get(1).getUpdateTime());
+    // getNodes shuffles candidates, so compare their contents without assuming an order.
+    Assert.assertEquals(new HashSet<>(connectableNodes), new HashSet<>(nodes));
 
     int limit = 1;
     List<Node> nodes2 = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes,
         limit);
     Assert.assertEquals(limit, nodes2.size());
+    Assert.assertTrue(connectableNodes.containsAll(nodes2));
   }
 
   @Test

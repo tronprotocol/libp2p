@@ -121,6 +121,10 @@ public class ConnPoolService extends P2pEventHandler {
       addNode(inetInUse, channel.getNode());
     });
 
+    if (isFilterActiveNodes) {
+      inetInUse.addAll(p2pConfig.getActiveNodes());
+    }
+
     addNode(inetInUse, new Node(Parameter.p2pConfig.getNodeID(), Parameter.p2pConfig.getIp(),
         Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort()));
 
@@ -275,8 +279,11 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   public void triggerConnect(InetSocketAddress address) {
-    if (configActiveNodes.contains(address)) {
+    boolean activeNode = p2pConfig.getActiveNodes().contains(address);
+    if (activeNode) {
       peerClientCache.invalidate(address.getAddress());
+    }
+    if (configActiveNodes.contains(address)) {
       return;
     }
     connectingPeersCount.decrementAndGet();
