@@ -198,9 +198,9 @@ public class ConnPoolService extends P2pEventHandler {
     {
       connectNodes.forEach(n -> {
         log.info("Connect to peer {}", n.getPreferInetSocketAddress());
-        peerClient.connectAsync(n, false);
         peerClientCache.put(n.getPreferInetSocketAddress().getAddress(),
             System.currentTimeMillis());
+        peerClient.connectAsync(n, false);
         if (!configActiveNodes.contains(n.getPreferInetSocketAddress())) {
           connectingPeersCount.incrementAndGet();
         }

@@ -107,6 +107,35 @@ public class ConnPoolServiceTest {
   }
 
   @Test
+  public void fastConnectionFailureAllowsRetryOnNextTick() throws Exception {
+    InetSocketAddress activeNode = new InetSocketAddress("127.0.0.4", 18888);
+    Parameter.p2pConfig.setActiveNodes(Collections.singletonList(activeNode));
+    Parameter.p2pConfig.setMinConnections(0);
+    Parameter.p2pConfig.setMinActiveConnections(0);
+    try {
+      ConnPoolService connPoolService = new ConnPoolService();
+      AtomicInteger attempts = new AtomicInteger();
+      PeerClient peerClient = new PeerClient() {
+        @Override
+        public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
+          attempts.incrementAndGet();
+          connPoolService.triggerConnect(node.getPreferInetSocketAddress());
+          return null;
+        }
+      };
+      Method connect = setPeerClientAndGetConnectMethod(connPoolService, peerClient);
+      connect.invoke(connPoolService, false);
+      connect.invoke(connPoolService, false);
+
+      Assert.assertEquals(2, attempts.get());
+    } finally {
+      Parameter.p2pConfig.setActiveNodes(Collections.emptyList());
+      Parameter.p2pConfig.setMinConnections(8);
+      Parameter.p2pConfig.setMinActiveConnections(3);
+    }
+  }
+
+  @Test
   public void getNodes_chooseHomeNode() {
     InetSocketAddress localAddress = new InetSocketAddress(Parameter.p2pConfig.getIp(),
         Parameter.p2pConfig.getPort());
