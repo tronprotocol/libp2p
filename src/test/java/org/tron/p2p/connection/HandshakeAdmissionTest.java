@@ -188,6 +188,7 @@ public class HandshakeAdmissionTest {
     receive(channel, hello(NETWORK_ID, 1, DisconnectCode.NORMAL, 1));
 
     assertRejected(channel);
+    Assert.assertEquals(1, channel.helloSendAttempts);
   }
 
   @Test
@@ -382,6 +383,7 @@ public class HandshakeAdmissionTest {
   private static class TestChannel extends Channel {
     private final EmbeddedChannel socket;
     private int handshakeCompletions;
+    private int helloSendAttempts;
     private boolean registeredBeforeHandshake;
     private boolean closeOnHelloReply;
 
@@ -391,9 +393,12 @@ public class HandshakeAdmissionTest {
 
     @Override
     public void send(Message message) {
-      if (closeOnHelloReply && message.getType() == MessageType.HANDSHAKE_HELLO) {
-        close();
-        return;
+      if (message.getType() == MessageType.HANDSHAKE_HELLO) {
+        helloSendAttempts++;
+        if (closeOnHelloReply) {
+          close();
+          return;
+        }
       }
       super.send(message);
     }

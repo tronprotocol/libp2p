@@ -60,7 +60,7 @@ public class HandshakeService implements MessageProcess {
     channel.setHelloMessage(msg);
     DisconnectCode code = finishHandshake(channel, msg);
     if (code != DisconnectCode.NORMAL) {
-      if (!channel.isActive()) {
+      if (!channel.isActive() && code != DisconnectCode.UNKNOWN) {
         sendHelloMsg(channel, code, msg.getTimestamp());
       }
       logDisconnectReason(channel, getDisconnectReason(code));
