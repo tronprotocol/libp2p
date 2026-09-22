@@ -276,6 +276,12 @@ public class ChannelManager {
     handler.onMessage(channel, data);
   }
 
+  /**
+   * @deprecated Node IDs are set during the libp2p handshake, and self-connection and
+   *     duplicate-peer checks are handled by {@link #checkPeer(Channel)} before registration.
+   *     Application code should validate node ID consistency instead of updating it.
+   */
+  @Deprecated
   public static synchronized void updateNodeId(Channel channel, String nodeId) {
     channel.setNodeId(nodeId);
     if (nodeId.equals(Hex.toHexString(Parameter.p2pConfig.getNodeID()))) {
