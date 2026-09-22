@@ -26,12 +26,20 @@ public class P2pService {
 
   public void start(P2pConfig p2pConfig) {
     Parameter.p2pConfig = p2pConfig;
-    NodeManager.init();
-    ChannelManager.init();
-    DnsManager.init();
-    log.info("P2p service started");
-
-    Runtime.getRuntime().addShutdownHook(new Thread(this::close));
+    try {
+      NodeManager.init();
+      ChannelManager.init();
+      DnsManager.init();
+      Runtime.getRuntime().addShutdownHook(new Thread(this::close));
+      log.info("P2p service started");
+    } catch (RuntimeException e) {
+      try {
+        close();
+      } catch (RuntimeException cleanupError) {
+        e.addSuppressed(cleanupError);
+      }
+      throw e;
+    }
   }
 
   public void close() {
