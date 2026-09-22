@@ -23,6 +23,8 @@ public class NodeHandler {
   private NodeHandler replaceCandidate;
   private AtomicInteger pingTrials = new AtomicInteger(3);
   private volatile boolean waitForPong = false;
+  // A same-network Pong received while a Ping was pending, independent of routing eligibility.
+  private volatile boolean pongVerified = false;
   private volatile boolean waitForNeighbors = false;
   private volatile int findNodeFail;
   private static int maxFindNodeFailures = 5;
@@ -57,6 +59,7 @@ public class NodeHandler {
   public void changeState(State newState) {
     State oldState = state;
     if (newState == State.DISCOVERED) {
+      pongVerified = false;
       sendPing();
     }
 
@@ -108,6 +111,9 @@ public class NodeHandler {
       sendPong();
     }
     node.setP2pVersion(msg.getNetworkId());
+    if (msg.getNetworkId() != Parameter.p2pConfig.getNetworkId()) {
+      pongVerified = false;
+    }
     if (!node.isConnectible(Parameter.p2pConfig.getNetworkId())) {
       changeState(State.DEAD);
     } else if (state.equals(State.DEAD)) {
@@ -119,6 +125,7 @@ public class NodeHandler {
     if (waitForPong) {
       waitForPong = false;
       node.setP2pVersion(msg.getNetworkId());
+      pongVerified = msg.getNetworkId() == Parameter.p2pConfig.getNetworkId();
       if (!node.isConnectible(Parameter.p2pConfig.getNetworkId())) {
         changeState(State.DEAD);
       } else {
@@ -142,8 +149,8 @@ public class NodeHandler {
   }
 
   public void handleFindNode(FindNodeMessage msg) {
-    // Only serve nodes that have passed the existing Ping/Pong checks.
-    if (state != State.ALIVE && state != State.ACTIVE && state != State.EVICTCANDIDATE) {
+    // Port-mapped endpoints can answer our Ping without qualifying for the routing table.
+    if (!pongVerified) {
       return;
     }
     List<Node> closest = kadService.getTable().getClosestNodes(msg.getTargetId());
@@ -155,6 +162,7 @@ public class NodeHandler {
     if (pingTrials.getAndDecrement() > 0) {
       sendPing();
     } else {
+      pongVerified = false;
       if (state == State.DISCOVERED || state == State.EVICTCANDIDATE) {
         changeState(State.DEAD);
       } else {
@@ -193,6 +201,7 @@ public class NodeHandler {
       findNodeFail++;
       if (findNodeFail >= maxFindNodeFailures) {
         if (kadService.getTable().failFindNode(node)) {
+          pongVerified = false;
           changeState(State.DEAD);
           return;
         }
@@ -227,8 +236,8 @@ public class NodeHandler {
      */
     DISCOVERED,
     /**
-     * The node didn't send the Pong message back withing acceptable timeout This is the final
-     * state
+     * The node is not eligible for the routing table, for example after a failed probe or a
+     * port/network mismatch. This state alone does not determine whether FindNode can be served.
      */
     DEAD,
     /**
