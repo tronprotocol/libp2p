@@ -92,15 +92,17 @@ public class PongTimerTest {
 
   @Test(timeout = 20000)
   public void concurrentSubmissionsRespectQueueLimit() throws Exception {
-    ExecutorService executor = Executors.newFixedThreadPool(8);
+    int threadCount = 8;
+    int tasksPerThread = KadService.MAX_PENDING_PONG_TASKS / threadCount + 100;
+    ExecutorService executor = Executors.newFixedThreadPool(threadCount);
     CountDownLatch start = new CountDownLatch(1);
     List<Future<Integer>> results = new ArrayList<>();
     try {
-      for (int i = 0; i < 8; i++) {
+      for (int i = 0; i < threadCount; i++) {
         results.add(executor.submit(() -> {
           Assert.assertTrue(start.await(5, TimeUnit.SECONDS));
           int accepted = 0;
-          for (int j = 0; j < 300; j++) {
+          for (int j = 0; j < tasksPerThread; j++) {
             try {
               submitDelayedTask();
               accepted++;
@@ -138,6 +140,11 @@ public class PongTimerTest {
     Node from = new Node(new byte[64], "127.0.0.2", "", 18888);
     byte[] wire = new FindNodeMessage(from, new byte[64]).getSendData();
     try {
+      // Leave room for some datagrams, then exercise overflow without scaling packet processing.
+      int availableSlots = Math.min(2000, KadService.MAX_PENDING_PONG_TASKS);
+      for (int i = availableSlots; i < KadService.MAX_PENDING_PONG_TASKS; i++) {
+        submitDelayedTask();
+      }
       for (int i = 0; i < 4000; i++) {
         pipeline.writeInbound(new DatagramPacket(Unpooled.wrappedBuffer(wire),
             new InetSocketAddress("127.0.0.1", 18888),
