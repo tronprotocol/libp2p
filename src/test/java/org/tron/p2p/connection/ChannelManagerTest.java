@@ -6,9 +6,12 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.embedded.EmbeddedChannel;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ArrayUtils;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.tron.p2p.P2pConfig;
+import org.tron.p2p.P2pEventHandler;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.message.MessageType;
@@ -18,9 +21,36 @@ import org.tron.p2p.protos.Discover;
 import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j(topic = "net")
 public class ChannelManagerTest {
+  private P2pConfig previousConfig;
+  private List<P2pEventHandler> previousHandlers;
+
+  @Before
+  public void setUp() {
+    previousConfig = Parameter.p2pConfig;
+    previousHandlers = Parameter.handlerList;
+    Parameter.p2pConfig = new P2pConfig();
+    Parameter.handlerList = new ArrayList<>();
+    clearChannels();
+  }
+
+  @After
+  public void tearDown() {
+    clearChannels();
+    Parameter.p2pConfig = previousConfig;
+    Parameter.handlerList = previousHandlers;
+  }
+
+  private void register(Channel channel, InetSocketAddress address) throws Exception {
+    Field field = Channel.class.getDeclaredField("inetSocketAddress");
+    field.setAccessible(true);
+    field.set(channel, address);
+    Assert.assertEquals(DisconnectCode.NORMAL, ChannelManager.processPeer(channel));
+  }
 
   @Test
   public synchronized void testGetConnectionNum() throws Exception{
@@ -45,15 +75,15 @@ public class ChannelManagerTest {
     int cnt = ChannelManager.getConnectionNum(a1.getAddress());
     Assert.assertTrue(cnt == 0);
 
-    ChannelManager.getChannels().put(a1, c1);
+    register(c1, a1);
     cnt = ChannelManager.getConnectionNum(a1.getAddress());
     Assert.assertTrue(cnt == 1);
 
-    ChannelManager.getChannels().put(a2, c2);
+    register(c2, a2);
     cnt = ChannelManager.getConnectionNum(a2.getAddress());
     Assert.assertTrue(cnt == 1);
 
-    ChannelManager.getChannels().put(a3, c3);
+    register(c3, a3);
     cnt = ChannelManager.getConnectionNum(a3.getAddress());
     Assert.assertTrue(cnt == 2);
   }
@@ -72,16 +102,16 @@ public class ChannelManagerTest {
     field.setAccessible(true);
     field.set(c1, inetAddress);
 
-    ChannelManager.getChannels().put(a1, c1);
+    register(c1, a1);
 
     Long time = ChannelManager.getBannedNodes().getIfPresent(a1.getAddress());
-    Assert.assertTrue(ChannelManager.getChannels().size() == 1);
+    Assert.assertEquals(1, ChannelManager.getChannelCount());
     Assert.assertTrue(time == null);
 
     ChannelManager.notifyDisconnect(c1);
     time = ChannelManager.getBannedNodes().getIfPresent(a1.getAddress());
     Assert.assertTrue(time != null);
-    Assert.assertTrue(ChannelManager.getChannels().size() == 0);
+    Assert.assertEquals(0, ChannelManager.getChannelCount());
   }
 
   @Test
@@ -132,7 +162,7 @@ public class ChannelManagerTest {
   }
 
   private void clearChannels() {
-    ChannelManager.getChannels().clear();
+    ChannelManager.getAllChannels().forEach(ChannelManager::notifyDisconnect);
     ChannelManager.getBannedNodes().invalidateAll();
   }
 
@@ -165,7 +195,8 @@ public class ChannelManagerTest {
     Assert.assertTrue(channel.isDisconnect());
     Assert.assertNull(channel.getHelloMessage());
     Assert.assertFalse(channel.isFinishHandshake());
-    Assert.assertFalse(ChannelManager.getChannels().containsKey(addr));
+    Assert.assertTrue(ChannelManager.getAllChannels().isEmpty());
+    ec.finishAndReleaseAll();
   }
 
   private byte[] buildHelloMessageBytes() {

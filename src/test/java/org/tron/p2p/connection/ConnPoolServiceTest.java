@@ -32,7 +32,7 @@ public class ConnPoolServiceTest {
   }
 
   private void clearChannels() {
-    ChannelManager.getChannels().clear();
+    ChannelManager.getAllChannels().forEach(ChannelManager::notifyDisconnect);
     ChannelManager.getBannedNodes().invalidateAll();
   }
 

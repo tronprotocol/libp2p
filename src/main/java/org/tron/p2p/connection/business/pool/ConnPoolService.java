@@ -114,7 +114,7 @@ public class ConnPoolService extends P2pEventHandler {
     Set<InetSocketAddress> inetInUse = new HashSet<>();
     Set<String> nodesInUse = new HashSet<>();
     nodesInUse.add(Hex.toHexString(p2pConfig.getNodeID()));
-    ChannelManager.getChannels().values().forEach(channel -> {
+    ChannelManager.getAllChannels().forEach(channel -> {
       if (StringUtils.isNotEmpty(channel.getNodeId())) {
         nodesInUse.add(channel.getNodeId());
       }
@@ -247,7 +247,7 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   private void check() {
-    if (ChannelManager.getChannels().size() < p2pConfig.getMaxConnections()) {
+    if (ChannelManager.getChannelCount() < p2pConfig.getMaxConnections()) {
       return;
     }
 
@@ -270,7 +270,7 @@ public class ConnPoolService extends P2pEventHandler {
 
   private synchronized void logActivePeers() {
     log.info("Peer stats: channels {}, activePeers {}, active {}, passive {}",
-        ChannelManager.getChannels().size(), activePeers.size(), activePeersCount.get(),
+        ChannelManager.getChannelCount(), activePeers.size(), activePeersCount.get(),
         passivePeersCount.get());
   }
 
@@ -300,9 +300,7 @@ public class ConnPoolService extends P2pEventHandler {
 
   @Override
   public synchronized void onConnect(Channel peer) {
-    // cannot use activePeers.contains(peer) to judge whether channel is already exist,
-    // because two channels may have the same hashcode(address + port)
-    // when remote host supporting TCP port reuse
+    // Channel.equals() compares remote addresses; membership must compare channel instances.
     if (activePeers.stream().noneMatch(channel -> channel == peer)) {
       if (!peer.isActive()) {
         passivePeersCount.incrementAndGet();
