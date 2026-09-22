@@ -121,10 +121,6 @@ public class ConnPoolService extends P2pEventHandler {
       addNode(inetInUse, channel.getNode());
     });
 
-    if (isFilterActiveNodes) {
-      inetInUse.addAll(p2pConfig.getActiveNodes());
-    }
-
     addNode(inetInUse, new Node(Parameter.p2pConfig.getNodeID(), Parameter.p2pConfig.getIp(),
         Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort()));
 
@@ -287,6 +283,9 @@ public class ConnPoolService extends P2pEventHandler {
       return;
     }
     connectingPeersCount.decrementAndGet();
+    if (activeNode) {
+      return;
+    }
     if (poolLoopExecutor.getQueue().size() >= Parameter.CONN_MAX_QUEUE_SIZE) {
       log.warn("ConnPool task' size is greater than or equal to {}", Parameter.CONN_MAX_QUEUE_SIZE);
       return;

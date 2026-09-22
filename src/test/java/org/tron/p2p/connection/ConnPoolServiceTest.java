@@ -171,7 +171,7 @@ public class ConnPoolServiceTest {
   }
 
   @Test
-  public void runtimeAddedActiveNodeFailureReplenishesWithoutRedialingIt()
+  public void runtimeAddedActiveNodeFailureWaitsForNextTick()
       throws Exception {
     List<InetSocketAddress> activeNodes = new ArrayList<>();
     Parameter.p2pConfig.setActiveNodes(activeNodes);
@@ -184,17 +184,12 @@ public class ConnPoolServiceTest {
     try {
       connPoolService = new ConnPoolService();
       InetSocketAddress activeNode = new InetSocketAddress("127.0.0.6", 18888);
-      InetSocketAddress otherNode = new InetSocketAddress("127.0.0.7", 18888);
       activeNodes.add(activeNode);
       Node candidate = new Node(new byte[64], "127.0.0.6", "", 18888);
-      Node otherCandidate = new Node(new byte[64], "127.0.0.7", "", 18888);
       discoveryField.set(null, new KadService() {
         @Override
         public List<Node> getConnectableNodes() {
-          List<Node> nodes = new ArrayList<>();
-          nodes.add(candidate);
-          nodes.add(otherCandidate);
-          return nodes;
+          return Collections.singletonList(candidate);
         }
       });
       AtomicInteger attempts = new AtomicInteger();
@@ -217,10 +212,9 @@ public class ConnPoolServiceTest {
       ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) executorField.get(pool);
       executor.submit(() -> { }).get(5, TimeUnit.SECONDS);
 
-      Assert.assertEquals(2, attempts.get());
+      Assert.assertEquals(1, attempts.get());
       Assert.assertEquals(activeNode, dialed.get(0));
-      Assert.assertEquals(otherNode, dialed.get(1));
-      Assert.assertEquals(1, pool.getConnectingPeersCount().get());
+      Assert.assertEquals(0, pool.getConnectingPeersCount().get());
     } finally {
       if (connPoolService != null) {
         connPoolService.close();
