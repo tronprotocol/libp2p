@@ -5,9 +5,12 @@ import static java.lang.Thread.sleep;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -52,6 +55,11 @@ public class StartApp {
     if (cli.hasOption("a")) {
       Parameter.p2pConfig.setActiveNodes(app.parseInetSocketAddressList(cli.getOptionValue("a")));
       log.info("Active nodes {}", Parameter.p2pConfig.getActiveNodes());
+    }
+
+    if (cli.hasOption("b")) {
+      Parameter.p2pConfig.setBlockedIps(app.parseInetAddressSet(cli.getOptionValue("b")));
+      log.info("Blocked IPs {}", Parameter.p2pConfig.getBlockedIps());
     }
 
     if (cli.hasOption("t")) {
@@ -303,6 +311,8 @@ public class StartApp {
     Option opt9 = new Option("ma", "min-active-connection", true,
         "min active connection number, int, default 2");
     Option opt10 = new Option("h", "help", false, "print help message");
+    Option opt11 = new Option("b", "blocked-ips", true,
+        "blocked IP(s), ip[,ip[...]], TCP only");
 
     Options group = new Options();
     group.addOption(opt1);
@@ -315,6 +325,7 @@ public class StartApp {
     group.addOption(opt8);
     group.addOption(opt9);
     group.addOption(opt10);
+    group.addOption(opt11);
     return group;
   }
 
@@ -390,5 +401,24 @@ public class StartApp {
       }
     }
     return nodes;
+  }
+
+  Set<InetAddress> parseInetAddressSet(String paras) {
+    if (paras == null) {
+      throw new IllegalArgumentException("Blocked IPs must not be null");
+    }
+    Set<InetAddress> addresses = new LinkedHashSet<>();
+    for (String para : paras.split(",", -1)) {
+      String ip = para.trim();
+      if (!NetUtil.validIpV4(ip) && !NetUtil.validIpV6(ip)) {
+        throw new IllegalArgumentException("Invalid blocked IP: " + ip);
+      }
+      try {
+        addresses.add(InetAddress.getByName(ip));
+      } catch (UnknownHostException e) {
+        throw new IllegalArgumentException("Invalid blocked IP: " + ip, e);
+      }
+    }
+    return addresses;
   }
 }

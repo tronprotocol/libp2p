@@ -10,6 +10,7 @@ import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Enumeration;
@@ -201,6 +202,12 @@ public class NetUtil {
     return ipV6;
   }
 
+  /**
+   * Parses an endpoint using the legacy configuration behavior, which accepts both IP literals
+   * and hostnames.
+   *
+   * <p>Use {@link #parseIpSocketAddress(String)} when the input must not trigger DNS resolution.
+   */
   public static InetSocketAddress parseInetSocketAddress(String para) {
     int index = para.trim().lastIndexOf(":");
     if (index > 0) {
@@ -219,6 +226,97 @@ public class NetUtil {
       throw new RuntimeException(String.format("Invalid inetSocketAddress: \"%s\", "
           + "use ipv4:port or [ipv6]:port", para));
     }
+  }
+
+  /**
+   * Parses an IP endpoint without resolving hostnames.
+   *
+   * <p>Only {@code ipv4:port} and {@code [ipv6]:port} are accepted.
+   */
+  public static InetSocketAddress parseIpSocketAddress(String para) {
+    if (para == null) {
+      throw invalidInetSocketAddress();
+    }
+    String endpoint = para.trim();
+    String host;
+    String portText;
+    if (endpoint.startsWith("[")) {
+      // ipv6
+      int closingBracket = endpoint.indexOf(']');
+      if (closingBracket <= 1 || closingBracket + 1 >= endpoint.length()
+          || endpoint.charAt(closingBracket + 1) != ':') {
+        throw invalidInetSocketAddress();
+      }
+      host = endpoint.substring(1, closingBracket);
+      portText = endpoint.substring(closingBracket + 2);
+      if (host.indexOf('%') >= 0 || !validIpV6(host)) {
+        throw invalidInetSocketAddress();
+      }
+    } else {
+      // ipv4
+      int separator = endpoint.indexOf(':');
+      if (separator <= 0 || separator != endpoint.lastIndexOf(':')) {
+        throw invalidInetSocketAddress();
+      }
+      host = endpoint.substring(0, separator);
+      portText = endpoint.substring(separator + 1);
+      if (!validIpV4(host)) {
+        throw invalidInetSocketAddress();
+      }
+    }
+    if (portText.isEmpty() || portText.length() > 5) {
+      throw invalidInetSocketAddress();
+    }
+    for (int i = 0; i < portText.length(); i++) {
+      char character = portText.charAt(i);
+      if (character < '0' || character > '9') {
+        throw invalidInetSocketAddress();
+      }
+    }
+    int port;
+    try {
+      port = Integer.parseInt(portText);
+    } catch (NumberFormatException e) {
+      throw invalidInetSocketAddress();
+    }
+    if (port <= 0 || port > 65535) {
+      throw invalidInetSocketAddress();
+    }
+    try {
+      InetSocketAddress address = new InetSocketAddress(InetAddress.getByName(host), port);
+      validateInetSocketAddress(address);
+      return address;
+    } catch (UnknownHostException e) {
+      throw new IllegalArgumentException("Invalid inetSocketAddress", e);
+    }
+  }
+
+  private static IllegalArgumentException invalidInetSocketAddress() {
+    return new IllegalArgumentException(
+        "Invalid inetSocketAddress, use ipv4:port or [ipv6]:port");
+  }
+
+  public static void validateInetSocketAddress(InetSocketAddress address) {
+    if (address == null || address.isUnresolved() || address.getPort() <= 0) {
+      throw new IllegalArgumentException("address must be resolved and use a valid port");
+    }
+    InetAddress inetAddress = address.getAddress();
+    if (inetAddress.isAnyLocalAddress() || inetAddress.isMulticastAddress()
+        || isLimitedBroadcastAddress(inetAddress)) {
+      throw new IllegalArgumentException(
+          "address must not use an unspecified, multicast, or broadcast IP");
+    }
+  }
+
+  private static boolean isLimitedBroadcastAddress(InetAddress address) {
+    if (!(address instanceof Inet4Address)) {
+      return false;
+    }
+    byte[] bytes = address.getAddress();
+    return (bytes[0] & 0xFF) == 0xFF
+        && (bytes[1] & 0xFF) == 0xFF
+        && (bytes[2] & 0xFF) == 0xFF
+        && (bytes[3] & 0xFF) == 0xFF;
   }
 
   private static String getIp(List<String> multiSrcUrls, boolean isAskIpv4) {

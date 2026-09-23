@@ -3,7 +3,9 @@ package org.tron.p2p;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.Data;
 import org.tron.p2p.dns.update.PublishConfig;
@@ -15,6 +17,7 @@ public class P2pConfig {
   private List<InetSocketAddress> seedNodes = new CopyOnWriteArrayList<>();
   private List<InetSocketAddress> activeNodes = new CopyOnWriteArrayList<>();
   private List<InetAddress> trustNodes = new CopyOnWriteArrayList<>();
+  private Set<InetAddress> blockedIps = Collections.emptySet();
   private byte[] nodeID = NetUtil.getNodeId();
   private String ip = NetUtil.getExternalIpV4();
   private String lanIp = NetUtil.getLanIP();
@@ -34,4 +37,8 @@ public class P2pConfig {
 
   //dns publish config
   private PublishConfig publishConfig = new PublishConfig();
+
+  public void setActiveNodes(List<InetSocketAddress> activeNodes) {
+    this.activeNodes = new CopyOnWriteArrayList<>(activeNodes);
+  }
 }

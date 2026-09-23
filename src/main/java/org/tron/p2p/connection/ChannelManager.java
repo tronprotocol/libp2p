@@ -78,6 +78,10 @@ public class ChannelManager {
   }
 
   public static void connect(InetSocketAddress address) {
+    NetUtil.validateInetSocketAddress(address);
+    if (ConnectionPolicy.isBlocked(address)) {
+      return;
+    }
     peerClient.connect(address.getAddress().getHostAddress(), address.getPort(),
         ByteArray.toHexString(NetUtil.getNodeId()));
   }
@@ -110,6 +114,11 @@ public class ChannelManager {
   }
 
   public static synchronized DisconnectCode processPeer(Channel channel) {
+
+    if (ConnectionPolicy.isBlocked(channel.getInetAddress())) {
+      log.info("Reject peer {} because its IP is manually blocked", channel);
+      return DisconnectCode.UNKNOWN;
+    }
 
     if (!channel.isActive() && !channel.isTrustPeer()) {
       InetAddress inetAddress = channel.getInetAddress();
@@ -302,5 +311,28 @@ public class ChannelManager {
 
   public static void triggerConnect(InetSocketAddress address) {
     connPoolService.triggerConnect(address);
+  }
+
+  public static int disconnect(InetSocketAddress address) {
+    Channel channel = channels.get(address);
+    if (channel == null || channel.isDisconnect()) {
+      return 0;
+    }
+    channel.send(new P2pDisconnectMessage(DisconnectReason.REQUESTED));
+    channel.close();
+    return 1;
+  }
+
+  public static int disconnectBlockedIps() {
+    int disconnectedCount = 0;
+    for (Channel channel : new ArrayList<>(channels.values())) {
+      if (ConnectionPolicy.isBlocked(channel.getInetAddress()) && !channel.isDisconnect()) {
+        // Do not send a DisconnectReason because it would reveal the manual blacklist policy
+        // to a potentially malicious peer.
+        channel.close();
+        disconnectedCount++;
+      }
+    }
+    return disconnectedCount;
   }
 }

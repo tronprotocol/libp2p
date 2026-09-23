@@ -28,6 +28,7 @@ import org.tron.p2p.P2pEventHandler;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
+import org.tron.p2p.connection.ConnectionPolicy;
 import org.tron.p2p.connection.message.base.P2pDisconnectMessage;
 import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.discover.Node;
@@ -59,14 +60,12 @@ public class ConnPoolService extends P2pEventHandler {
 
   public P2pConfig p2pConfig = Parameter.p2pConfig;
   private PeerClient peerClient;
-  private final List<InetSocketAddress> configActiveNodes = new ArrayList<>();
   private int minCandidateSize = 50;
 
   public ConnPoolService() {
     this.messageTypes = new HashSet<>(); //no message type registers
     try {
       Parameter.addP2pEventHandle(this);
-      configActiveNodes.addAll(p2pConfig.getActiveNodes());
     } catch (P2pException e) {
       //no exception will throw
     }
@@ -106,6 +105,8 @@ public class ConnPoolService extends P2pEventHandler {
 
   private void connect(boolean isFilterActiveNodes) {
     List<Node> connectNodes = new ArrayList<>();
+    // Active nodes selected in this scan, used to skip nodes removed before dialing.
+    Set<InetSocketAddress> activeCandidates = new HashSet<>();
 
     //collect already used nodes in channelManager
     Set<InetAddress> addressInUse = new HashSet<>();
@@ -133,12 +134,13 @@ public class ConnPoolService extends P2pEventHandler {
 
     p2pConfig.getActiveNodes().forEach(address -> {
       if (!isFilterActiveNodes && !inetInUse.contains(address) && !addressInUse.contains(
-          address.getAddress())) {
+          address.getAddress()) && !ConnectionPolicy.isBlocked(address)) {
         addressInUse.add(address.getAddress());
         inetInUse.add(address);
         Node node = new Node(address); //use a random NodeId for config activeNodes
         if (node.getPreferInetSocketAddress() != null) {
           connectNodes.add(node);
+          activeCandidates.add(address);
         }
       }
     });
@@ -202,11 +204,18 @@ public class ConnPoolService extends P2pEventHandler {
     //establish tcp connection with chose nodes by peerClient
     {
       connectNodes.forEach(n -> {
-        log.info("Connect to peer {}", n.getPreferInetSocketAddress());
+        InetSocketAddress address = n.getPreferInetSocketAddress();
+        boolean activeCandidate = activeCandidates.contains(address);
+        boolean activeNode = p2pConfig.getActiveNodes().contains(address);
+        // Recheck mutable runtime state before dialing because an active node may be removed,
+        // or its IP may be blocked, after candidate collection.
+        if (ConnectionPolicy.isBlocked(address) || (activeCandidate && !activeNode)) {
+          return;
+        }
+        log.info("Connect to peer {}", address);
         peerClient.connectAsync(n, false);
-        peerClientCache.put(n.getPreferInetSocketAddress().getAddress(),
-            System.currentTimeMillis());
-        if (!configActiveNodes.contains(n.getPreferInetSocketAddress())) {
+        peerClientCache.put(address.getAddress(), System.currentTimeMillis());
+        if (!activeNode) {
           connectingPeersCount.incrementAndGet();
         }
       });
@@ -245,7 +254,8 @@ public class ConnPoolService extends P2pEventHandler {
     }
     InetAddress inetAddress = inetSocketAddress.getAddress();
     Long forbiddenTime = ChannelManager.getBannedNodes().getIfPresent(inetAddress);
-    if ((forbiddenTime != null && now <= forbiddenTime)
+    if (ConnectionPolicy.isBlocked(inetAddress)
+        || (forbiddenTime != null && now <= forbiddenTime)
         || (ChannelManager.getConnectionNum(inetAddress)
         >= p2pConfig.getMaxConnectionsWithSameIp())
         || (node.getId() != null && nodesInUse.contains(node.getHexId()))
@@ -286,7 +296,7 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   public void triggerConnect(InetSocketAddress address) {
-    if (configActiveNodes.contains(address)) {
+    if (p2pConfig.getActiveNodes().contains(address)) {
       return;
     }
     connectingPeersCount.decrementAndGet();

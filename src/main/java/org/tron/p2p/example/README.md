@@ -14,6 +14,7 @@ available cli options:
 usage: available p2p discovery cli options:
  -a,--active-nodes <arg>             active node(s),
                                      ip:port[,ip:port[...]]
+ -b,--blocked-ips <arg>              blocked IP(s), ip[,ip[...]], TCP only
  -d,--discover <arg>                 enable p2p discover, 0/1, default 1
  -h,--help                           print help message
  -M,--max-connection <arg>           max connection number, int, default
@@ -263,6 +264,15 @@ activeNodeList.add(new InetSocketAddress("127.0.0.3", 18888));
 config.setActiveNodes(activeNodeList);
 ```
 
+Set blocked IPs. The blocked IP list applies to TCP connections and does not filter UDP discovery.
+
+```bash
+Set<InetAddress> blockedIps = new HashSet<>();
+blockedIps.add(InetAddress.getByName("192.0.2.1"));
+blockedIps.add(InetAddress.getByName("2001:db8::1"));
+config.setBlockedIps(blockedIps);
+```
+
 Set trust ips
 
 ```bash
@@ -417,5 +427,4 @@ p2pService.start(config);
 
 For details please
 check [ImportUsing](ImportUsing.java), [DnsExample1](DnsExample1.java), [DnsExample2](DnsExample2.java)
-
 

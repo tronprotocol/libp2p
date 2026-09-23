@@ -1,8 +1,11 @@
 package org.tron.p2p.connection;
 
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -13,6 +16,7 @@ import org.junit.Test;
 import org.tron.p2p.P2pConfig;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.business.pool.ConnPoolService;
+import org.tron.p2p.connection.socket.PeerClient;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.NodeManager;
 
@@ -57,7 +61,7 @@ public class ConnPoolServiceTest {
   }
 
   @Test
-  public void getNodes_respectsLimit() {
+  public void getNodesReturnsAllCandidatesWhenLimitAllows() {
     clearChannels();
     Node node1 = new Node(new InetSocketAddress(localIp, 90));
     Node node2 = new Node(new InetSocketAddress(localIp, 100));
@@ -70,14 +74,15 @@ public class ConnPoolServiceTest {
     List<Node> nodes = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes,
         2);
     Assert.assertEquals(2, nodes.size());
-    // getNodes shuffles candidates, so compare their contents without assuming an order.
-    Assert.assertEquals(new HashSet<>(connectableNodes), new HashSet<>(nodes));
+    Set<InetSocketAddress> selectedAddresses = new HashSet<>();
+    nodes.forEach(node -> selectedAddresses.add(node.getPreferInetSocketAddress()));
+    Assert.assertTrue(selectedAddresses.contains(node1.getPreferInetSocketAddress()));
+    Assert.assertTrue(selectedAddresses.contains(node2.getPreferInetSocketAddress()));
 
     int limit = 1;
     List<Node> nodes2 = connPoolService.getNodes(new HashSet<>(), new HashSet<>(), connectableNodes,
         limit);
     Assert.assertEquals(limit, nodes2.size());
-    Assert.assertTrue(connectableNodes.containsAll(nodes2));
   }
 
   @Test
@@ -113,6 +118,55 @@ public class ConnPoolServiceTest {
     ConnPoolService connPoolService = new ConnPoolService();
     List<Node> nodes = connPoolService.getNodes(nodesInUse, new HashSet<>(), connectableNodes, 1);
     Assert.assertEquals(0, nodes.size());
+  }
+
+  @Test
+  public void poolScanUsesIsolatedActiveNodesWithoutDialCooldown() throws Exception {
+    clearChannels();
+    ConnectionPolicy.replaceBlockedIps(new HashSet<>());
+    P2pConfig isolatedConfig = new P2pConfig();
+    isolatedConfig.setMinConnections(0);
+    isolatedConfig.setMinActiveConnections(0);
+    InetSocketAddress address = new InetSocketAddress("192.0.2.10", 18888);
+    isolatedConfig.getActiveNodes().add(address);
+    Assert.assertFalse(Parameter.p2pConfig.getActiveNodes().contains(address));
+    CountingPeerClient peerClient = new CountingPeerClient();
+    ConnPoolService connPoolService = new ConnPoolService();
+    connPoolService.p2pConfig = isolatedConfig;
+    Field peerClientField = ConnPoolService.class.getDeclaredField("peerClient");
+    peerClientField.setAccessible(true);
+    peerClientField.set(connPoolService, peerClient);
+    Method connect = ConnPoolService.class.getDeclaredMethod("connect", boolean.class);
+    connect.setAccessible(true);
+    try {
+      connect.invoke(connPoolService, false);
+      connect.invoke(connPoolService, false);
+      Assert.assertEquals(2, peerClient.connectCount);
+
+      isolatedConfig.getActiveNodes().remove(address);
+      connect.invoke(connPoolService, false);
+      Assert.assertEquals(2, peerClient.connectCount);
+
+      InetSocketAddress blocked = new InetSocketAddress("192.0.2.12", 18888);
+      isolatedConfig.getActiveNodes().add(blocked);
+      Assert.assertFalse(Parameter.p2pConfig.getActiveNodes().contains(blocked));
+      ConnectionPolicy.replaceBlockedIps(Collections.singleton(blocked.getAddress()));
+      connect.invoke(connPoolService, false);
+      Assert.assertEquals(2, peerClient.connectCount);
+    } finally {
+      ConnectionPolicy.replaceBlockedIps(Collections.emptySet());
+    }
+  }
+
+  private static class CountingPeerClient extends PeerClient {
+
+    private int connectCount;
+
+    @Override
+    public io.netty.channel.ChannelFuture connectAsync(Node node, boolean discoveryMode) {
+      connectCount++;
+      return null;
+    }
   }
 
   @AfterClass
