@@ -3,6 +3,7 @@ package org.tron.p2p.discover.protocol.kad;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Getter;
@@ -29,6 +30,9 @@ public class NodeHandler {
   private NodeHandler replaceCandidate;
   private AtomicInteger pingTrials = new AtomicInteger(3);
   private volatile boolean waitForPong = false;
+  // Guarded by this monitor together with Ping scheduling and Pong acceptance.
+  private ScheduledFuture<?> pongTimeout;
+  private long pingSequence;
   private volatile boolean waitForNeighbors = false;
   private volatile int findNodeFail;
   private static int maxFindNodeFailures = 5;
@@ -110,14 +114,18 @@ public class NodeHandler {
   }
 
   public void handlePong(PongMessage msg) {
-    if (waitForPong) {
-      waitForPong = false;
-      node.setP2pVersion(msg.getNetworkId());
-      if (!node.isConnectible(Parameter.p2pConfig.getNetworkId())) {
-        changeState(State.DEAD);
-      } else {
-        changeState(State.ALIVE);
+    synchronized (this) {
+      if (!waitForPong) {
+        return;
       }
+      waitForPong = false;
+      cancelPongTimeout();
+    }
+    node.setP2pVersion(msg.getNetworkId());
+    if (!node.isConnectible(Parameter.p2pConfig.getNetworkId())) {
+      changeState(State.DEAD);
+    } else {
+      changeState(State.ALIVE);
     }
   }
 
@@ -140,8 +148,9 @@ public class NodeHandler {
     sendNeighbours(closest, msg.getTimestamp());
   }
 
-  public void handleTimedOut() {
+  public synchronized void handleTimedOut() {
     waitForPong = false;
+    cancelPongTimeout();
     if (pingTrials.getAndDecrement() > 0) {
       sendPing();
     } else {
@@ -153,20 +162,24 @@ public class NodeHandler {
     }
   }
 
-  public void sendPing() {
+  public synchronized void sendPing() {
+    cancelPongTimeout();
+    long sequence = ++pingSequence;
     PingMessage msg = new PingMessage(kadService.getPublicHomeNode(), getNode());
     waitForPong = true;
     sendMessage(msg);
 
-    if (kadService.getPongTimer().isShutdown()) {
+    if (!waitForPong || sequence != pingSequence || kadService.getPongTimer().isShutdown()) {
       return;
     }
     try {
-      kadService.getPongTimer().schedule(() -> {
+      pongTimeout = kadService.getPongTimer().schedule(() -> {
         try {
-          if (waitForPong) {
-            waitForPong = false;
-            handleTimedOut();
+          synchronized (NodeHandler.this) {
+            // A callback already running when cancelled must not time out a newer Ping.
+            if (waitForPong && sequence == pingSequence) {
+              handleTimedOut();
+            }
           }
         } catch (Exception e) {
           log.error("Unhandled exception in pong timer schedule", e);
@@ -175,6 +188,13 @@ public class NodeHandler {
     } catch (RejectedExecutionException e) {
       log.debug("Skip pong timeout for {}, timer stopped or queue full",
           node.getPreferInetSocketAddress());
+    }
+  }
+
+  private void cancelPongTimeout() {
+    if (pongTimeout != null) {
+      pongTimeout.cancel(false);
+      pongTimeout = null;
     }
   }
 

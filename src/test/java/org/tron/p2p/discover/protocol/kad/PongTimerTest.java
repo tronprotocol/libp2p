@@ -11,6 +11,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -24,6 +26,7 @@ import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.message.MessageType;
 import org.tron.p2p.discover.message.kad.FindNodeMessage;
+import org.tron.p2p.discover.message.kad.PongMessage;
 import org.tron.p2p.discover.socket.MessageHandler;
 import org.tron.p2p.discover.socket.P2pPacketDecoder;
 
@@ -59,6 +62,120 @@ public class PongTimerTest {
     service.close();
     KadService.setPingTimeout(previousTimeout);
     Parameter.p2pConfig = previousConfig;
+  }
+
+  @Test
+  public void acceptedPongImmediatelyFreesQueueCapacity() {
+    Node node = new Node(new byte[64], "127.0.0.2", "", 18888);
+    NodeHandler handler = service.getNodeHandler(node);
+    Future<?> timeout = (Future<?>) timer.getQueue().peek();
+    for (int i = 1; i < KadService.MAX_PENDING_PONG_TASKS; i++) {
+      submitDelayedTask();
+    }
+    Assert.assertThrows(RejectedExecutionException.class, this::submitDelayedTask);
+
+    handler.handlePong(new PongMessage(node));
+
+    Assert.assertEquals(NodeHandler.State.ACTIVE, handler.getState());
+    Assert.assertTrue(timeout.isCancelled());
+    Assert.assertEquals(KadService.MAX_PENDING_PONG_TASKS - 1, timer.getQueue().size());
+    submitDelayedTask();
+    Assert.assertEquals(KadService.MAX_PENDING_PONG_TASKS, timer.getQueue().size());
+  }
+
+  @Test
+  public void repeatedPingReplacesPreviousTimeout() {
+    Node node = new Node(new byte[64], "127.0.0.2", "", 18888);
+    NodeHandler handler = service.getNodeHandler(node);
+    Future<?> firstTimeout = (Future<?>) timer.getQueue().peek();
+
+    handler.sendPing();
+
+    Assert.assertTrue(firstTimeout.isCancelled());
+    Assert.assertEquals(1, timer.getQueue().size());
+    handler.handlePong(new PongMessage(node));
+    Assert.assertTrue(timer.getQueue().isEmpty());
+  }
+
+  @Test
+  public void pongDuringSendDoesNotLeaveTimeoutQueued() {
+    Node node = new Node(new byte[64], "127.0.0.2", "", 18888);
+    NodeHandler handler = service.getNodeHandler(node);
+    config.setDiscoverEnable(true);
+    service.setMessageSender(event -> {
+      if (event.getMessage().getType() == MessageType.KAD_PING) {
+        handler.handlePong(new PongMessage(node));
+      }
+    });
+
+    handler.sendPing();
+
+    Assert.assertEquals(NodeHandler.State.ACTIVE, handler.getState());
+    Assert.assertTrue(timer.getQueue().isEmpty());
+  }
+
+  @Test
+  public void missingPongStillRetriesAndReachesDead() {
+    AtomicInteger pings = new AtomicInteger();
+    config.setDiscoverEnable(true);
+    service.setMessageSender(event -> {
+      if (event.getMessage().getType() == MessageType.KAD_PING) {
+        pings.incrementAndGet();
+      }
+    });
+    NodeHandler handler = service.getNodeHandler(
+        new Node(new byte[64], "127.0.0.2", "", 18888));
+    // Execute each queued timeout explicitly instead of waiting for the configured delay.
+    for (int i = 0; i < 4; i++) {
+      Assert.assertEquals(NodeHandler.State.DISCOVERED, handler.getState());
+      Assert.assertEquals(1, timer.getQueue().size());
+      Runnable timeout = timer.getQueue().peek();
+      Assert.assertTrue(timer.remove(timeout));
+      timeout.run();
+    }
+    Assert.assertEquals(4, pings.get());
+    Assert.assertEquals(NodeHandler.State.DEAD, handler.getState());
+    Assert.assertTrue(timer.getQueue().isEmpty());
+  }
+
+  @Test
+  public void cancelledCallbackCannotRetryANewerPing() {
+    List<Runnable> callbacks = new ArrayList<>();
+    ScheduledThreadPoolExecutor recordingTimer = new ScheduledThreadPoolExecutor(1) {
+      @Override
+      public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
+        callbacks.add(command);
+        return super.schedule(command, delay, unit);
+      }
+    };
+    recordingTimer.setRemoveOnCancelPolicy(true);
+    KadService recordingService = new KadService() {
+      @Override
+      public ScheduledExecutorService getPongTimer() {
+        return recordingTimer;
+      }
+    };
+    recordingService.init();
+    try {
+      Node node = new Node(new byte[64], "127.0.0.2", "", 18888);
+      NodeHandler handler = recordingService.getNodeHandler(node);
+      Runnable oldCallback = callbacks.get(0);
+      handler.handlePong(new PongMessage(node));
+      handler.sendPing();
+
+      // Model a callback that started before cancellation and resumes after a newer Ping.
+      oldCallback.run();
+
+      Assert.assertEquals(2, callbacks.size());
+      Assert.assertEquals(1, recordingTimer.getQueue().size());
+      handler.handlePong(new PongMessage(node));
+      callbacks.get(1).run();
+      Assert.assertEquals(2, callbacks.size());
+      Assert.assertTrue(recordingTimer.getQueue().isEmpty());
+    } finally {
+      recordingService.close();
+      recordingTimer.shutdownNow();
+    }
   }
 
   @Test(timeout = 20000)

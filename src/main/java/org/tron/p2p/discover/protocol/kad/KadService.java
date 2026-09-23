@@ -62,7 +62,7 @@ public class KadService implements DiscoverService {
     for (InetSocketAddress address : Parameter.p2pConfig.getActiveNodes()) {
       bootNodes.add(new Node(address));
     }
-    this.pongTimer = new ScheduledThreadPoolExecutor(1,
+    ScheduledThreadPoolExecutor timer = new ScheduledThreadPoolExecutor(1,
         BasicThreadFactory.builder().namingPattern("pongTimer").build()) {
       @Override
       public synchronized ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
@@ -73,6 +73,8 @@ public class KadService implements DiscoverService {
         return super.schedule(command, delay, unit);
       }
     };
+    timer.setRemoveOnCancelPolicy(true);
+    this.pongTimer = timer;
     this.homeNode = new Node(Parameter.p2pConfig.getNodeID(), Parameter.p2pConfig.getIp(),
         Parameter.p2pConfig.getIpv6(), Parameter.p2pConfig.getPort());
     this.table = new NodeTable(homeNode);
