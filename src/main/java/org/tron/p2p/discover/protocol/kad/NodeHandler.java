@@ -4,7 +4,6 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Getter;
 import lombok.Setter;
@@ -169,11 +168,11 @@ public class NodeHandler {
     waitForPong = true;
     sendMessage(msg);
 
-    if (!waitForPong || sequence != pingSequence || kadService.getPongTimer().isShutdown()) {
+    if (!waitForPong || sequence != pingSequence) {
       return;
     }
     try {
-      pongTimeout = kadService.getPongTimer().schedule(() -> {
+      pongTimeout = kadService.schedulePongTimeout(() -> {
         try {
           synchronized (NodeHandler.this) {
             // A callback already running when cancelled must not time out a newer Ping.
@@ -184,7 +183,7 @@ public class NodeHandler {
         } catch (Exception e) {
           log.error("Unhandled exception in pong timer schedule", e);
         }
-      }, KadService.getPingTimeout(), TimeUnit.MILLISECONDS);
+      });
     } catch (RejectedExecutionException e) {
       log.debug("Skip pong timeout for {}, timer stopped or queue full",
           node.getPreferInetSocketAddress());

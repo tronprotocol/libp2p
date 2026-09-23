@@ -3,6 +3,7 @@ package org.tron.p2p.discover.protocol.kad;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.channel.socket.DatagramPacket;
+import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +12,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -46,7 +46,7 @@ public class PongTimerTest {
   }
 
   @Before
-  public void setUp() {
+  public void setUp() throws ReflectiveOperationException {
     previousConfig = Parameter.p2pConfig;
     previousTimeout = KadService.getPingTimeout();
     Parameter.p2pConfig = config;
@@ -54,7 +54,7 @@ public class PongTimerTest {
     KadService.setPingTimeout(60_000);
     service = new KadService();
     service.init();
-    timer = (ScheduledThreadPoolExecutor) service.getPongTimer();
+    timer = getTimer(service);
   }
 
   @After
@@ -139,24 +139,18 @@ public class PongTimerTest {
   }
 
   @Test
-  public void cancelledCallbackCannotRetryANewerPing() {
+  public void cancelledCallbackCannotRetryANewerPing() throws ReflectiveOperationException {
     List<Runnable> callbacks = new ArrayList<>();
-    ScheduledThreadPoolExecutor recordingTimer = new ScheduledThreadPoolExecutor(1) {
-      @Override
-      public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
-        callbacks.add(command);
-        return super.schedule(command, delay, unit);
-      }
-    };
-    recordingTimer.setRemoveOnCancelPolicy(true);
     KadService recordingService = new KadService() {
       @Override
-      public ScheduledExecutorService getPongTimer() {
-        return recordingTimer;
+      synchronized ScheduledFuture<?> schedulePongTimeout(Runnable task) {
+        callbacks.add(task);
+        return super.schedulePongTimeout(task);
       }
     };
     recordingService.init();
     try {
+      ScheduledThreadPoolExecutor recordingTimer = getTimer(recordingService);
       Node node = new Node(new byte[64], "127.0.0.2", "", 18888);
       NodeHandler handler = recordingService.getNodeHandler(node);
       Runnable oldCallback = callbacks.get(0);
@@ -174,7 +168,6 @@ public class PongTimerTest {
       Assert.assertTrue(recordingTimer.getQueue().isEmpty());
     } finally {
       recordingService.close();
-      recordingTimer.shutdownNow();
     }
   }
 
@@ -182,7 +175,8 @@ public class PongTimerTest {
   public void fullQueueRejectsAndAcceptsAgainAfterTaskExecutes() throws Exception {
     CountDownLatch started = new CountDownLatch(1);
     CountDownLatch release = new CountDownLatch(1);
-    timer.execute(() -> {
+    KadService.setPingTimeout(0);
+    service.schedulePongTimeout(() -> {
       started.countDown();
       try {
         release.await();
@@ -192,7 +186,8 @@ public class PongTimerTest {
     });
     try {
       Assert.assertTrue(started.await(5, TimeUnit.SECONDS));
-      Future<?> ready = timer.schedule(() -> { }, 0, TimeUnit.SECONDS);
+      Future<?> ready = service.schedulePongTimeout(() -> { });
+      KadService.setPingTimeout(60_000);
       for (int i = 1; i < KadService.MAX_PENDING_PONG_TASKS; i++) {
         submitDelayedTask();
       }
@@ -205,6 +200,18 @@ public class PongTimerTest {
     } finally {
       release.countDown();
     }
+  }
+
+  @Test
+  public void closedServiceRejectsTimeoutWithoutFailingPing() {
+    service.close();
+    Assert.assertThrows(RejectedExecutionException.class, this::submitDelayedTask);
+
+    NodeHandler handler = service.getNodeHandler(
+        new Node(new byte[64], "127.0.0.2", "", 18888));
+
+    Assert.assertEquals(NodeHandler.State.DISCOVERED, handler.getState());
+    Assert.assertTrue(timer.getQueue().isEmpty());
   }
 
   @Test(timeout = 20000)
@@ -278,6 +285,13 @@ public class PongTimerTest {
   }
 
   private void submitDelayedTask() {
-    timer.schedule(() -> { }, 60, TimeUnit.SECONDS);
+    service.schedulePongTimeout(() -> { });
+  }
+
+  private static ScheduledThreadPoolExecutor getTimer(KadService service)
+      throws ReflectiveOperationException {
+    Field field = KadService.class.getDeclaredField("pongTimer");
+    field.setAccessible(true);
+    return (ScheduledThreadPoolExecutor) field.get(service);
   }
 }
