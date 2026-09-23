@@ -29,17 +29,6 @@ repositories {
     mavenCentral()
 }
 
-sourceSets {
-    main {
-        proto {
-            srcDir 'src/main/protos'
-        }
-        java {
-            srcDir 'src/main/java'
-        }
-    }
-}
-
 buildscript {
     repositories {
         mavenLocal()
@@ -91,6 +80,9 @@ dependencies {
         exclude group: 'org.bouncycastle', module: 'bcpkix-jdk15on'
         exclude group: 'pull-parser', module: 'pull-parser'
         exclude group: 'xpp3', module: 'xpp3'
+    }
+    implementation('com.squareup.okio:okio:1.17.6') {
+        because 'Fix CVE-2023-3635 in the Aliyun SDK HTTP dependency chain'
     }
 
     //If logging is required, uncomment this dependency

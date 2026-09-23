@@ -5,6 +5,7 @@ import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.tron.p2p.base.Constant;
 import org.tron.p2p.discover.Node;
@@ -68,6 +69,20 @@ public class NetUtilTest {
   }
 
   @Test
+  public void testValidPort() {
+    for (int port : new int[]{0, -1, 65536, 70000, Integer.MIN_VALUE, Integer.MAX_VALUE}) {
+      Assert.assertFalse("port=" + port, NetUtil.validPort(port));
+      Assert.assertFalse(NetUtil.validNode(new Node(new byte[64], "1.2.3.4", "", port)));
+      Assert.assertFalse(NetUtil.validNode(new Node(new byte[64], "", "2001:db8::1", port)));
+    }
+    for (int port : new int[]{1, 65535}) {
+      Assert.assertTrue("port=" + port, NetUtil.validPort(port));
+      Assert.assertTrue(NetUtil.validNode(new Node(new byte[64], "1.2.3.4", "", port)));
+      Assert.assertTrue(NetUtil.validNode(new Node(new byte[64], "", "2001:db8::1", port)));
+    }
+  }
+
+  @Test
   public void testGetNode() {
     Discover.Endpoint endpoint = Discover.Endpoint.newBuilder()
         .setPort(100).build();
@@ -99,8 +114,8 @@ public class NetUtilTest {
   }
 
   @Test
+  @Ignore("open this testcase if node has only one externalIP or close vpn")
   public void testGetIP() {
-    //notice: please check that you only have one externalIP
     String ip1 = null, ip2 = null, ip3 = null;
     try {
       Method method = NetUtil.class.getDeclaredMethod("getExternalIp", String.class, boolean.class);

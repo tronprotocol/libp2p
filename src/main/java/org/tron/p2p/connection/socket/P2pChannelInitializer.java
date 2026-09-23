@@ -6,6 +6,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
 
@@ -26,6 +27,10 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
   @Override
   public void initChannel(NioSocketChannel ch) {
     try {
+      if (StringUtils.isEmpty(remoteId) && !PendingInboundConnectionHandler.tryAdd(ch)) {
+        ch.close();
+        return;
+      }
       final Channel channel = new Channel();
       channel.init(ch.pipeline(), remoteId, peerDiscoveryMode);
 
@@ -53,6 +58,7 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
 
     } catch (Exception e) {
       log.error("Unexpected initChannel error", e);
+      ch.close();
     }
   }
 
