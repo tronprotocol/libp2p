@@ -11,6 +11,7 @@ import org.tron.p2p.connection.business.MessageProcess;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.message.base.P2pDisconnectMessage;
 import org.tron.p2p.connection.message.handshake.HelloMessage;
+import org.tron.p2p.connection.socket.PendingInboundConnectionHandler;
 import org.tron.p2p.protos.Connect.DisconnectReason;
 
 @Slf4j(topic = "net")
@@ -82,6 +83,9 @@ public class HandshakeService implements MessageProcess {
         sendHelloMsg(channel, DisconnectCode.NORMAL, msg.getTimestamp());
       }
       if (channel.isDisconnect() || !channel.getCtx().channel().isOpen()) {
+        return DisconnectCode.UNKNOWN;
+      }
+      if (!PendingInboundConnectionHandler.handshakeCompleted(channel.getCtx().channel())) {
         return DisconnectCode.UNKNOWN;
       }
       channel.setFinishHandshake(true);
