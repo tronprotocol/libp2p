@@ -498,7 +498,7 @@ public class PendingInboundConnectionHandlerTest {
     channel.init(socket.pipeline(), "", false);
     channel.setChannelHandlerContext(socket.pipeline().context("messageHandler"));
     socket.closeFuture().addListener(future -> {
-      channel.setDisconnect(true);
+      channel.markDisconnected();
       ChannelManager.getChannels().remove(channel.getInetSocketAddress(), channel);
     });
     return channel;
