@@ -31,6 +31,8 @@ public class NodeHandler {
   private volatile boolean waitForPong = false;
   // Guarded by this monitor together with Ping scheduling and Pong acceptance.
   private ScheduledFuture<?> pongTimeout;
+  // Incremented for each Ping so a callback already running when cancelled
+  // cannot time out a newer probe.
   private long pingSequence;
   private volatile boolean waitForNeighbors = false;
   private volatile int findNodeFail;
