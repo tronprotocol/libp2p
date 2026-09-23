@@ -81,6 +81,9 @@ dependencies {
         exclude group: 'pull-parser', module: 'pull-parser'
         exclude group: 'xpp3', module: 'xpp3'
     }
+    implementation('com.squareup.okio:okio:1.17.6') {
+        because 'Fix CVE-2023-3635 in the Aliyun SDK HTTP dependency chain'
+    }
 
     //If logging is required, uncomment this dependency
     //implementation("ch.qos.logback:logback-classic:1.2.13") {
