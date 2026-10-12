@@ -289,6 +289,7 @@ public class HandshakeAdmissionTest {
     Assert.assertFalse(channel.socket.isOpen());
     Assert.assertTrue(channel.isDisconnect());
     Assert.assertFalse(channel.isFinishHandshake());
+    Assert.assertFalse(channel.isRegisteredPeer());
     Assert.assertEquals(0, channel.handshakeCompletions);
     // No close listener removes peers in this fixture: this also catches transient registration.
     Assert.assertFalse(ChannelManager.getChannels().containsKey(channel.getInetSocketAddress()));
@@ -298,6 +299,7 @@ public class HandshakeAdmissionTest {
   private void assertAdmitted(TestChannel channel) {
     Assert.assertTrue(channel.socket.isOpen());
     Assert.assertTrue(channel.isFinishHandshake());
+    Assert.assertTrue(channel.isRegisteredPeer());
     Assert.assertEquals(1, channel.handshakeCompletions);
     Assert.assertFalse(channel.registeredBeforeHandshake);
     Assert.assertSame(channel,
