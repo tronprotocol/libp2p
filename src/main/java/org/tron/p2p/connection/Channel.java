@@ -191,6 +191,16 @@ public class Channel {
     }
   }
 
+  /**
+   * Whether the channel can accept more outbound data without exceeding the configured write
+   * buffer high water mark. Callers that produce bulk replies (for example serving many blocks
+   * to a syncing peer) should check this and stop queueing when it returns false, so that a slow
+   * or non-reading peer cannot make unsent data accumulate without bound.
+   */
+  public boolean isWritable() {
+    return ctx != null && ctx.channel().isWritable();
+  }
+
   public void updateAvgLatency(long latency) {
     long total = this.avgLatency * this.count;
     this.count++;

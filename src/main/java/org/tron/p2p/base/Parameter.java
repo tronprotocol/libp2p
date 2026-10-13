@@ -45,6 +45,12 @@ public class Parameter {
 
   public static final int MAX_MESSAGE_LENGTH = 5 * 1024 * 1024;
 
+  // Per-channel outbound buffer high water mark. Once a channel's unsent bytes exceed this,
+  // Channel.isWritable() turns false so callers can stop queueing more replies until it drains.
+  // Set to twice MAX_MESSAGE_LENGTH so the buffer can hold the largest in-flight message plus
+  // one more before backpressure; the low water mark is derived as half of this.
+  public static final int WRITE_BUFFER_HIGH_WATER_MARK = 2 * MAX_MESSAGE_LENGTH;
+
   public static volatile P2pConfig p2pConfig;
 
   public static volatile List<P2pEventHandler> handlerList = new ArrayList<>();
