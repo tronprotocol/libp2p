@@ -170,9 +170,6 @@ public class NodeHandler {
     waitForPong = true;
     sendMessage(msg);
 
-    if (!waitForPong || sequence != pingSequence) {
-      return;
-    }
     try {
       pongTimeout = kadService.schedulePongTimeout(() -> {
         try {

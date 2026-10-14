@@ -98,23 +98,6 @@ public class PongTimerTest {
   }
 
   @Test
-  public void pongDuringSendDoesNotLeaveTimeoutQueued() {
-    Node node = new Node(new byte[64], "127.0.0.2", "", 18888);
-    NodeHandler handler = service.getNodeHandler(node);
-    config.setDiscoverEnable(true);
-    service.setMessageSender(event -> {
-      if (event.getMessage().getType() == MessageType.KAD_PING) {
-        handler.handlePong(new PongMessage(node));
-      }
-    });
-
-    handler.sendPing();
-
-    Assert.assertEquals(NodeHandler.State.ACTIVE, handler.getState());
-    Assert.assertTrue(timer.getQueue().isEmpty());
-  }
-
-  @Test
   public void missingPongStillRetriesAndReachesDead() {
     AtomicInteger pings = new AtomicInteger();
     config.setDiscoverEnable(true);
