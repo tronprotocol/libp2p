@@ -107,13 +107,13 @@ public class NodeHandler {
   }
 
   public void handlePing(PingMessage msg) {
+    if (msg.getNetworkId() != Parameter.p2pConfig.getNetworkId()) {
+      return;
+    }
     if (!kadService.getTable().getNode().equals(node)) {
       sendPong();
     }
     node.setP2pVersion(msg.getNetworkId());
-    if (msg.getNetworkId() != Parameter.p2pConfig.getNetworkId()) {
-      pongVerified = false;
-    }
     if (!node.isConnectible(Parameter.p2pConfig.getNetworkId())) {
       changeState(State.DEAD);
     } else if (state.equals(State.DEAD)) {

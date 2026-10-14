@@ -95,12 +95,34 @@ public class FindNodePongVerificationTest {
   }
 
   @Test
-  public void wrongNetworkPingRevokesPreviousVerification() throws Exception {
+  public void wrongNetworkPingCannotRevokeMappedPortVerification() throws Exception {
     verify();
-    PingMessage ping = new PingMessage(requester, service.getPublicHomeNode());
-    receive(new PingMessage(Discover.PingMessage.parseFrom(ping.getData()).toBuilder()
-        .setVersion(NETWORK_ID + 1).build().toByteArray()));
-    assertNoNeighbors();
+    sent.clear();
+    receive(wrongNetworkPing(node(4)));
+    Assert.assertTrue(sent.isEmpty());
+    Assert.assertEquals(NodeHandler.State.DEAD, handler().getState());
+    Assert.assertArrayEquals(requester.getId(), handler().getNode().getId());
+    assertNeighbors();
+  }
+
+  @Test
+  public void wrongNetworkPingCannotDisqualifyActiveNode() throws Exception {
+    sender = requester.getInetSocketAddressV4();
+    verify();
+    Assert.assertEquals(NodeHandler.State.ACTIVE, handler().getState());
+    sent.clear();
+    PingMessage spoofedPing = wrongNetworkPing(node(4));
+    receive(spoofedPing);
+    Assert.assertTrue(sent.isEmpty());
+    Assert.assertEquals(NodeHandler.State.ACTIVE, handler().getState());
+    Assert.assertArrayEquals(requester.getId(), handler().getNode().getId());
+    Assert.assertTrue(service.getTable().contains(handler().getNode()));
+    Assert.assertTrue(handler().getNode().isConnectible(NETWORK_ID));
+    // The handler itself must also reject direct calls that bypass KadService.
+    handler().handlePing(spoofedPing);
+    Assert.assertTrue(sent.isEmpty());
+    Assert.assertEquals(NodeHandler.State.ACTIVE, handler().getState());
+    assertNeighbors();
   }
 
   @Test
@@ -192,6 +214,12 @@ public class FindNodePongVerificationTest {
     PongMessage pong = new PongMessage(requester);
     return new PongMessage(Discover.PongMessage.parseFrom(pong.getData()).toBuilder()
         .setEcho(networkId).build().toByteArray());
+  }
+
+  private PingMessage wrongNetworkPing(Node from) throws Exception {
+    PingMessage ping = new PingMessage(from, service.getPublicHomeNode());
+    return new PingMessage(Discover.PingMessage.parseFrom(ping.getData()).toBuilder()
+        .setVersion(NETWORK_ID + 1).build().toByteArray());
   }
 
   private Node node(int suffix) {

@@ -121,6 +121,11 @@ public class KadService implements DiscoverService {
   @Override
   public void handleEvent(UdpEvent udpEvent) {
     KadMessage m = (KadMessage) udpEvent.getMessage();
+    // A wrong-network Ping must not mutate a cached handler for the claimed UDP source.
+    if (m instanceof PingMessage
+        && ((PingMessage) m).getNetworkId() != Parameter.p2pConfig.getNetworkId()) {
+      return;
+    }
 
     InetSocketAddress sender = udpEvent.getAddress();
 
