@@ -5,8 +5,11 @@ import com.google.protobuf.CodedInputStream;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOutboundHandlerAdapter;
+import io.netty.channel.ChannelPromise;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -300,6 +303,34 @@ public class PendingInboundConnectionHandlerTest {
   }
 
   @Test
+  public void helloReplyCrossingDeadlineDoesNotRegisterPeer() throws Exception {
+    EmbeddedChannel socket = inbound(REMOTE_IP);
+    Channel channel = initializeProtocol(socket);
+    int[] replies = {0};
+    socket.pipeline().addFirst("delayHelloReply", new ChannelOutboundHandlerAdapter() {
+      @Override
+      public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
+        replies[0]++;
+        // Let the deadline pass during the reply without running the scheduled timeout task.
+        socket.advanceTimeBy(Parameter.HANDSHAKE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        ctx.write(msg, promise);
+      }
+    });
+
+    receive(socket, hello(config.getNetworkId()));
+
+    Assert.assertFalse(socket.isOpen());
+    Assert.assertTrue(channel.isDisconnect());
+    Assert.assertFalse(channel.isFinishHandshake());
+    Assert.assertEquals(1, replies[0]);
+    Assert.assertEquals(0, connectCallbacks);
+    Assert.assertTrue(ChannelManager.getChannels().isEmpty());
+    Assert.assertTrue(inbound(REMOTE_IP).isOpen());
+    Assert.assertTrue(inbound(REMOTE_IP).isOpen());
+    Assert.assertFalse(inbound(REMOTE_IP).isOpen());
+  }
+
+  @Test
   public void validHelloReleasesReservationAndCancelsDeadline() throws Exception {
     config.setMaxConnections(1);
     EmbeddedChannel socket = inbound(REMOTE_IP);
@@ -495,7 +526,7 @@ public class PendingInboundConnectionHandlerTest {
     channel.init(socket.pipeline(), "", false);
     channel.setChannelHandlerContext(socket.pipeline().context("messageHandler"));
     socket.closeFuture().addListener(future -> {
-      channel.setDisconnect(true);
+      channel.markDisconnected();
       ChannelManager.notifyDisconnect(channel);
     });
     return channel;

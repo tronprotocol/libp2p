@@ -97,6 +97,7 @@ public class ConnPoolPortValidationTest {
       Assert.assertTrue(ChannelManager.getAllChannels().stream()
           .anyMatch(channel -> channel == healthy));
       Assert.assertEquals(candidate, dialed.get(dialed.size() - 1).getPreferInetSocketAddress());
+      pool.triggerConnect(candidate);
       ChannelManager.getBannedNodes().invalidateAll();
     }
     Assert.assertEquals(6, dialed.size());
@@ -136,7 +137,10 @@ public class ConnPoolPortValidationTest {
     channel.setHelloMessage(new HelloMessage(Connect.HelloMessage.newBuilder()
         .setFrom(endpoint).build().toByteArray()));
     socket.closeFuture().addListener(future -> ChannelManager.notifyDisconnect(channel));
-    Assert.assertEquals(DisconnectCode.NORMAL, ChannelManager.processPeer(channel));
+    synchronized (ChannelManager.class) {
+      Assert.assertEquals(DisconnectCode.NORMAL, ChannelManager.checkPeer(channel));
+      ChannelManager.addPeer(channel);
+    }
     pool.onConnect(channel);
     return channel;
   }

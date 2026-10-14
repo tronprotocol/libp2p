@@ -117,7 +117,13 @@ public class ChannelManager {
       log.warn("Notify Disconnect peer has no address.");
       return;
     }
-    channels.removeIf(registered -> registered == channel);
+    if (!channel.markDisconnectNotified()) {
+      return;
+    }
+    // Share the registration lock in addPeer to keep removal by identity atomic.
+    synchronized (ChannelManager.class) {
+      channels.removeIf(registered -> registered == channel);
+    }
     Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
     InetAddress inetAddress = channel.getInetAddress();
     if (inetAddress != null) {
@@ -136,6 +142,18 @@ public class ChannelManager {
   }
 
   public static synchronized DisconnectCode processPeer(Channel channel) {
+    DisconnectCode code = checkPeer(channel);
+    if (code == DisconnectCode.NORMAL) {
+      addPeer(channel);
+    }
+    return code;
+  }
+
+  /**
+   * Checks peer admission. Callers must hold the ChannelManager class lock until addPeer
+   * to prevent another connection from taking the checked capacity.
+   */
+  public static synchronized DisconnectCode checkPeer(Channel channel) {
     if (channels.stream().anyMatch(registered -> registered == channel)) {
       return DisconnectCode.NORMAL;
     }
@@ -161,6 +179,10 @@ public class ChannelManager {
     }
 
     if (StringUtils.isNotEmpty(channel.getNodeId())) {
+      if (channel.getNodeId().equals(Hex.toHexString(Parameter.p2pConfig.getNodeID()))) {
+        log.info("Channel {} is myself", channel.getInetSocketAddress());
+        return DisconnectCode.DUPLICATE_PEER;
+      }
       for (Channel c : channels) {
         if (channel.getNodeId().equals(c.getNodeId())) {
           if (c.getStartTime() > channel.getStartTime()) {
@@ -173,10 +195,17 @@ public class ChannelManager {
       }
     }
 
+    return DisconnectCode.NORMAL;
+  }
+
+  public static synchronized void addPeer(Channel channel) {
+    if (channels.stream().anyMatch(registered -> registered == channel)) {
+      return;
+    }
+    channel.markRegisteredPeer();
     channels.add(channel);
 
     log.info("Add peer {}, total channels: {}", channel.getInetSocketAddress(), channels.size());
-    return DisconnectCode.NORMAL;
   }
 
   public static DisconnectReason getDisconnectReason(DisconnectCode code) {
@@ -284,20 +313,22 @@ public class ChannelManager {
     }
 
     if (!channel.isFinishHandshake()) {
-      channel.setFinishHandshake(true);
-      DisconnectCode code = processPeer(channel);
-      if (!DisconnectCode.NORMAL.equals(code)) {
-        DisconnectReason disconnectReason = getDisconnectReason(code);
-        channel.send(new P2pDisconnectMessage(disconnectReason));
-        channel.getCtx().close();
-        return;
-      }
-      Parameter.handlerList.forEach(h -> h.onConnect(channel));
+      log.warn("Close channel {}, application message received before handshake",
+          channel.getInetSocketAddress());
+      channel.send(new P2pDisconnectMessage(DisconnectReason.BAD_PROTOCOL));
+      channel.close();
+      return;
     }
 
     handler.onMessage(channel, data);
   }
 
+  /**
+   * @deprecated Node IDs are set during the libp2p handshake, and self-connection and
+   *     duplicate-peer checks are handled by {@link #checkPeer(Channel)} before registration.
+   *     Application code should validate node ID consistency instead of updating it.
+   */
+  @Deprecated
   public static synchronized void updateNodeId(Channel channel, String nodeId) {
     channel.setNodeId(nodeId);
     if (nodeId.equals(Hex.toHexString(Parameter.p2pConfig.getNodeID()))) {
