@@ -151,7 +151,9 @@ public class Channel {
   }
 
   public void close() {
-    close(Parameter.DEFAULT_BAN_TIME);
+    markDisconnected();
+    ChannelManager.banNodeOnDisconnect(this.inetAddress);
+    ctx.close();
   }
 
   public void send(Message message) {

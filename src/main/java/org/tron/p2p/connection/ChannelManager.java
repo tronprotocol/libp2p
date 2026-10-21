@@ -127,7 +127,7 @@ public class ChannelManager {
     Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
     InetAddress inetAddress = channel.getInetAddress();
     if (inetAddress != null) {
-      banNode(inetAddress, Parameter.DEFAULT_BAN_TIME);
+      banNodeOnDisconnect(inetAddress);
     }
   }
 
@@ -238,10 +238,18 @@ public class ChannelManager {
   }
 
   public static void banNode(InetAddress inetAddress, Long banTime) {
+    long expiry = System.currentTimeMillis() + banTime;
+    Long currentExpiry = bannedNodes.getIfPresent(inetAddress);
+    if (currentExpiry == null || currentExpiry < expiry) {
+      bannedNodes.put(inetAddress, expiry);
+    }
+  }
+
+  static void banNodeOnDisconnect(InetAddress inetAddress) {
     long now = System.currentTimeMillis();
-    if (bannedNodes.getIfPresent(inetAddress) == null
-        || bannedNodes.getIfPresent(inetAddress) < now) {
-      bannedNodes.put(inetAddress, now + banTime);
+    Long expiry = bannedNodes.getIfPresent(inetAddress);
+    if (expiry == null || expiry < now) {
+      bannedNodes.put(inetAddress, now + Parameter.DEFAULT_BAN_TIME);
     }
   }
 
