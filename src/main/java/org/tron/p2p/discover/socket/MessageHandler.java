@@ -38,7 +38,8 @@ public class MessageHandler extends SimpleChannelInboundHandler<UdpEvent>
       eventHandler.handleEvent(udpEvent);
     } catch (Exception e) {
       // A per-message failure must not close the shared discovery channel.
-      log.debug("Drop discovery message from {}: {}", udpEvent.getAddress(), e.toString());
+      log.debug("Drop discovery message type {} from {}",
+          udpEvent.getMessage().getType(), udpEvent.getAddress(), e);
     }
   }
 
