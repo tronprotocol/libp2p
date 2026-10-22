@@ -144,12 +144,21 @@ public class Channel {
     }
   }
 
+  /**
+   * Closes with an explicit penalty, extending the IP ban if the requested expiry is later.
+   *
+   * @param banTime penalty duration in milliseconds, measured from this call
+   */
   public void close(long banTime) {
     markDisconnected();
     ChannelManager.banNode(this.inetAddress, banTime);
     ctx.close();
   }
 
+  /**
+   * Closes with the default disconnect cooldown, preserving any active IP ban.
+   * Unlike {@link #close(long)}, ordinary disconnects must not refresh an active ban.
+   */
   public void close() {
     markDisconnected();
     ChannelManager.banNodeOnDisconnect(this.inetAddress);
