@@ -141,7 +141,7 @@ public class StatusLifecycleTest {
     Assert.assertEquals(-1, socket.getInputStream().read());
     Channel channel = inbound(socket);
     awaitClosed(channel);
-    Assert.assertTrue(channel.isDiscoveryMode());
+    Assert.assertTrue(channel.isNodeDetectMode());
     Assert.assertFalse(channel.isRegisteredPeer());
     Assert.assertTrue(ChannelManager.getChannels().isEmpty());
     Assert.assertTrue(ChannelManager.getBannedNodes().asMap().isEmpty());
@@ -154,17 +154,17 @@ public class StatusLifecycleTest {
     for (int i = 0; i < 100; i++) {
       Socket socket = handshake();
       Channel channel = inbound(socket);
-      Assert.assertEquals(1, pool.getPassivePeersCount().get());
+      Assert.assertEquals(1, pool.getInboundPeerCount().get());
       write(socket, status());
       Assert.assertEquals(-1, socket.getInputStream().read());
       awaitClosed(channel);
-      Assert.assertFalse(channel.isDiscoveryMode());
+      Assert.assertFalse(channel.isNodeDetectMode());
       Assert.assertTrue(channel.isRegisteredPeer());
       Assert.assertTrue(channel.getDisconnectTime() > 0);
       Assert.assertTrue(ChannelManager.getChannels().isEmpty());
       Assert.assertEquals(0, ChannelManager.getConnectionNum(channel.getInetAddress()));
-      Assert.assertEquals(0, pool.getPassivePeersCount().get());
-      Assert.assertEquals(0, pool.getActivePeersCount().get());
+      Assert.assertEquals(0, pool.getInboundPeerCount().get());
+      Assert.assertEquals(0, pool.getOutboundPeerCount().get());
       Assert.assertEquals(i + 1, disconnected.get());
       Assert.assertNotNull(ChannelManager.getBannedNodes().getIfPresent(channel.getInetAddress()));
       // Clear the normal disconnect ban to repeat the lifecycle with one loopback source.
@@ -181,7 +181,7 @@ public class StatusLifecycleTest {
     write(socket, status());
     Assert.assertEquals(-1, socket.getInputStream().read());
     awaitClosed(channel);
-    Assert.assertFalse(channel.isDiscoveryMode());
+    Assert.assertFalse(channel.isNodeDetectMode());
     Assert.assertTrue(ChannelManager.getChannels().isEmpty());
     Assert.assertEquals(1, disconnected.get());
   }
@@ -191,13 +191,13 @@ public class StatusLifecycleTest {
     Socket socket = handshake();
     Channel channel = inbound(socket);
     channel.getCtx().executor().submit(() -> {
-      channel.setDiscoveryMode(true);
+      channel.setNodeDetectMode(true);
       channel.getCtx().close();
     }).sync();
     awaitClosed(channel);
     Assert.assertTrue(ChannelManager.getChannels().isEmpty());
     Assert.assertTrue(channel.getDisconnectTime() > 0);
-    Assert.assertEquals(0, pool.getPassivePeersCount().get());
+    Assert.assertEquals(0, pool.getInboundPeerCount().get());
     Assert.assertEquals(1, disconnected.get());
   }
 
@@ -218,7 +218,7 @@ public class StatusLifecycleTest {
     awaitClosed(channel);
     ChannelManager.notifyDisconnect(channel);
     Assert.assertEquals(1, disconnected.get());
-    Assert.assertEquals(0, pool.getPassivePeersCount().get());
+    Assert.assertEquals(0, pool.getInboundPeerCount().get());
     Assert.assertTrue(ChannelManager.getChannels().isEmpty());
   }
 
@@ -280,8 +280,8 @@ public class StatusLifecycleTest {
     socket.eventLoop().submit(() -> { }).sync(); // Wait for channelActive after connect succeeds.
     Channel channel = accepted.get(socket);
     awaitClosed(channel);
-    Assert.assertTrue(channel.isActive());
-    Assert.assertTrue(channel.isDiscoveryMode());
+    Assert.assertTrue(channel.isOutbound());
+    Assert.assertTrue(channel.isNodeDetectMode());
     Assert.assertFalse(channel.isRegisteredPeer());
     Assert.assertTrue(ChannelManager.getChannels().isEmpty());
     Assert.assertEquals(0, connected.get());
@@ -296,8 +296,8 @@ public class StatusLifecycleTest {
     return (Map<InetSocketAddress, NodeStat>) field.get(detect);
   }
 
-  private P2pChannelInitializer initializer(String remoteId, boolean discovery) {
-    return new P2pChannelInitializer(remoteId, discovery, false) {
+  private P2pChannelInitializer initializer(String remoteId, boolean nodeDetectMode) {
+    return new P2pChannelInitializer(remoteId, nodeDetectMode, false) {
       @Override
       public void initChannel(NioSocketChannel socket) {
         super.initChannel(socket);

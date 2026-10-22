@@ -158,7 +158,7 @@ public class ChannelManager {
       return DisconnectCode.NORMAL;
     }
 
-    if (!channel.isActive() && !channel.isTrustPeer()) {
+    if (!channel.isOutbound() && !channel.isTrustPeer()) {
       InetAddress inetAddress = channel.getInetAddress();
       if (bannedNodes.getIfPresent(inetAddress) != null
           && bannedNodes.getIfPresent(inetAddress) > System.currentTimeMillis()) {
@@ -275,8 +275,8 @@ public class ChannelManager {
       log.debug("Receive message from channel {}, {}", channel.getInetSocketAddress(), message);
     }
 
-    if (channel.isDiscoveryMode() && message.getType() != MessageType.STATUS) {
-      log.debug("Discovery channel {} received unexpected message {}, close it",
+    if (channel.isNodeDetectMode() && message.getType() != MessageType.STATUS) {
+      log.debug("Node detection channel {} received unexpected message {}, close it",
           channel.getInetSocketAddress(), message.getType());
       channel.close();
       return;
@@ -306,7 +306,7 @@ public class ChannelManager {
     if (handler == null) {
       throw new P2pException(P2pException.TypeEnum.NO_SUCH_MESSAGE, "type:" + data[0]);
     }
-    if (channel.isDiscoveryMode()) {
+    if (channel.isNodeDetectMode()) {
       channel.send(new P2pDisconnectMessage(DisconnectReason.DISCOVER_MODE));
       channel.getCtx().close();
       return;

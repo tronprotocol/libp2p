@@ -153,8 +153,8 @@ public class NodeDetectService implements MessageProcess {
       return;
     }
 
-    if (!channel.isActive()) {
-      channel.setDiscoveryMode(true);
+    if (!channel.isOutbound()) {
+      channel.setNodeDetectMode(true);
       channel.send(new StatusMessage());
       channel.getCtx().close();
       return;
@@ -181,7 +181,7 @@ public class NodeDetectService implements MessageProcess {
 
   public void notifyDisconnect(Channel channel) {
 
-    if (!channel.isActive()) {
+    if (!channel.isOutbound()) {
       return;
     }
 
