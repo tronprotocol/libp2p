@@ -47,7 +47,9 @@ public class ConnPoolService extends P2pEventHandler {
   // A remote host supporting TCP port reuse can connect from its listening port.
   // Incoming and outgoing channels can then share a remote address; track instances separately.
   private final List<Channel> activePeers = Collections.synchronizedList(new ArrayList<>());
-  private final Set<io.netty.channel.Channel> pendingOrdinaryConnections =
+  // Ordinary outbound sockets awaiting P2P handshake completion; excludes startup-configured nodes.
+  // Reserve minConnections budget until onConnect or socket close, even after TCP connects.
+  private final Set<io.netty.channel.Channel> pendingOrdinaryOutboundConnections =
       ConcurrentHashMap.newKeySet();
   private final Cache<InetAddress, Long> peerClientCache = CacheBuilder.newBuilder()
       .maximumSize(1000).expireAfterWrite(120, TimeUnit.SECONDS).recordStats().build();
@@ -225,16 +227,16 @@ public class ConnPoolService extends P2pEventHandler {
   }
 
   private synchronized int getTotalConnectionCount() {
-    return activePeers.size() + pendingOrdinaryConnections.size();
+    return activePeers.size() + pendingOrdinaryOutboundConnections.size();
   }
 
   private synchronized void trackConnection(ChannelFuture future) {
     io.netty.channel.Channel socket = future.channel();
     // The handshake may already have completed before connectAsync returns.
     if (activePeers.stream().noneMatch(peer -> peer.getCtx().channel() == socket)) {
-      pendingOrdinaryConnections.add(socket);
+      pendingOrdinaryOutboundConnections.add(socket);
     }
-    socket.closeFuture().addListener(closed -> pendingOrdinaryConnections.remove(socket));
+    socket.closeFuture().addListener(closed -> pendingOrdinaryOutboundConnections.remove(socket));
   }
 
   public List<Node> getNodes(Set<String> nodesInUse, Set<InetSocketAddress> inetInUse,
@@ -343,7 +345,7 @@ public class ConnPoolService extends P2pEventHandler {
   @Override
   public synchronized void onConnect(Channel peer) {
     // Move the same socket from pending to established without counting it twice.
-    pendingOrdinaryConnections.removeIf(socket -> socket == peer.getCtx().channel());
+    pendingOrdinaryOutboundConnections.removeIf(socket -> socket == peer.getCtx().channel());
     // Channel.equals() compares remote addresses; membership must compare channel instances.
     if (activePeers.stream().noneMatch(channel -> channel == peer)) {
       if (!peer.isActive()) {
