@@ -28,6 +28,8 @@ public class Parameter {
 
   public static final int NODE_CONNECTION_TIMEOUT = 2000;
 
+  public static final int NODE_DETECT_TIMEOUT = 2000;
+
   // Inbound connections waiting for HELLO use separate limits from admitted peers.
   public static final int MAX_PENDING_INBOUND_CONNECTIONS = 32;
 

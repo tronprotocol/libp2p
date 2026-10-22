@@ -35,12 +35,14 @@ import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.connection.business.detect.NodeDetectService;
+import org.tron.p2p.connection.business.detect.NodeStat;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.business.handshake.HandshakeService;
 import org.tron.p2p.connection.business.keepalive.KeepAliveService;
 import org.tron.p2p.connection.business.pool.ConnPoolService;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.message.MessageType;
+import org.tron.p2p.connection.message.detect.StatusMessage;
 import org.tron.p2p.connection.message.handshake.HelloMessage;
 import org.tron.p2p.connection.message.keepalive.PingMessage;
 import org.tron.p2p.connection.message.keepalive.PongMessage;
@@ -61,6 +63,7 @@ public class OutboundHandshakeTimeoutHandlerTest {
   private P2pConfig previousConfig;
   private List<P2pEventHandler> previousHandlers;
   private Map<InetAddress, Long> previousBans;
+  private Map<InetAddress, Long> previousBadNodes;
   private boolean previousShutdown;
   private Object previousDiscovery;
   private ConnPoolService pool;
@@ -72,9 +75,11 @@ public class OutboundHandshakeTimeoutHandlerTest {
     previousConfig = Parameter.p2pConfig;
     previousHandlers = Parameter.handlerList;
     previousBans = new HashMap<>(ChannelManager.getBannedNodes().asMap());
+    previousBadNodes = new HashMap<>(NodeDetectService.getBadNodesCache().asMap());
     previousShutdown = ChannelManager.isShutdown;
     ChannelManager.getAllChannels().forEach(ChannelManager::notifyDisconnect);
     ChannelManager.getBannedNodes().invalidateAll();
+    NodeDetectService.getBadNodesCache().invalidateAll();
     Parameter.p2pConfig = new P2pConfig();
     Parameter.p2pConfig.setIp("127.0.0.1");
     Parameter.p2pConfig.setIpv6("");
@@ -128,6 +133,8 @@ public class OutboundHandshakeTimeoutHandlerTest {
       Parameter.handlerList = previousHandlers;
       ChannelManager.getBannedNodes().invalidateAll();
       ChannelManager.getBannedNodes().putAll(previousBans);
+      NodeDetectService.getBadNodesCache().invalidateAll();
+      NodeDetectService.getBadNodesCache().putAll(previousBadNodes);
       ChannelManager.isShutdown = previousShutdown;
       field(NodeManager.class, "discoverService").set(null, previousDiscovery);
     }
@@ -245,8 +252,121 @@ public class OutboundHandshakeTimeoutHandlerTest {
   public void discoveryConnectionsDoNotUseHelloDeadline() {
     EmbeddedChannel socket = outbound(REMOTE, true, false);
     Assert.assertNull(socket.pipeline().get(OutboundHandshakeTimeoutHandler.class));
-    advance(socket, Parameter.HANDSHAKE_TIMEOUT_SECONDS + 1);
+    advance(socket, Parameter.NODE_DETECT_TIMEOUT - 1, TimeUnit.MILLISECONDS);
     Assert.assertTrue(socket.isOpen());
+    advance(socket, 1, TimeUnit.MILLISECONDS);
+    Assert.assertFalse(socket.isOpen());
+  }
+
+  @Test
+  public void fragmentedInputDoesNotExtendStatusDeadline() {
+    EmbeddedChannel socket = outbound(REMOTE, true, false);
+    socket.writeInbound(Unpooled.wrappedBuffer(new byte[]{127}));
+    for (int elapsed = 250; elapsed < Parameter.NODE_DETECT_TIMEOUT; elapsed += 250) {
+      advance(socket, 250, TimeUnit.MILLISECONDS);
+      socket.writeInbound(Unpooled.wrappedBuffer(new byte[]{0}));
+      Assert.assertTrue(socket.isOpen());
+    }
+    advance(socket, 250, TimeUnit.MILLISECONDS);
+    Assert.assertFalse(socket.isOpen());
+    Assert.assertEquals(0, disconnectCallbacks.get());
+    Assert.assertTrue(ChannelManager.getAllChannels().isEmpty());
+  }
+
+  @Test
+  public void lateStatusAfterRecordRemovalClosesSocket() throws Exception {
+    NodeStat stat = pendingProbe();
+    EmbeddedChannel socket = outbound(REMOTE, true, false);
+    stat.setLastDetectTime(System.currentTimeMillis() - Parameter.NODE_DETECT_TIMEOUT - 1);
+    detect.trimNodeMap();
+    Assert.assertFalse(nodeStats().containsKey(REMOTE));
+    Assert.assertTrue(socket.isOpen());
+    receive(socket, new StatusMessage().getSendData());
+    Assert.assertFalse(socket.isOpen());
+    Assert.assertNull(stat.getStatusMessage());
+  }
+
+  @Test
+  public void successfulStatusClosesSocketAndCancelsDeadline() throws Exception {
+    NodeStat stat = pendingProbe();
+    EmbeddedChannel socket = outbound(REMOTE, true, false);
+    ScheduledFuture<?> task = statusTimeoutTask(socket);
+    receive(socket, new StatusMessage().getSendData());
+    Assert.assertFalse(socket.isOpen());
+    Assert.assertTrue(task.isCancelled());
+    Assert.assertSame(stat, nodeStats().get(REMOTE));
+    Assert.assertNotNull(stat.getStatusMessage());
+    Assert.assertTrue(stat.finishDetect());
+    Assert.assertTrue(NodeDetectService.getBadNodesCache().asMap().isEmpty());
+    Assert.assertEquals(0, disconnectCallbacks.get());
+  }
+
+  @Test
+  public void statusTimeoutRemovesPendingProbe() throws Exception {
+    NodeStat stat = pendingProbe();
+    EmbeddedChannel socket = outbound(REMOTE, true, false);
+    ScheduledFuture<?> task = statusTimeoutTask(socket);
+    advance(socket, Parameter.NODE_DETECT_TIMEOUT, TimeUnit.MILLISECONDS);
+    Assert.assertFalse(socket.isOpen());
+    Assert.assertTrue(task.isDone());
+    Assert.assertFalse(nodeStats().containsKey(REMOTE));
+    Assert.assertNull(stat.getStatusMessage());
+    Assert.assertNotNull(NodeDetectService.getBadNodesCache().getIfPresent(REMOTE.getAddress()));
+  }
+
+  @Test
+  public void failedStatusClosesSocketAndCancelsDeadline() throws Exception {
+    pendingProbe();
+    EmbeddedChannel socket = outbound(REMOTE, true, false);
+    ScheduledFuture<?> task = statusTimeoutTask(socket);
+    receive(socket, new byte[]{MessageType.STATUS.getType(), (byte) 0x80});
+    Assert.assertFalse(socket.isOpen());
+    Assert.assertTrue(task.isCancelled());
+    Assert.assertFalse(nodeStats().containsKey(REMOTE));
+  }
+
+  @Test
+  public void lateStatusIsRejectedBeforeTimeoutTaskRuns() throws Exception {
+    NodeStat stat = pendingProbe();
+    EmbeddedChannel socket = outbound(REMOTE, true, false);
+    socket.advanceTimeBy(Parameter.NODE_DETECT_TIMEOUT, TimeUnit.MILLISECONDS);
+    receive(socket, new StatusMessage().getSendData());
+    Assert.assertFalse(socket.isOpen());
+    Assert.assertNull(stat.getStatusMessage());
+  }
+
+  @Test
+  public void statusProcessingRechecksDeadlineAfterDispatch() throws Exception {
+    NodeStat stat = pendingProbe();
+    EmbeddedChannel socket = outbound(REMOTE, true, false);
+    socket.advanceTimeBy(Parameter.NODE_DETECT_TIMEOUT, TimeUnit.MILLISECONDS);
+    detect.processMessage(peers.get(0), new StatusMessage());
+    Assert.assertFalse(socket.isOpen());
+    Assert.assertNull(stat.getStatusMessage());
+  }
+
+  @Test
+  public void repeatedActivationDoesNotRestartStatusDeadline() {
+    EmbeddedChannel socket = outbound(REMOTE, true, false);
+    advance(socket, 1);
+    socket.pipeline().fireChannelActive();
+    advance(socket, 1);
+    Assert.assertFalse(socket.isOpen());
+  }
+
+  @Test
+  public void statusDeadlineStartsWhenSocketBecomesActive() throws Exception {
+    EmbeddedChannel socket = new EmbeddedChannel(false, false);
+    sockets.add(socket);
+    socket.freezeTime();
+    socket.pipeline().addLast(new OutboundStatusTimeoutHandler());
+    advance(socket, Parameter.NODE_DETECT_TIMEOUT, TimeUnit.MILLISECONDS);
+    Assert.assertTrue(socket.isOpen());
+    socket.register();
+    advance(socket, Parameter.NODE_DETECT_TIMEOUT - 1, TimeUnit.MILLISECONDS);
+    Assert.assertTrue(socket.isOpen());
+    advance(socket, 1, TimeUnit.MILLISECONDS);
+    Assert.assertFalse(socket.isOpen());
   }
 
   @Test
@@ -333,6 +453,10 @@ public class OutboundHandshakeTimeoutHandlerTest {
     peer.setChannelHandlerContext(socket.pipeline().context("messageHandler"));
     socket.closeFuture().addListener(future -> {
       peer.markDisconnected();
+      if (peer.isDiscoveryMode() && !peer.isRegisteredPeer()) {
+        detect.notifyDisconnect(peer);
+        return;
+      }
       ChannelManager.notifyDisconnect(peer);
       if (countedByPool) {
         ChannelManager.triggerConnect(address);
@@ -342,7 +466,11 @@ public class OutboundHandshakeTimeoutHandlerTest {
   }
 
   private void advance(EmbeddedChannel socket, long seconds) {
-    socket.advanceTimeBy(seconds, TimeUnit.SECONDS);
+    advance(socket, seconds, TimeUnit.SECONDS);
+  }
+
+  private void advance(EmbeddedChannel socket, long duration, TimeUnit unit) {
+    socket.advanceTimeBy(duration, unit);
     socket.runScheduledPendingTasks();
     socket.runPendingTasks();
     socket.checkException();
@@ -412,6 +540,24 @@ public class OutboundHandshakeTimeoutHandlerTest {
   private ScheduledFuture<?> timeoutTask(OutboundHandshakeTimeoutHandler handler) throws Exception {
     return (ScheduledFuture<?>) field(OutboundHandshakeTimeoutHandler.class, "timeoutTask")
         .get(handler);
+  }
+
+  private ScheduledFuture<?> statusTimeoutTask(EmbeddedChannel socket) throws Exception {
+    return (ScheduledFuture<?>) field(OutboundStatusTimeoutHandler.class, "timeoutTask")
+        .get(socket.pipeline().get(OutboundStatusTimeoutHandler.class));
+  }
+
+  private NodeStat pendingProbe() throws Exception {
+    NodeStat stat = new NodeStat(new Node(REMOTE));
+    stat.setLastDetectTime(System.currentTimeMillis());
+    nodeStats().put(REMOTE, stat);
+    return stat;
+  }
+
+  @SuppressWarnings("unchecked")
+  private Map<InetSocketAddress, NodeStat> nodeStats() throws Exception {
+    return (Map<InetSocketAddress, NodeStat>) field(NodeDetectService.class, "nodeStatMap")
+        .get(detect);
   }
 
   private Field field(Class<?> type, String name) throws Exception {
