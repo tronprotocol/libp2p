@@ -157,7 +157,7 @@ public class Channel {
 
   /**
    * Closes with the default disconnect cooldown, preserving any active IP ban.
-   * Unlike {@link #close(long)}, ordinary disconnects must not refresh an active ban.
+   * Unlike {@link #close(long)}, repeat disconnect won't extend the ban time if not expired.
    */
   public void close() {
     markDisconnected();
