@@ -373,30 +373,30 @@ public class OutboundHandshakeTimeoutHandlerTest {
   public void timeoutReleasesBudgetAndAllowsOrdinaryReplenishment() throws Exception {
     field(ConnPoolService.class, "peerClient").set(pool, new PeerClient() {
       @Override
-      public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
-        return outbound(node.getPreferInetSocketAddress(), discoveryMode, true)
+      public ChannelFuture connectAsync(Node node, boolean nodeDetectMode) {
+        return outbound(node.getPreferInetSocketAddress(), nodeDetectMode, true)
             .newSucceededFuture();
       }
     });
     candidates.add(new Node(REMOTE));
     scan();
     Assert.assertEquals(1, sockets.size());
-    Assert.assertEquals(1, pool.getConnectingPeersCount().get());
+    Assert.assertEquals(1, pool.getOrdinaryOutboundConnectionCount().get());
     scan();
     Assert.assertEquals(1, sockets.size());
     candidates.clear();
     advance(sockets.get(0), Parameter.HANDSHAKE_TIMEOUT_SECONDS);
     drainPool();
     Assert.assertFalse(sockets.get(0).isOpen());
-    Assert.assertEquals(0, pool.getConnectingPeersCount().get());
+    Assert.assertEquals(0, pool.getOrdinaryOutboundConnectionCount().get());
     sockets.get(0).close();
-    Assert.assertEquals(0, pool.getConnectingPeersCount().get());
+    Assert.assertEquals(0, pool.getOrdinaryOutboundConnectionCount().get());
 
     candidates.add(new Node(new InetSocketAddress("192.0.2.2", 18888)));
     scan();
     Assert.assertEquals(2, sockets.size());
     Assert.assertTrue(sockets.get(1).isOpen());
-    Assert.assertEquals(1, pool.getConnectingPeersCount().get());
+    Assert.assertEquals(1, pool.getOrdinaryOutboundConnectionCount().get());
   }
 
   @Test(timeout = 25000)
@@ -413,7 +413,7 @@ public class OutboundHandshakeTimeoutHandlerTest {
             }
           }).bind("127.0.0.1", 0).sync().channel();
       // Reserve one ordinary dial, as ConnPoolService does before the handshake completes.
-      pool.getConnectingPeersCount().incrementAndGet();
+      pool.getOrdinaryOutboundConnectionCount().incrementAndGet();
       client = new Bootstrap().group(group).channel(NioSocketChannel.class)
           .handler(new P2pChannelInitializer("remote-node", false, true))
           .connect(server.localAddress()).sync().channel();
@@ -424,7 +424,7 @@ public class OutboundHandshakeTimeoutHandlerTest {
       // closeFuture completes before its listeners necessarily finish.
       client.eventLoop().submit(() -> { }).sync();
       drainPool();
-      Assert.assertEquals(0, pool.getConnectingPeersCount().get());
+      Assert.assertEquals(0, pool.getOrdinaryOutboundConnectionCount().get());
       Assert.assertEquals(1, disconnectCallbacks.get());
     } finally {
       if (client != null) {
@@ -437,7 +437,7 @@ public class OutboundHandshakeTimeoutHandlerTest {
     }
   }
 
-  private EmbeddedChannel outbound(InetSocketAddress address, boolean discovery,
+  private EmbeddedChannel outbound(InetSocketAddress address, boolean nodeDetectMode,
       boolean countedByPool) {
     EmbeddedChannel socket = new EmbeddedChannel() {
       @Override
@@ -449,11 +449,11 @@ public class OutboundHandshakeTimeoutHandlerTest {
     socket.freezeTime();
     Channel peer = new Channel();
     peers.add(peer);
-    peer.init(socket.pipeline(), "outbound-peer", discovery);
+    peer.init(socket.pipeline(), "outbound-peer", nodeDetectMode);
     peer.setChannelHandlerContext(socket.pipeline().context("messageHandler"));
     socket.closeFuture().addListener(future -> {
       peer.markDisconnected();
-      if (peer.isDiscoveryMode() && !peer.isRegisteredPeer()) {
+      if (peer.isNodeDetectMode() && !peer.isRegisteredPeer()) {
         detect.notifyDisconnect(peer);
         return;
       }

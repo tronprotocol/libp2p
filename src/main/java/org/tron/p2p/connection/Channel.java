@@ -61,34 +61,54 @@ public class Channel {
   private long lastSendTime = System.currentTimeMillis();
   @Getter
   private final long startTime = System.currentTimeMillis();
+  /** Whether the local node initiated this connection. */
   @Getter
-  private boolean isActive = false;
+  private boolean outbound = false;
   @Getter
   private boolean isTrustPeer;
   @Getter
   @Setter
   private volatile boolean finishHandshake;
-  // Remains true once registered as a peer, ensuring peer cleanup even if discoveryMode changes.
+  // Remains true once registered as a peer, ensuring peer cleanup even if nodeDetectMode changes.
   @Getter
   private volatile boolean registeredPeer;
   private final AtomicBoolean disconnectNotified = new AtomicBoolean();
   @Getter
   @Setter
   private String nodeId;
+  /** TCP STATUS probe mode, independent of the UDP discovery configuration. */
   @Setter
   @Getter
-  private boolean discoveryMode;
+  private boolean nodeDetectMode;
   @Getter
   private long avgLatency;
   private long count;
 
-  public void init(ChannelPipeline pipeline, String nodeId, boolean discoveryMode) {
-    this.discoveryMode = discoveryMode;
+  /** @deprecated Use {@link #isOutbound()} to query connection direction. */
+  @Deprecated
+  public boolean isActive() {
+    return isOutbound();
+  }
+
+  /** @deprecated Use {@link #isNodeDetectMode()}. */
+  @Deprecated
+  public boolean isDiscoveryMode() {
+    return isNodeDetectMode();
+  }
+
+  /** @deprecated Use {@link #setNodeDetectMode(boolean)}. */
+  @Deprecated
+  public void setDiscoveryMode(boolean nodeDetectMode) {
+    setNodeDetectMode(nodeDetectMode);
+  }
+
+  public void init(ChannelPipeline pipeline, String nodeId, boolean nodeDetectMode) {
+    this.nodeDetectMode = nodeDetectMode;
     this.nodeId = nodeId;
-    this.isActive = StringUtils.isNotEmpty(nodeId);
+    this.outbound = StringUtils.isNotEmpty(nodeId);
     MessageHandler messageHandler = new MessageHandler(this);
-    if (isActive) {
-      if (discoveryMode) {
+    if (outbound) {
+      if (nodeDetectMode) {
         pipeline.addLast("outboundStatusTimeout", new OutboundStatusTimeoutHandler());
       } else {
         pipeline.addLast("outboundHandshakeTimeout", new OutboundHandshakeTimeoutHandler());

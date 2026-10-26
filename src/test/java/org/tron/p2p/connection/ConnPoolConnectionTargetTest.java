@@ -121,7 +121,7 @@ public class ConnPoolConnectionTargetTest {
     scan(false);
 
     Assert.assertEquals(3, dials.size());
-    Assert.assertEquals(3, pool.getConnectingPeersCount().get());
+    Assert.assertEquals(3, pool.getOrdinaryOutboundConnectionCount().get());
   }
 
   @Test
@@ -131,7 +131,7 @@ public class ConnPoolConnectionTargetTest {
     addPeer(newSocket(new InetSocketAddress("198.51.100.1", 18888)), true);
     addPeer(newSocket(new InetSocketAddress("198.51.100.2", 20000)), false);
     addPeer(newSocket(new InetSocketAddress("198.51.100.3", 20001)), false);
-    pool.getConnectingPeersCount().set(1);
+    pool.getOrdinaryOutboundConnectionCount().set(1);
 
     scan(false);
 
@@ -144,7 +144,7 @@ public class ConnPoolConnectionTargetTest {
 
     scan(false);
     Assert.assertEquals(8, dials.size());
-    Assert.assertEquals(8, pool.getConnectingPeersCount().get());
+    Assert.assertEquals(8, pool.getOrdinaryOutboundConnectionCount().get());
     scan(false);
     Assert.assertEquals(8, dials.size());
 
@@ -179,7 +179,7 @@ public class ConnPoolConnectionTargetTest {
     executor.submit(() -> { }).get(5, TimeUnit.SECONDS);
 
     Assert.assertEquals(2, dials.size());
-    Assert.assertEquals(1, pool.getConnectingPeersCount().get());
+    Assert.assertEquals(1, pool.getOrdinaryOutboundConnectionCount().get());
     scan(false);
     Assert.assertEquals(2, dials.size());
   }
@@ -200,12 +200,12 @@ public class ConnPoolConnectionTargetTest {
     for (int i = 1; i <= 3; i++) {
       addPeer(newSocket(new InetSocketAddress("198.51.100." + i, 18888)), true);
     }
-    pool.getConnectingPeersCount().set(3);
+    pool.getOrdinaryOutboundConnectionCount().set(3);
 
     scan(false);
 
     Assert.assertEquals(13, dials.size());
-    Assert.assertEquals(8, pool.getConnectingPeersCount().get());
+    Assert.assertEquals(8, pool.getOrdinaryOutboundConnectionCount().get());
     scan(false);
     Assert.assertEquals(13, dials.size());
   }
@@ -261,7 +261,7 @@ public class ConnPoolConnectionTargetTest {
     scan(false);
 
     Assert.assertEquals(3, dials.size());
-    Assert.assertEquals(3, pool.getConnectingPeersCount().get());
+    Assert.assertEquals(3, pool.getOrdinaryOutboundConnectionCount().get());
     Assert.assertTrue(Parameter.p2pConfig.getActiveNodes().containsAll(dialedAddresses));
   }
 
@@ -271,7 +271,7 @@ public class ConnPoolConnectionTargetTest {
     for (int i = 1; i <= ordinaryPeers; i++) {
       addPeer(newSocket(new InetSocketAddress("198.51.100." + i, 18888)), true);
     }
-    pool.getConnectingPeersCount().set(ordinaryPeers);
+    pool.getOrdinaryOutboundConnectionCount().set(ordinaryPeers);
 
     scan(false);
 
@@ -286,7 +286,7 @@ public class ConnPoolConnectionTargetTest {
 
     scan(false);
     Assert.assertEquals(16, dials.size());
-    Assert.assertEquals(8, pool.getConnectingPeersCount().get());
+    Assert.assertEquals(8, pool.getOrdinaryOutboundConnectionCount().get());
     for (int i = 0; i < dials.size(); i++) {
       if (!configuredAddresses.contains(dialedAddresses.get(i))) {
         dials.get(i).setSuccess();
@@ -309,7 +309,7 @@ public class ConnPoolConnectionTargetTest {
       Assert.assertEquals(previousAttempts + 8, dials.size());
       Assert.assertTrue(configuredAddresses.containsAll(
           dialedAddresses.subList(previousAttempts, dials.size())));
-      Assert.assertEquals(8, pool.getConnectingPeersCount().get());
+      Assert.assertEquals(8, pool.getOrdinaryOutboundConnectionCount().get());
       scan(false);
       Assert.assertEquals(previousAttempts + 8, dials.size());
     }
@@ -327,7 +327,7 @@ public class ConnPoolConnectionTargetTest {
 
     Assert.assertEquals(2, dials.size());
     Assert.assertFalse(configuredAddresses.contains(dialedAddresses.get(1)));
-    Assert.assertEquals(1, pool.getConnectingPeersCount().get());
+    Assert.assertEquals(1, pool.getOrdinaryOutboundConnectionCount().get());
   }
 
   private void startPool(int configuredPeers) throws Exception {
@@ -340,7 +340,7 @@ public class ConnPoolConnectionTargetTest {
     client.setAccessible(true);
     client.set(pool, new PeerClient() {
       @Override
-      public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
+      public ChannelFuture connectAsync(Node node, boolean nodeDetectMode) {
         InetSocketAddress address = node.getPreferInetSocketAddress();
         EmbeddedChannel socket = newSocket(address);
         ChannelPromise dial = socket.newPromise();
@@ -381,12 +381,12 @@ public class ConnPoolConnectionTargetTest {
     return socket;
   }
 
-  private void addPeer(EmbeddedChannel socket, boolean active) throws Exception {
+  private void addPeer(EmbeddedChannel socket, boolean outbound) throws Exception {
     Channel peer = new Channel();
     peer.setChannelHandlerContext(socket.pipeline().firstContext());
-    Field direction = Channel.class.getDeclaredField("isActive");
+    Field direction = Channel.class.getDeclaredField("outbound");
     direction.setAccessible(true);
-    direction.set(peer, active);
+    direction.set(peer, outbound);
     ChannelManager.addPeer(peer);
     pool.onConnect(peer);
     peers.add(peer);

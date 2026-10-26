@@ -41,7 +41,7 @@ public class HandshakeService implements MessageProcess {
     if (msg.getNetworkId() != networkId) {
       log.info("Peer {} different network id, peer->{}, me->{}",
           channel.getInetSocketAddress(), msg.getNetworkId(), networkId);
-      if (!channel.isActive()) {
+      if (!channel.isOutbound()) {
         sendHelloMsg(channel, DisconnectCode.DIFFERENT_VERSION, msg.getTimestamp());
       }
       logDisconnectReason(channel, DisconnectReason.DIFFERENT_VERSION);
@@ -49,7 +49,7 @@ public class HandshakeService implements MessageProcess {
       return;
     }
 
-    if (channel.isActive() && msg.getCode() != DisconnectCode.NORMAL.getValue()) {
+    if (channel.isOutbound() && msg.getCode() != DisconnectCode.NORMAL.getValue()) {
       DisconnectCode disconnectCode = DisconnectCode.forNumber(msg.getCode());
       log.info("Handshake failed {}, code: {}, reason: {}, networkId: {}, version: {}",
           channel.getInetSocketAddress(), msg.getCode(), disconnectCode.name(),
@@ -62,7 +62,7 @@ public class HandshakeService implements MessageProcess {
     channel.setHelloMessage(msg);
     DisconnectCode code = finishHandshake(channel, msg);
     if (code != DisconnectCode.NORMAL) {
-      if (!channel.isActive() && code != DisconnectCode.UNKNOWN) {
+      if (!channel.isOutbound() && code != DisconnectCode.UNKNOWN) {
         sendHelloMsg(channel, code, msg.getTimestamp());
       }
       logDisconnectReason(channel, getDisconnectReason(code));
@@ -79,7 +79,7 @@ public class HandshakeService implements MessageProcess {
       if (code != DisconnectCode.NORMAL) {
         return code;
       }
-      if (!channel.isActive()) {
+      if (!channel.isOutbound()) {
         // Hello must be sent before enabling the negotiated message compression.
         sendHelloMsg(channel, DisconnectCode.NORMAL, msg.getTimestamp());
       }

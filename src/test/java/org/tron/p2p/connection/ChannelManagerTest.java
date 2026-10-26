@@ -258,12 +258,12 @@ public class ChannelManagerTest {
   }
 
   @Test
-  public synchronized void testDiscoveryModeRejectsHelloMessage() throws Exception {
+  public synchronized void testNodeDetectModeRejectsHelloMessage() throws Exception {
     clearChannels();
     Parameter.p2pConfig = new P2pConfig();
 
     Channel channel = new Channel();
-    channel.setDiscoveryMode(true);
+    channel.setNodeDetectMode(true);
 
     InetSocketAddress addr = new InetSocketAddress("100.1.1.5", 18888);
     Field f = channel.getClass().getDeclaredField("inetSocketAddress");
@@ -292,11 +292,11 @@ public class ChannelManagerTest {
 
   @Test
   public void sameAddressHandshakesRemainRegisteredInBothCloseOrders() throws Exception {
-    for (boolean firstActive : new boolean[]{false, true}) {
+    for (boolean firstOutbound : new boolean[]{false, true}) {
       for (boolean closeFirst : new boolean[]{false, true}) {
         ChannelManager.getBannedNodes().invalidateAll();
-        Channel first = channel(firstActive, 1);
-        Channel second = channel(!firstActive, 2);
+        Channel first = channel(firstOutbound, 1);
+        Channel second = channel(!firstOutbound, 2);
         hello(first, 1);
         hello(second, 2);
         Assert.assertNotSame(first, second);
@@ -311,11 +311,11 @@ public class ChannelManagerTest {
         closed.close();
         Assert.assertTrue(survivor.getCtx().channel().isOpen());
         assertRegistered(survivor);
-        assertCounts(survivor.isActive() ? 1 : 0, survivor.isActive() ? 0 : 1);
+        assertCounts(survivor.isOutbound() ? 1 : 0, survivor.isOutbound() ? 0 : 1);
 
         ChannelManager.notifyDisconnect(closed);
         assertRegistered(survivor);
-        assertCounts(survivor.isActive() ? 1 : 0, survivor.isActive() ? 0 : 1);
+        assertCounts(survivor.isOutbound() ? 1 : 0, survivor.isOutbound() ? 0 : 1);
         survivor.close();
         assertRegistered();
         assertCounts(0, 0);
@@ -416,13 +416,13 @@ public class ChannelManagerTest {
     Assert.assertEquals(1, status.getCurrentConnections());
   }
 
-  private Channel channel(boolean active, long order) throws Exception {
+  private Channel channel(boolean outbound, long order) throws Exception {
     Channel channel = new Channel();
     EmbeddedChannel socket = new EmbeddedChannel(new ChannelInboundHandlerAdapter());
     sockets.add(socket);
     set(channel, "inetSocketAddress", REMOTE);
     set(channel, "inetAddress", REMOTE.getAddress());
-    set(channel, "isActive", active);
+    set(channel, "outbound", outbound);
     set(channel, "startTime", startTime + order);
     set(channel, "ctx", socket.pipeline().firstContext());
     // Mirror P2pChannelInitializer's normal-channel close callback without opening real sockets.
@@ -454,9 +454,9 @@ public class ChannelManagerTest {
     }
   }
 
-  private void assertCounts(int active, int passive) {
-    Assert.assertEquals(active, pool.getActivePeersCount().get());
-    Assert.assertEquals(passive, pool.getPassivePeersCount().get());
+  private void assertCounts(int outbound, int inbound) {
+    Assert.assertEquals(outbound, pool.getOutboundPeerCount().get());
+    Assert.assertEquals(inbound, pool.getInboundPeerCount().get());
   }
 
   private static void set(Channel channel, String name, Object value) throws Exception {

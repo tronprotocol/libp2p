@@ -42,7 +42,7 @@ public class ConnPoolServiceTest {
     private final AtomicInteger connectCount = new AtomicInteger();
 
     @Override
-    public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
+    public ChannelFuture connectAsync(Node node, boolean nodeDetectMode) {
       connectCount.incrementAndGet();
       return null;
     }
@@ -138,7 +138,7 @@ public class ConnPoolServiceTest {
       AtomicInteger attempts = new AtomicInteger();
       PeerClient peerClient = new PeerClient() {
         @Override
-        public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
+        public ChannelFuture connectAsync(Node node, boolean nodeDetectMode) {
           attempts.incrementAndGet();
           connPoolService.triggerConnect(node.getPreferInetSocketAddress());
           return null;
@@ -169,7 +169,7 @@ public class ConnPoolServiceTest {
       AtomicInteger attempts = new AtomicInteger();
       PeerClient peerClient = new PeerClient() {
         @Override
-        public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
+        public ChannelFuture connectAsync(Node node, boolean nodeDetectMode) {
           attempts.incrementAndGet();
           connPoolService.triggerConnect(node.getPreferInetSocketAddress());
           return null;
@@ -218,7 +218,7 @@ public class ConnPoolServiceTest {
       ConnPoolService pool = connPoolService;
       PeerClient peerClient = new PeerClient() {
         @Override
-        public ChannelFuture connectAsync(Node node, boolean discoveryMode) {
+        public ChannelFuture connectAsync(Node node, boolean nodeDetectMode) {
           dialed.add(node.getPreferInetSocketAddress());
           if (attempts.incrementAndGet() == 1) {
             pool.triggerConnect(node.getPreferInetSocketAddress());
@@ -235,7 +235,7 @@ public class ConnPoolServiceTest {
 
       Assert.assertEquals(1, attempts.get());
       Assert.assertEquals(activeNode, dialed.get(0));
-      Assert.assertEquals(0, pool.getConnectingPeersCount().get());
+      Assert.assertEquals(0, pool.getOrdinaryOutboundConnectionCount().get());
     } finally {
       if (connPoolService != null) {
         connPoolService.close();
@@ -323,10 +323,10 @@ public class ConnPoolServiceTest {
 
   @Test
   public void sameAddressPeersAreTrackedSeparatelyInEitherCloseOrder() throws Exception {
-    for (boolean firstActive : new boolean[]{false, true}) {
+    for (boolean firstOutbound : new boolean[]{false, true}) {
       for (boolean closeFirst : new boolean[]{false, true}) {
-        Channel first = channel(firstActive);
-        Channel second = channel(!firstActive);
+        Channel first = channel(firstOutbound);
+        Channel second = channel(!firstOutbound);
         Assert.assertNotSame(first, second);
         Assert.assertEquals(first, second);
         pool.onConnect(first);
@@ -336,7 +336,7 @@ public class ConnPoolServiceTest {
 
         pool.onDisconnect(closeFirst ? first : second);
         Channel survivor = closeFirst ? second : first;
-        assertCounts(survivor.isActive() ? 1 : 0, survivor.isActive() ? 0 : 1);
+        assertCounts(survivor.isOutbound() ? 1 : 0, survivor.isOutbound() ? 0 : 1);
         assertPeers(survivor);
         pool.onDisconnect(survivor);
         assertCounts(0, 0);
@@ -406,7 +406,7 @@ public class ConnPoolServiceTest {
   public void repeatedSameAddressLifecyclesDoNotAccumulateCounterDrift() throws Exception {
     for (int i = 0; i < 100; i++) {
       Channel first = channel(i % 2 == 0);
-      Channel second = channel(!first.isActive());
+      Channel second = channel(!first.isOutbound());
       pool.onConnect(first);
       pool.onConnect(second);
       pool.onDisconnect(second);
@@ -422,23 +422,23 @@ public class ConnPoolServiceTest {
    * If NAT is involved, its port mappings must also preserve that address equality.
    * Model these channels directly without requiring platform-specific socket options.
    */
-  private Channel channel(boolean active) throws Exception {
+  private Channel channel(boolean outbound) throws Exception {
     Channel channel = new Channel();
     set(channel, "inetSocketAddress", REMOTE);
     set(channel, "inetAddress", REMOTE.getAddress());
-    set(channel, "isActive", active);
+    set(channel, "outbound", outbound);
     channels.add(channel);
     return channel;
   }
 
-  private void assertCounts(int active, int passive) {
-    Assert.assertEquals(active, pool.getActivePeersCount().get());
-    Assert.assertEquals(passive, pool.getPassivePeersCount().get());
+  private void assertCounts(int outbound, int inbound) {
+    Assert.assertEquals(outbound, pool.getOutboundPeerCount().get());
+    Assert.assertEquals(inbound, pool.getInboundPeerCount().get());
   }
 
   @SuppressWarnings("unchecked")
   private void assertPeers(Channel... expected) throws Exception {
-    Field field = ConnPoolService.class.getDeclaredField("activePeers");
+    Field field = ConnPoolService.class.getDeclaredField("registeredPeers");
     field.setAccessible(true);
     List<Channel> actual = (List<Channel>) field.get(pool);
     Assert.assertEquals(expected.length, actual.size());
