@@ -28,6 +28,7 @@ public class Parameter {
 
   public static final int NODE_CONNECTION_TIMEOUT = 2000;
 
+  // Node detection timeout in milliseconds.
   public static final int NODE_DETECT_TIMEOUT = 2000;
 
   // Inbound connections waiting for HELLO use separate limits from admitted peers.
