@@ -141,6 +141,12 @@ public class ChannelManager {
     return cnt;
   }
 
+  /**
+   * @deprecated Peer registration is managed by the libp2p HELLO handshake. This method only
+   *     performs admission checks and registration; it does not complete the handshake or cancel
+   *     its timeout. Application code should let the handshake register peers instead.
+   */
+  @Deprecated
   public static synchronized DisconnectCode processPeer(Channel channel) {
     DisconnectCode code = checkPeer(channel);
     if (code == DisconnectCode.NORMAL) {

@@ -3,11 +3,14 @@ package org.tron.p2p.connection;
 import com.google.protobuf.ByteString;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.util.ReferenceCountUtil;
+import io.netty.util.concurrent.ScheduledFuture;
 import java.io.DataInputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
@@ -268,6 +271,35 @@ public class StatusLifecycleTest {
           .getIfPresent(stat.getSocketAddress().getAddress()));
     } finally {
       rejectingServer.close().sync();
+    }
+  }
+
+  @Test(timeout = 10000)
+  public void outboundDetectFragmentedInputStillTimesOut() throws Exception {
+    io.netty.channel.Channel server = new ServerBootstrap().group(group)
+        .channel(NioServerSocketChannel.class).childHandler(new ChannelInboundHandlerAdapter() {
+          @Override
+          public void channelActive(ChannelHandlerContext ctx) {
+            ctx.writeAndFlush(Unpooled.wrappedBuffer(new byte[]{127}));
+            ScheduledFuture<?> drip = ctx.executor().scheduleAtFixedRate(
+                () -> ctx.writeAndFlush(Unpooled.wrappedBuffer(new byte[]{0})),
+                100, 100, TimeUnit.MILLISECONDS);
+            ctx.channel().closeFuture().addListener(future -> drip.cancel(false));
+          }
+
+          @Override
+          public void channelRead(ChannelHandlerContext ctx, Object msg) {
+            ReferenceCountUtil.release(msg);
+          }
+        }).bind("127.0.0.1", 0).sync().channel();
+    try {
+      NodeStat stat = probe((InetSocketAddress) server.localAddress(), false);
+      Assert.assertNull(stat.getStatusMessage());
+      Assert.assertFalse(nodeStats().containsKey(stat.getSocketAddress()));
+      Assert.assertNotNull(NodeDetectService.getBadNodesCache()
+          .getIfPresent(stat.getSocketAddress().getAddress()));
+    } finally {
+      server.close().sync();
     }
   }
 

@@ -26,6 +26,8 @@ import org.tron.p2p.connection.business.upgrade.UpgradeController;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.message.handshake.HelloMessage;
 import org.tron.p2p.connection.socket.MessageHandler;
+import org.tron.p2p.connection.socket.OutboundHandshakeTimeoutHandler;
+import org.tron.p2p.connection.socket.OutboundStatusTimeoutHandler;
 import org.tron.p2p.connection.socket.P2pProtobufVarint32FrameDecoder;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.exception.P2pException;
@@ -85,6 +87,13 @@ public class Channel {
     this.nodeId = nodeId;
     this.isActive = StringUtils.isNotEmpty(nodeId);
     MessageHandler messageHandler = new MessageHandler(this);
+    if (isActive) {
+      if (discoveryMode) {
+        pipeline.addLast("outboundStatusTimeout", new OutboundStatusTimeoutHandler());
+      } else {
+        pipeline.addLast("outboundHandshakeTimeout", new OutboundHandshakeTimeoutHandler());
+      }
+    }
     pipeline.addLast("readTimeoutHandler", new ReadTimeoutHandler(60, TimeUnit.SECONDS));
     pipeline.addLast(TrafficStats.tcp);
     pipeline.addLast("protoPrepend", new ProtobufVarint32LengthFieldPrepender());
