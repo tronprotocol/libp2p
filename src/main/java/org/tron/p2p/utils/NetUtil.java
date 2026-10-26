@@ -114,7 +114,7 @@ public class NetUtil {
       if (!isAskIpv4 && !validIpV6(inetAddress.getHostAddress())) {
         throw new IOException("Invalid address: " + ip);
       }
-      return ip;
+      return inetAddress.getHostAddress();
     } catch (Exception e) {
       log.warn("Fail to get {} by {}, cause:{}",
           Constant.ipV4Urls.contains(url) ? "ipv4" : "ipv6", url, e.getMessage());
