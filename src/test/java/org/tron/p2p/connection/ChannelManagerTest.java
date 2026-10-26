@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -184,6 +185,71 @@ public class ChannelManagerTest {
     c2.setNodeId("cc");
     code = ChannelManager.checkPeer(c2);
     Assert.assertTrue(code.equals(DisconnectCode.DUPLICATE_PEER));
+  }
+
+  @Test
+  public void penaltyExtendsCooldownFromAnotherConnection() throws Exception {
+    Channel established = channel(false, 1);
+    hello(established, 1);
+    channel(false, 2).close();
+    Long cooldown = ChannelManager.getBannedNodes().getIfPresent(REMOTE.getAddress());
+    Assert.assertNotNull(cooldown);
+    Assert.assertTrue(established.getCtx().channel().isOpen());
+
+    long penalty = TimeUnit.HOURS.toMillis(1);
+    long before = System.currentTimeMillis();
+    established.close(penalty);
+
+    Long expiry = ChannelManager.getBannedNodes().getIfPresent(REMOTE.getAddress());
+    Assert.assertTrue(expiry >= before + penalty);
+    Assert.assertTrue(expiry > cooldown);
+    channel(false, 3).close();
+    Assert.assertEquals(expiry, ChannelManager.getBannedNodes().getIfPresent(REMOTE.getAddress()));
+  }
+
+  @Test
+  public void shorterPenaltyDoesNotShortenExistingBan() {
+    ChannelManager.banNode(REMOTE.getAddress(), TimeUnit.HOURS.toMillis(2));
+    Long expiry = ChannelManager.getBannedNodes().getIfPresent(REMOTE.getAddress());
+
+    ChannelManager.banNode(REMOTE.getAddress(), TimeUnit.HOURS.toMillis(1));
+
+    Assert.assertEquals(expiry, ChannelManager.getBannedNodes().getIfPresent(REMOTE.getAddress()));
+  }
+
+  @Test
+  public void ordinaryDisconnectsDoNotExtendCooldown() throws Exception {
+    Long expiry = System.currentTimeMillis() + Parameter.DEFAULT_BAN_TIME / 2;
+    ChannelManager.getBannedNodes().put(REMOTE.getAddress(), expiry);
+
+    channel(false, 1).close();
+    Assert.assertEquals(expiry, ChannelManager.getBannedNodes().getIfPresent(REMOTE.getAddress()));
+    // A raw socket close reaches notifyDisconnect without calling Channel.close().
+    channel(false, 2).getCtx().channel().close();
+    Assert.assertEquals(expiry, ChannelManager.getBannedNodes().getIfPresent(REMOTE.getAddress()));
+  }
+
+  @Test
+  public void expiredCooldownIsRenewedOnOrdinaryDisconnect() throws Exception {
+    long before = System.currentTimeMillis();
+    ChannelManager.getBannedNodes().put(REMOTE.getAddress(), before - 1);
+
+    channel(false, 1).close();
+
+    Assert.assertTrue(ChannelManager.getBannedNodes().getIfPresent(REMOTE.getAddress())
+        >= before + Parameter.DEFAULT_BAN_TIME);
+  }
+
+  @Test
+  public void expiredBanIsRenewedByPenalty() {
+    long before = System.currentTimeMillis();
+    ChannelManager.getBannedNodes().put(REMOTE.getAddress(), before - 1);
+    long penalty = TimeUnit.HOURS.toMillis(1);
+
+    ChannelManager.banNode(REMOTE.getAddress(), penalty);
+
+    Assert.assertTrue(ChannelManager.getBannedNodes().getIfPresent(REMOTE.getAddress())
+        >= before + penalty);
   }
 
   private void clearChannels() {

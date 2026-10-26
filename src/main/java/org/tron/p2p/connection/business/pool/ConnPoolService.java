@@ -2,6 +2,7 @@ package org.tron.p2p.connection.business.pool;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import io.netty.channel.ChannelFuture;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -12,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -46,7 +48,10 @@ public class ConnPoolService extends P2pEventHandler {
   // Incoming and outgoing channels can then share a remote address; track instances separately.
   // Includes registered inbound and outbound peers, including configured active nodes.
   private final List<Channel> registeredPeers = Collections.synchronizedList(new ArrayList<>());
-
+  // Ordinary outbound sockets awaiting P2P handshake completion; excludes startup-configured nodes.
+  // Reserve minConnections budget until onConnect or socket close, even after TCP connects.
+  private final Set<io.netty.channel.Channel> pendingOrdinaryOutboundConnections =
+      ConcurrentHashMap.newKeySet();
   private final Cache<InetAddress, Long> peerClientCache = CacheBuilder.newBuilder()
       .maximumSize(1000).expireAfterWrite(120, TimeUnit.SECONDS).recordStats().build();
 
@@ -175,16 +180,16 @@ public class ConnPoolService extends P2pEventHandler {
       }
     });
 
-    // Calculate how many ordinary outbound connections to add.
-    // Startup-configured active nodes are excluded from ordinaryOutboundConnectionCount.
+    // Dial active nodes first to account for any connections established immediately.
+    connectNodes.forEach(this::connect);
+    connectNodes.clear();
+
+    // The total target includes established peers and pending ordinary dials.
+    // Startup-configured active nodes count only after their handshake completes.
+    // Only the ordinary outbound target excludes the startup-configured active nodes.
     int activeLackSize = p2pConfig.getMinActiveConnections() - ordinaryOutboundConnectionCount.get();
-    int size = Math.max(
-        p2pConfig.getMinConnections() - ordinaryOutboundConnectionCount.get()
-            - inboundPeerCount.get(),
-        activeLackSize);
-    if (p2pConfig.getMinConnections() <= registeredPeers.size() && activeLackSize <= 0) {
-      size = 0;
-    }
+    int totalLackSize = p2pConfig.getMinConnections() - getTotalConnectionCount();
+    int size = Math.max(0, Math.max(totalLackSize, activeLackSize));
     int lackSize = size;
     if (lackSize > 0) {
       List<Node> connectableNodes = ChannelManager.getNodeDetectService().getConnectableNodes();
@@ -235,17 +240,32 @@ public class ConnPoolService extends P2pEventHandler {
             + "skip configured active nodes {}",
         size, connectNodes.size(), isFilterActiveNodes);
     // Start outbound connection attempts for the selected nodes.
-    {
-      connectNodes.forEach(n -> {
-        log.info("Connect to peer {}", n.getPreferInetSocketAddress());
-        peerClientCache.put(n.getPreferInetSocketAddress().getAddress(),
-            System.currentTimeMillis());
-        peerClient.connectAsync(n, false);
-        if (!configActiveNodes.contains(n.getPreferInetSocketAddress())) {
-          ordinaryOutboundConnectionCount.incrementAndGet();
-        }
-      });
+    connectNodes.forEach(this::connect);
+  }
+
+  private void connect(Node node) {
+    log.info("Connect to peer {}", node.getPreferInetSocketAddress());
+    peerClientCache.put(node.getPreferInetSocketAddress().getAddress(), System.currentTimeMillis());
+    ChannelFuture future = peerClient.connectAsync(node, false);
+    if (!configActiveNodes.contains(node.getPreferInetSocketAddress())) {
+      if (future != null) {
+        trackConnection(future);
+      }
+      ordinaryOutboundConnectionCount.incrementAndGet();
     }
+  }
+
+  private synchronized int getTotalConnectionCount() {
+    return registeredPeers.size() + pendingOrdinaryOutboundConnections.size();
+  }
+
+  private synchronized void trackConnection(ChannelFuture future) {
+    io.netty.channel.Channel socket = future.channel();
+    // The handshake may already have completed before connectAsync returns.
+    if (registeredPeers.stream().noneMatch(peer -> peer.getCtx().channel() == socket)) {
+      pendingOrdinaryOutboundConnections.add(socket);
+    }
+    socket.closeFuture().addListener(closed -> pendingOrdinaryOutboundConnections.remove(socket));
   }
 
   public List<Node> getNodes(Set<String> nodesInUse, Set<InetSocketAddress> inetInUse,
@@ -353,6 +373,8 @@ public class ConnPoolService extends P2pEventHandler {
 
   @Override
   public synchronized void onConnect(Channel peer) {
+    // Move the same socket from pending to established without counting it twice.
+    pendingOrdinaryOutboundConnections.removeIf(socket -> socket == peer.getCtx().channel());
     // Channel.equals() compares remote addresses; membership must compare channel instances.
     if (registeredPeers.stream().noneMatch(channel -> channel == peer)) {
       if (!peer.isOutbound()) {

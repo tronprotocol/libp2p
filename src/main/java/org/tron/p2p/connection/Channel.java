@@ -26,6 +26,8 @@ import org.tron.p2p.connection.business.upgrade.UpgradeController;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.message.handshake.HelloMessage;
 import org.tron.p2p.connection.socket.MessageHandler;
+import org.tron.p2p.connection.socket.OutboundHandshakeTimeoutHandler;
+import org.tron.p2p.connection.socket.OutboundStatusTimeoutHandler;
 import org.tron.p2p.connection.socket.P2pProtobufVarint32FrameDecoder;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.exception.P2pException;
@@ -105,6 +107,13 @@ public class Channel {
     this.nodeId = nodeId;
     this.outbound = StringUtils.isNotEmpty(nodeId);
     MessageHandler messageHandler = new MessageHandler(this);
+    if (outbound) {
+      if (nodeDetectMode) {
+        pipeline.addLast("outboundStatusTimeout", new OutboundStatusTimeoutHandler());
+      } else {
+        pipeline.addLast("outboundHandshakeTimeout", new OutboundHandshakeTimeoutHandler());
+      }
+    }
     pipeline.addLast("readTimeoutHandler", new ReadTimeoutHandler(60, TimeUnit.SECONDS));
     pipeline.addLast(TrafficStats.tcp);
     pipeline.addLast("protoPrepend", new ProtobufVarint32LengthFieldPrepender());
@@ -164,14 +173,25 @@ public class Channel {
     }
   }
 
+  /**
+   * Closes with an explicit penalty, extending the IP ban if the requested expiry is later.
+   *
+   * @param banTime penalty duration in milliseconds, measured from this call
+   */
   public void close(long banTime) {
     markDisconnected();
     ChannelManager.banNode(this.inetAddress, banTime);
     ctx.close();
   }
 
+  /**
+   * Closes with the default disconnect cooldown, preserving any active IP ban.
+   * Unlike {@link #close(long)}, repeat disconnect won't extend the ban time if not expired.
+   */
   public void close() {
-    close(Parameter.DEFAULT_BAN_TIME);
+    markDisconnected();
+    ChannelManager.banNodeOnDisconnect(this.inetAddress);
+    ctx.close();
   }
 
   public void send(Message message) {
