@@ -166,8 +166,7 @@ public class ChannelManager {
 
     if (!channel.isOutbound() && !channel.isTrustPeer()) {
       InetAddress inetAddress = channel.getInetAddress();
-      if (bannedNodes.getIfPresent(inetAddress) != null
-          && bannedNodes.getIfPresent(inetAddress) > System.currentTimeMillis()) {
+      if (isBanned(inetAddress)) {
         log.info("Peer {} recently disconnected", channel);
         return DisconnectCode.TIME_BANNED;
       }
@@ -249,6 +248,11 @@ public class ChannelManager {
     if (currentExpiry == null || currentExpiry < expiry) {
       bannedNodes.put(inetAddress, expiry);
     }
+  }
+
+  public static boolean isBanned(InetAddress inetAddress) {
+    Long expiry = bannedNodes.getIfPresent(inetAddress);
+    return expiry != null && expiry > System.currentTimeMillis();
   }
 
   static void banNodeOnDisconnect(InetAddress inetAddress) {

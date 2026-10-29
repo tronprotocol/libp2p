@@ -7,7 +7,10 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.ChannelOutboundHandlerAdapter;
+import io.netty.channel.ChannelPromise;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -24,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
 import org.junit.Assert;
@@ -218,7 +222,32 @@ public class OutboundHandshakeTimeoutHandlerTest {
     EmbeddedChannel socket = outbound(REMOTE, false, false);
     socket.advanceTimeBy(Parameter.HANDSHAKE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     Assert.assertFalse(OutboundHandshakeTimeoutHandler.handshakeCompleted(socket));
+    Assert.assertTrue(socket.isOpen());
+    socket.close();
     Assert.assertFalse(socket.isOpen());
+  }
+
+  @Test
+  public void timedOutHelloClosesOutsideAdmissionLock() throws Exception {
+    EmbeddedChannel socket = outbound(REMOTE, false, false);
+    AtomicBoolean closeObserved = new AtomicBoolean();
+    AtomicBoolean closedUnderLock = new AtomicBoolean();
+    socket.pipeline().addBefore("messageHandler", "closeLockProbe",
+        new ChannelOutboundHandlerAdapter() {
+          @Override
+          public void close(ChannelHandlerContext ctx, ChannelPromise promise) {
+            closeObserved.set(true);
+            closedUnderLock.set(closedUnderLock.get() || Thread.holdsLock(ChannelManager.class));
+            ctx.close(promise);
+          }
+        });
+
+    socket.advanceTimeBy(Parameter.HANDSHAKE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    ChannelManager.getHandshakeService().processMessage(peers.get(0), Message.parse(hello()));
+
+    Assert.assertFalse(socket.isOpen());
+    Assert.assertTrue(closeObserved.get());
+    Assert.assertFalse(closedUnderLock.get());
   }
 
   @Test

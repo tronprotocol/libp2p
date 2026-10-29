@@ -13,19 +13,24 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
+import org.tron.p2p.connection.ChannelManager;
 
 @Slf4j(topic = "net")
 public final class PendingInboundConnectionHandler extends ChannelInboundHandlerAdapter {
 
   private static final Map<InetAddress, Integer> pendingByIp = new HashMap<>();
   private static int pendingConnections;
+  private static int pendingTrustedConnections;
+  private static int pendingOrdinaryConnections;
 
   private final InetAddress address;
+  private final boolean trusted;
   private final AtomicBoolean released = new AtomicBoolean();
   private volatile ScheduledFuture<?> timeoutTask;
 
-  private PendingInboundConnectionHandler(InetAddress address) {
+  private PendingInboundConnectionHandler(InetAddress address, boolean trusted) {
     this.address = address;
+    this.trusted = trusted;
   }
 
   static boolean tryAdd(Channel socket) {
@@ -34,17 +39,29 @@ public final class PendingInboundConnectionHandler extends ChannelInboundHandler
       return false;
     }
     InetAddress address = remoteAddress.getAddress();
+    boolean trusted = Parameter.p2pConfig.getTrustNodes().contains(address);
+    // Trusted IPs retain the existing ban exemption used by peer admission.
+    if (!trusted && ChannelManager.isBanned(address)) {
+      return false;
+    }
     PendingInboundConnectionHandler handler;
     synchronized (PendingInboundConnectionHandler.class) {
       int count = pendingByIp.getOrDefault(address, 0);
-      if (pendingConnections >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS
-          || count >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS_WITH_SAME_IP) {
-        log.debug("Reject pending inbound connection from {}, pending: {}, same IP: {}",
-            remoteAddress, pendingConnections, count);
+      if (count >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS_WITH_SAME_IP || (trusted
+          ? pendingTrustedConnections >= Parameter.MAX_PENDING_TRUSTED_INBOUND_CONNECTIONS
+          : pendingOrdinaryConnections >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS)) {
+        log.debug(
+            "Reject pending inbound connection from {}, trusted: {}, pending: {}, same IP: {}",
+            remoteAddress, trusted, pendingConnections, count);
         return false;
       }
-      handler = new PendingInboundConnectionHandler(address);
+      handler = new PendingInboundConnectionHandler(address, trusted);
       pendingConnections++;
+      if (trusted) {
+        pendingTrustedConnections++;
+      } else {
+        pendingOrdinaryConnections++;
+      }
       pendingByIp.put(address, count + 1);
     }
 
@@ -57,12 +74,12 @@ public final class PendingInboundConnectionHandler extends ChannelInboundHandler
   /**
    * Called on the channel's event loop after HELLO validation and peer admission succeed.
    * Returns false if the connection has closed or its handshake deadline has elapsed.
+   * The caller closes the socket after releasing the admission lock on failure.
    */
   public static boolean handshakeCompleted(Channel socket) {
     PendingInboundConnectionHandler handler =
         socket.pipeline().get(PendingInboundConnectionHandler.class);
     if (!socket.isActive() || (handler != null && handler.isTimedOut())) {
-      socket.close();
       return false;
     }
     if (handler != null) {
@@ -135,6 +152,11 @@ public final class PendingInboundConnectionHandler extends ChannelInboundHandler
     }
     synchronized (PendingInboundConnectionHandler.class) {
       pendingConnections--;
+      if (trusted) {
+        pendingTrustedConnections--;
+      } else {
+        pendingOrdinaryConnections--;
+      }
       int remaining = pendingByIp.get(address) - 1;
       if (remaining == 0) {
         pendingByIp.remove(address);

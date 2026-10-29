@@ -34,6 +34,9 @@ public class Parameter {
   // Inbound connections waiting for HELLO use separate limits from admitted peers.
   public static final int MAX_PENDING_INBOUND_CONNECTIONS = 32;
 
+  // Keep a bounded reserve for configured trusted IPs when ordinary pending capacity is full.
+  public static final int MAX_PENDING_TRUSTED_INBOUND_CONNECTIONS = 8;
+
   public static final int MAX_PENDING_INBOUND_CONNECTIONS_WITH_SAME_IP = 2;
 
   public static final int HANDSHAKE_TIMEOUT_SECONDS = 10;

@@ -119,6 +119,12 @@ public class PendingInboundConnectionHandlerTest {
       Field count = PendingInboundConnectionHandler.class.getDeclaredField("pendingConnections");
       count.setAccessible(true);
       Assert.assertEquals("Pending reservations leaked", 0, count.getInt(null));
+      for (String fieldName : new String[]{"pendingTrustedConnections",
+          "pendingOrdinaryConnections"}) {
+        Field poolCount = PendingInboundConnectionHandler.class.getDeclaredField(fieldName);
+        poolCount.setAccessible(true);
+        Assert.assertEquals(fieldName + " leaked", 0, poolCount.getInt(null));
+      }
       Field counts = PendingInboundConnectionHandler.class.getDeclaredField("pendingByIp");
       counts.setAccessible(true);
       Assert.assertTrue("Per-IP reservations leaked", ((Map<?, ?>) counts.get(null)).isEmpty());
@@ -170,6 +176,48 @@ public class PendingInboundConnectionHandlerTest {
     Assert.assertTrue(initializeProtocol(socket).isTrustPeer());
     Assert.assertTrue(inbound(REMOTE_IP).isOpen());
     Assert.assertFalse(inbound(REMOTE_IP).isOpen());
+  }
+
+  @Test
+  public void ordinarySaturationDoesNotBlockTrustedInboundConnections() throws Exception {
+    InetAddress trusted = InetAddress.getByName("198.51.100.1");
+    config.getTrustNodes().add(trusted);
+    for (int i = 1; i <= Parameter.MAX_PENDING_INBOUND_CONNECTIONS / 2; i++) {
+      Assert.assertTrue(inbound("192.0.2." + i).isOpen());
+      Assert.assertTrue(inbound("192.0.2." + i).isOpen());
+    }
+    Assert.assertFalse(inbound("203.0.113.1").isOpen());
+    Assert.assertTrue(inbound(trusted.getHostAddress()).isOpen());
+  }
+
+  @Test
+  public void trustedReserveIsBoundedAndDoesNotReduceOrdinaryCapacity() throws Exception {
+    for (int i = 1; i <= Parameter.MAX_PENDING_TRUSTED_INBOUND_CONNECTIONS / 2; i++) {
+      String ip = "198.51.100." + i;
+      config.getTrustNodes().add(InetAddress.getByName(ip));
+      Assert.assertTrue(inbound(ip).isOpen());
+      Assert.assertTrue(inbound(ip).isOpen());
+    }
+    String extraTrusted = "198.51.100.100";
+    config.getTrustNodes().add(InetAddress.getByName(extraTrusted));
+    Assert.assertFalse(inbound(extraTrusted).isOpen());
+    for (int i = 1; i <= Parameter.MAX_PENDING_INBOUND_CONNECTIONS; i++) {
+      Assert.assertTrue(inbound("192.0.2." + i).isOpen());
+    }
+    Assert.assertFalse(inbound("203.0.113.1").isOpen());
+  }
+
+  @Test
+  public void bannedOrdinaryIpCannotReservePendingCapacity() throws Exception {
+    InetAddress address = InetAddress.getByName(REMOTE_IP);
+    EmbeddedChannel timedOut = inbound(REMOTE_IP);
+    initializeProtocol(timedOut);
+    advance(timedOut, Parameter.HANDSHAKE_TIMEOUT_SECONDS);
+    Assert.assertFalse(timedOut.isOpen());
+    Assert.assertTrue(ChannelManager.isBanned(address));
+    Assert.assertFalse(inbound(REMOTE_IP).isOpen());
+    config.getTrustNodes().add(address);
+    Assert.assertTrue(inbound(REMOTE_IP).isOpen());
   }
 
   @Test(timeout = 20000)
@@ -297,6 +345,8 @@ public class PendingInboundConnectionHandlerTest {
     EmbeddedChannel socket = inbound(REMOTE_IP);
     socket.advanceTimeBy(Parameter.HANDSHAKE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     Assert.assertFalse(PendingInboundConnectionHandler.handshakeCompleted(socket));
+    Assert.assertTrue(socket.isOpen());
+    socket.close();
     Assert.assertFalse(socket.isOpen());
     Assert.assertTrue(inbound(REMOTE_IP).isOpen());
     Assert.assertTrue(inbound(REMOTE_IP).isOpen());
@@ -307,6 +357,8 @@ public class PendingInboundConnectionHandlerTest {
     EmbeddedChannel socket = inbound(REMOTE_IP);
     Channel channel = initializeProtocol(socket);
     int[] replies = {0};
+    boolean[] closeObserved = {false};
+    boolean[] closedUnderLock = {false};
     socket.pipeline().addFirst("delayHelloReply", new ChannelOutboundHandlerAdapter() {
       @Override
       public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
@@ -314,6 +366,13 @@ public class PendingInboundConnectionHandlerTest {
         // Let the deadline pass during the reply without running the scheduled timeout task.
         socket.advanceTimeBy(Parameter.HANDSHAKE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         ctx.write(msg, promise);
+      }
+
+      @Override
+      public void close(ChannelHandlerContext ctx, ChannelPromise promise) {
+        closeObserved[0] = true;
+        closedUnderLock[0] |= Thread.holdsLock(ChannelManager.class);
+        ctx.close(promise);
       }
     });
 
@@ -323,8 +382,11 @@ public class PendingInboundConnectionHandlerTest {
     Assert.assertTrue(channel.isDisconnect());
     Assert.assertFalse(channel.isFinishHandshake());
     Assert.assertEquals(1, replies[0]);
+    Assert.assertTrue(closeObserved[0]);
+    Assert.assertFalse(closedUnderLock[0]);
     Assert.assertEquals(0, connectCallbacks);
     Assert.assertTrue(ChannelManager.getChannels().isEmpty());
+    clearDisconnectCooldown(REMOTE_IP);
     Assert.assertTrue(inbound(REMOTE_IP).isOpen());
     Assert.assertTrue(inbound(REMOTE_IP).isOpen());
     Assert.assertFalse(inbound(REMOTE_IP).isOpen());
@@ -347,6 +409,7 @@ public class PendingInboundConnectionHandlerTest {
     advance(socket, Parameter.HANDSHAKE_TIMEOUT_SECONDS + 1);
     Assert.assertTrue(socket.isOpen());
     socket.close();
+    clearDisconnectCooldown(REMOTE_IP);
     // Closing an already promoted peer must not release another pending connection's slot.
     Assert.assertFalse(inbound(REMOTE_IP).isOpen());
     waiting.close();
@@ -360,6 +423,7 @@ public class PendingInboundConnectionHandlerTest {
     receive(socket, hello(config.getNetworkId() + 1));
     Assert.assertFalse(socket.isOpen());
     Assert.assertEquals(0, connectCallbacks);
+    clearDisconnectCooldown(REMOTE_IP);
     Assert.assertTrue(inbound(REMOTE_IP).isOpen());
     Assert.assertTrue(inbound(REMOTE_IP).isOpen());
   }
@@ -372,6 +436,7 @@ public class PendingInboundConnectionHandlerTest {
     receive(socket, hello(config.getNetworkId()));
     Assert.assertFalse(socket.isOpen());
     Assert.assertEquals(0, connectCallbacks);
+    clearDisconnectCooldown(REMOTE_IP);
     Assert.assertTrue(inbound(REMOTE_IP).isOpen());
     Assert.assertTrue(inbound(REMOTE_IP).isOpen());
   }
@@ -383,6 +448,7 @@ public class PendingInboundConnectionHandlerTest {
     socket.writeInbound(Unpooled.wrappedBuffer(new byte[]{
         (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80}));
     Assert.assertFalse(socket.isOpen());
+    clearDisconnectCooldown(REMOTE_IP);
     Assert.assertTrue(inbound(REMOTE_IP).isOpen());
     Assert.assertTrue(inbound(REMOTE_IP).isOpen());
   }
@@ -395,6 +461,7 @@ public class PendingInboundConnectionHandlerTest {
     Assert.assertTrue(channel.isNodeDetectMode());
     Assert.assertFalse(socket.isOpen());
     Assert.assertEquals(0, connectCallbacks);
+    clearDisconnectCooldown(REMOTE_IP);
     Assert.assertTrue(inbound(REMOTE_IP).isOpen());
     Assert.assertTrue(inbound(REMOTE_IP).isOpen());
   }
@@ -481,6 +548,8 @@ public class PendingInboundConnectionHandlerTest {
 
       clients.get(0).close();
       Assert.assertTrue(first.closeFuture().await(5, TimeUnit.SECONDS));
+      first.eventLoop().submit(() -> { }).sync();
+      clearDisconnectCooldown("127.0.0.1");
       NioSocketChannel replacement = connectClient(server, clients, accepted);
       Assert.assertTrue(replacement.isActive());
       Assert.assertNotNull(replacement.pipeline().get(PendingInboundConnectionHandler.class));
@@ -503,6 +572,11 @@ public class PendingInboundConnectionHandlerTest {
     // Wait until registration and channelActive have finished on the server event loop.
     socket.eventLoop().submit(() -> { }).sync();
     return socket;
+  }
+
+  private void clearDisconnectCooldown(String ip) {
+    // Keep reservation-release checks independent of the new early ban check.
+    ChannelManager.getBannedNodes().invalidate(new InetSocketAddress(ip, 0).getAddress());
   }
 
   private EmbeddedChannel inbound(String ip) {
