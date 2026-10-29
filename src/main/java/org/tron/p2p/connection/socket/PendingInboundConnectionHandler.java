@@ -13,56 +13,78 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
+import org.tron.p2p.connection.ChannelManager;
+import org.tron.p2p.connection.business.handshake.DisconnectCode;
 
 @Slf4j(topic = "net")
 public final class PendingInboundConnectionHandler extends ChannelInboundHandlerAdapter {
 
   private static final Map<InetAddress, Integer> pendingByIp = new HashMap<>();
   private static int pendingConnections;
+  private static int pendingTrustedConnections;
+  // Also used by trusted connections when the reserve is full.
+  private static int pendingSharedConnections;
 
   private final InetAddress address;
+  // True if the connection occupies capacity from the trusted pool.
+  private final boolean trusted;
   private final AtomicBoolean released = new AtomicBoolean();
   private volatile ScheduledFuture<?> timeoutTask;
 
-  private PendingInboundConnectionHandler(InetAddress address) {
+  private PendingInboundConnectionHandler(InetAddress address, boolean trusted) {
     this.address = address;
+    this.trusted = trusted;
   }
 
-  static boolean tryAdd(Channel socket) {
+  static DisconnectCode tryAdd(Channel socket) {
     InetSocketAddress remoteAddress = (InetSocketAddress) socket.remoteAddress();
     if (remoteAddress == null || remoteAddress.getAddress() == null) {
-      return false;
+      return DisconnectCode.UNKNOWN;
     }
     InetAddress address = remoteAddress.getAddress();
+    boolean trusted = Parameter.p2pConfig.getTrustNodes().contains(address);
+    // Trusted IPs retain the existing ban exemption used by peer admission.
+    if (!trusted && ChannelManager.isBanned(address)) {
+      return DisconnectCode.TIME_BANNED;
+    }
     PendingInboundConnectionHandler handler;
     synchronized (PendingInboundConnectionHandler.class) {
       int count = pendingByIp.getOrDefault(address, 0);
-      if (pendingConnections >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS
-          || count >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS_WITH_SAME_IP) {
-        log.debug("Reject pending inbound connection from {}, pending: {}, same IP: {}",
-            remoteAddress, pendingConnections, count);
-        return false;
+      boolean useTrustedSlot = trusted
+          && pendingTrustedConnections < Parameter.MAX_PENDING_TRUSTED_INBOUND_CONNECTIONS;
+      if (count >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS_WITH_SAME_IP || (!useTrustedSlot
+          && pendingSharedConnections >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS)) {
+        log.debug(
+            "Reject pending inbound connection from {}, trusted: {}, pending: {}, same IP: {}",
+            remoteAddress, trusted, pendingConnections, count);
+        return count >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS_WITH_SAME_IP
+            ? DisconnectCode.MAX_CONNECTION_WITH_SAME_IP : DisconnectCode.TOO_MANY_PEERS;
       }
-      handler = new PendingInboundConnectionHandler(address);
+      handler = new PendingInboundConnectionHandler(address, useTrustedSlot);
       pendingConnections++;
+      if (useTrustedSlot) {
+        pendingTrustedConnections++;
+      } else {
+        pendingSharedConnections++;
+      }
       pendingByIp.put(address, count + 1);
     }
 
     // Attach cleanup before installing any protocol handlers, including this one.
     socket.closeFuture().addListener(future -> handler.release());
     socket.pipeline().addLast("pendingInboundHandshake", handler);
-    return socket.isOpen();
+    return socket.isOpen() ? DisconnectCode.NORMAL : DisconnectCode.UNKNOWN;
   }
 
   /**
    * Called on the channel's event loop after HELLO validation and peer admission succeed.
    * Returns false if the connection has closed or its handshake deadline has elapsed.
+   * The caller closes the socket after releasing the admission lock on failure.
    */
   public static boolean handshakeCompleted(Channel socket) {
     PendingInboundConnectionHandler handler =
         socket.pipeline().get(PendingInboundConnectionHandler.class);
     if (!socket.isActive() || (handler != null && handler.isTimedOut())) {
-      socket.close();
       return false;
     }
     if (handler != null) {
@@ -135,6 +157,11 @@ public final class PendingInboundConnectionHandler extends ChannelInboundHandler
     }
     synchronized (PendingInboundConnectionHandler.class) {
       pendingConnections--;
+      if (trusted) {
+        pendingTrustedConnections--;
+      } else {
+        pendingSharedConnections--;
+      }
       int remaining = pendingByIp.get(address) - 1;
       if (remaining == 0) {
         pendingByIp.remove(address);
