@@ -191,6 +191,7 @@ public class ChannelManager {
       for (Channel c : channels) {
         if (channel.getNodeId().equals(c.getNodeId())) {
           if (c.getStartTime() > channel.getStartTime()) {
+            c.send(new P2pDisconnectMessage(DisconnectReason.DUPLICATE_PEER));
             c.close();
           } else {
             log.info("Duplicate peer {}, exist peer {}", channel, c);

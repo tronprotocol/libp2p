@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.ChannelManager;
+import org.tron.p2p.connection.business.handshake.DisconnectCode;
 
 @Slf4j(topic = "net")
 public final class PendingInboundConnectionHandler extends ChannelInboundHandlerAdapter {
@@ -35,16 +36,16 @@ public final class PendingInboundConnectionHandler extends ChannelInboundHandler
     this.trusted = trusted;
   }
 
-  static boolean tryAdd(Channel socket) {
+  static DisconnectCode tryAdd(Channel socket) {
     InetSocketAddress remoteAddress = (InetSocketAddress) socket.remoteAddress();
     if (remoteAddress == null || remoteAddress.getAddress() == null) {
-      return false;
+      return DisconnectCode.UNKNOWN;
     }
     InetAddress address = remoteAddress.getAddress();
     boolean trusted = Parameter.p2pConfig.getTrustNodes().contains(address);
     // Trusted IPs retain the existing ban exemption used by peer admission.
     if (!trusted && ChannelManager.isBanned(address)) {
-      return false;
+      return DisconnectCode.TIME_BANNED;
     }
     PendingInboundConnectionHandler handler;
     synchronized (PendingInboundConnectionHandler.class) {
@@ -56,7 +57,8 @@ public final class PendingInboundConnectionHandler extends ChannelInboundHandler
         log.debug(
             "Reject pending inbound connection from {}, trusted: {}, pending: {}, same IP: {}",
             remoteAddress, trusted, pendingConnections, count);
-        return false;
+        return count >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS_WITH_SAME_IP
+            ? DisconnectCode.MAX_CONNECTION_WITH_SAME_IP : DisconnectCode.TOO_MANY_PEERS;
       }
       handler = new PendingInboundConnectionHandler(address, useTrustedSlot);
       pendingConnections++;
@@ -71,7 +73,7 @@ public final class PendingInboundConnectionHandler extends ChannelInboundHandler
     // Attach cleanup before installing any protocol handlers, including this one.
     socket.closeFuture().addListener(future -> handler.release());
     socket.pipeline().addLast("pendingInboundHandshake", handler);
-    return socket.isOpen();
+    return socket.isOpen() ? DisconnectCode.NORMAL : DisconnectCode.UNKNOWN;
   }
 
   /**
