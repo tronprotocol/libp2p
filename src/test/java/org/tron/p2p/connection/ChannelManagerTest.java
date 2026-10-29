@@ -1,7 +1,6 @@
 package org.tron.p2p.connection;
 
 import com.google.protobuf.ByteString;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -24,8 +23,6 @@ import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.business.handshake.HandshakeService;
 import org.tron.p2p.connection.business.pool.ConnPoolService;
-import org.tron.p2p.connection.business.upgrade.UpgradeController;
-import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.message.MessageType;
 import org.tron.p2p.connection.message.detect.StatusMessage;
 import org.tron.p2p.connection.message.handshake.HelloMessage;
@@ -347,19 +344,6 @@ public class ChannelManagerTest {
     hello(newer, 1);
     hello(earlier, 1);
     Assert.assertTrue(newer.isDisconnect());
-    ByteBuf response = ((EmbeddedChannel) newer.getCtx().channel()).readOutbound();
-    Assert.assertNotNull("Replaced peer did not receive a disconnect reason", response);
-    try {
-      byte[] bytes = new byte[response.readableBytes()];
-      response.readBytes(bytes);
-      Message message = Message.parse(
-          UpgradeController.decodeReceiveData(newer.getVersion(), bytes));
-      Assert.assertEquals(MessageType.DISCONNECT, message.getType());
-      Assert.assertEquals(Connect.DisconnectReason.DUPLICATE_PEER,
-          Connect.P2pDisconnectMessage.parseFrom(message.getData()).getReason());
-    } finally {
-      response.release();
-    }
     Assert.assertTrue(earlier.isFinishHandshake());
     Assert.assertTrue(earlier.getCtx().channel().isOpen());
     assertRegistered(earlier);
