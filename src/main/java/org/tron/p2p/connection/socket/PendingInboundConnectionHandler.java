@@ -21,9 +21,11 @@ public final class PendingInboundConnectionHandler extends ChannelInboundHandler
   private static final Map<InetAddress, Integer> pendingByIp = new HashMap<>();
   private static int pendingConnections;
   private static int pendingTrustedConnections;
-  private static int pendingOrdinaryConnections;
+  // Also used by trusted connections when the reserve is full.
+  private static int pendingSharedConnections;
 
   private final InetAddress address;
+  // True if the connection occupies capacity from the trusted pool.
   private final boolean trusted;
   private final AtomicBoolean released = new AtomicBoolean();
   private volatile ScheduledFuture<?> timeoutTask;
@@ -47,20 +49,21 @@ public final class PendingInboundConnectionHandler extends ChannelInboundHandler
     PendingInboundConnectionHandler handler;
     synchronized (PendingInboundConnectionHandler.class) {
       int count = pendingByIp.getOrDefault(address, 0);
-      if (count >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS_WITH_SAME_IP || (trusted
-          ? pendingTrustedConnections >= Parameter.MAX_PENDING_TRUSTED_INBOUND_CONNECTIONS
-          : pendingOrdinaryConnections >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS)) {
+      boolean useTrustedSlot = trusted
+          && pendingTrustedConnections < Parameter.MAX_PENDING_TRUSTED_INBOUND_CONNECTIONS;
+      if (count >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS_WITH_SAME_IP || (!useTrustedSlot
+          && pendingSharedConnections >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS)) {
         log.debug(
             "Reject pending inbound connection from {}, trusted: {}, pending: {}, same IP: {}",
             remoteAddress, trusted, pendingConnections, count);
         return false;
       }
-      handler = new PendingInboundConnectionHandler(address, trusted);
+      handler = new PendingInboundConnectionHandler(address, useTrustedSlot);
       pendingConnections++;
-      if (trusted) {
+      if (useTrustedSlot) {
         pendingTrustedConnections++;
       } else {
-        pendingOrdinaryConnections++;
+        pendingSharedConnections++;
       }
       pendingByIp.put(address, count + 1);
     }
@@ -155,7 +158,7 @@ public final class PendingInboundConnectionHandler extends ChannelInboundHandler
       if (trusted) {
         pendingTrustedConnections--;
       } else {
-        pendingOrdinaryConnections--;
+        pendingSharedConnections--;
       }
       int remaining = pendingByIp.get(address) - 1;
       if (remaining == 0) {

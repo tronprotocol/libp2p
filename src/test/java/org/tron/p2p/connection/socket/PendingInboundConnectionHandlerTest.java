@@ -120,7 +120,7 @@ public class PendingInboundConnectionHandlerTest {
       count.setAccessible(true);
       Assert.assertEquals("Pending reservations leaked", 0, count.getInt(null));
       for (String fieldName : new String[]{"pendingTrustedConnections",
-          "pendingOrdinaryConnections"}) {
+          "pendingSharedConnections"}) {
         Field poolCount = PendingInboundConnectionHandler.class.getDeclaredField(fieldName);
         poolCount.setAccessible(true);
         Assert.assertEquals(fieldName + " leaked", 0, poolCount.getInt(null));
@@ -192,18 +192,50 @@ public class PendingInboundConnectionHandlerTest {
 
   @Test
   public void trustedReserveIsBoundedAndDoesNotReduceOrdinaryCapacity() throws Exception {
-    for (int i = 1; i <= Parameter.MAX_PENDING_TRUSTED_INBOUND_CONNECTIONS / 2; i++) {
-      String ip = "198.51.100." + i;
-      config.getTrustNodes().add(InetAddress.getByName(ip));
-      Assert.assertTrue(inbound(ip).isOpen());
-      Assert.assertTrue(inbound(ip).isOpen());
-    }
-    String extraTrusted = "198.51.100.100";
-    config.getTrustNodes().add(InetAddress.getByName(extraTrusted));
-    Assert.assertFalse(inbound(extraTrusted).isOpen());
+    fillTrustedReserve();
     for (int i = 1; i <= Parameter.MAX_PENDING_INBOUND_CONNECTIONS; i++) {
       Assert.assertTrue(inbound("192.0.2." + i).isOpen());
     }
+    Assert.assertFalse(inbound("203.0.113.1").isOpen());
+    String extraTrusted = "198.51.100.100";
+    config.getTrustNodes().add(InetAddress.getByName(extraTrusted));
+    Assert.assertFalse(inbound(extraTrusted).isOpen());
+  }
+
+  @Test
+  public void trustedConnectionsCanBorrowAndReleaseOrdinarySlots() throws Exception {
+    fillTrustedReserve();
+    String trustedIp = "198.51.100.100";
+    config.getTrustNodes().add(InetAddress.getByName(trustedIp));
+    EmbeddedChannel borrowed = inbound(trustedIp);
+    Assert.assertTrue(borrowed.isOpen());
+    for (int i = 1; i < Parameter.MAX_PENDING_INBOUND_CONNECTIONS; i++) {
+      Assert.assertTrue(inbound("192.0.2." + i).isOpen());
+    }
+    Assert.assertFalse(inbound("203.0.113.1").isOpen());
+
+    borrowed.close();
+    Assert.assertTrue(inbound("203.0.113.1").isOpen());
+    borrowed.close();
+    Assert.assertFalse(inbound(trustedIp).isOpen());
+    Assert.assertFalse(inbound("203.0.113.2").isOpen());
+  }
+
+  @Test
+  public void borrowedSlotIsReleasedAfterSuccessfulHello() throws Exception {
+    fillTrustedReserve();
+    String trustedIp = "198.51.100.100";
+    config.getTrustNodes().add(InetAddress.getByName(trustedIp));
+    EmbeddedChannel borrowed = inbound(trustedIp);
+    Assert.assertTrue(borrowed.isOpen());
+    Channel channel = initializeProtocol(borrowed);
+    receive(borrowed, hello(config.getNetworkId()));
+    Assert.assertTrue(channel.isFinishHandshake());
+    for (int i = 1; i <= Parameter.MAX_PENDING_INBOUND_CONNECTIONS; i++) {
+      Assert.assertTrue(inbound("192.0.2." + i).isOpen());
+    }
+    Assert.assertFalse(inbound("203.0.113.1").isOpen());
+    borrowed.close();
     Assert.assertFalse(inbound("203.0.113.1").isOpen());
   }
 
@@ -572,6 +604,14 @@ public class PendingInboundConnectionHandlerTest {
     // Wait until registration and channelActive have finished on the server event loop.
     socket.eventLoop().submit(() -> { }).sync();
     return socket;
+  }
+
+  private void fillTrustedReserve() throws Exception {
+    for (int i = 1; i <= Parameter.MAX_PENDING_TRUSTED_INBOUND_CONNECTIONS; i++) {
+      String ip = "198.51.100." + i;
+      config.getTrustNodes().add(InetAddress.getByName(ip));
+      Assert.assertTrue(inbound(ip).isOpen());
+    }
   }
 
   private void clearDisconnectCooldown(String ip) {
