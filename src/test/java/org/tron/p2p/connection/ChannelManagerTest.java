@@ -11,7 +11,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -374,6 +378,71 @@ public class ChannelManagerTest {
     assertCounts(0, 1);
   }
 
+  @Test(timeout = 10000)
+  public void handlerCanCloseWithoutWaitingForAdmissionLock() throws Exception {
+    Channel peer = channel(true, 1);
+    ChannelManager.addPeer(peer);
+    AtomicInteger notifications = new AtomicInteger();
+    P2pEventHandler handler = new P2pEventHandler() {
+      @Override
+      public synchronized void onConnect(Channel channel) {
+        channel.close();
+      }
+
+      @Override
+      public synchronized void onDisconnect(Channel channel) {
+        notifications.incrementAndGet();
+      }
+    };
+    Parameter.handlerList.add(handler);
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    try {
+      // Reproduce the reverse edge of the HELLO-write/close deadlock without leaving
+      // permanently blocked threads on the unfixed implementation.
+      synchronized (ChannelManager.class) {
+        Future<?> closed = executor.submit(() -> handler.onConnect(peer));
+        closed.get(2, TimeUnit.SECONDS);
+      }
+      Assert.assertTrue(peer.isDisconnect());
+      Assert.assertEquals(1, notifications.get());
+      assertRegistered();
+      ChannelManager.notifyDisconnect(peer);
+      Assert.assertEquals(1, notifications.get());
+    } finally {
+      executor.shutdown();
+      Assert.assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+    }
+  }
+
+  @Test
+  public void notifiedChannelCannotBeRegisteredAgain() throws Exception {
+    Channel peer = channel(false, 1);
+    ChannelManager.notifyDisconnect(peer);
+    ChannelManager.addPeer(peer);
+
+    assertRegistered();
+    Assert.assertTrue(peer.isDisconnect());
+    Assert.assertEquals(DisconnectCode.UNKNOWN, ChannelManager.processPeer(peer));
+    assertRegistered();
+  }
+
+  @Test
+  public void disconnectBeforeRegistryInsertionCannotLeaveAClosedPeer() throws Exception {
+    Channel peer = channel(new Channel() {
+      @Override
+      void markRegisteredPeer() {
+        super.markRegisteredPeer();
+        // Model a close notification completing after the registration precheck,
+        // but before the channel is inserted into the registry.
+        ChannelManager.notifyDisconnect(this);
+      }
+    }, false, 1);
+    ChannelManager.addPeer(peer);
+
+    Assert.assertTrue(peer.isDisconnect());
+    assertRegistered();
+  }
+
   @Test
   public void connectionLimitsCountAllInstancesAtSameAddress() throws Exception {
     Channel first = channel(false, 1);
@@ -417,7 +486,10 @@ public class ChannelManagerTest {
   }
 
   private Channel channel(boolean outbound, long order) throws Exception {
-    Channel channel = new Channel();
+    return channel(new Channel(), outbound, order);
+  }
+
+  private Channel channel(Channel channel, boolean outbound, long order) throws Exception {
     EmbeddedChannel socket = new EmbeddedChannel(new ChannelInboundHandlerAdapter());
     sockets.add(socket);
     set(channel, "inetSocketAddress", REMOTE);

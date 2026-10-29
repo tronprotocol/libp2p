@@ -117,13 +117,13 @@ public class ChannelManager {
       log.warn("Notify Disconnect peer has no address.");
       return;
     }
+    channel.markDisconnected();
     if (!channel.markDisconnectNotified()) {
       return;
     }
-    // Share the registration lock in addPeer to keep removal by identity atomic.
-    synchronized (ChannelManager.class) {
-      channels.removeIf(registered -> registered == channel);
-    }
+    // A synchronous write failure can enter here while a caller holds the admission lock.
+    // Cleanup must not acquire that lock under an application handler's monitor.
+    channels.removeIf(registered -> registered == channel);
     Parameter.handlerList.forEach(h -> h.onDisconnect(channel));
     InetAddress inetAddress = channel.getInetAddress();
     if (inetAddress != null) {
@@ -152,7 +152,7 @@ public class ChannelManager {
     if (code == DisconnectCode.NORMAL) {
       addPeer(channel);
     }
-    return code;
+    return channel.isDisconnect() ? DisconnectCode.UNKNOWN : code;
   }
 
   /**
@@ -160,6 +160,9 @@ public class ChannelManager {
    * to prevent another connection from taking the checked capacity.
    */
   public static synchronized DisconnectCode checkPeer(Channel channel) {
+    if (channel.isDisconnect()) {
+      return DisconnectCode.UNKNOWN;
+    }
     if (channels.stream().anyMatch(registered -> registered == channel)) {
       return DisconnectCode.NORMAL;
     }
@@ -205,11 +208,17 @@ public class ChannelManager {
   }
 
   public static synchronized void addPeer(Channel channel) {
-    if (channels.stream().anyMatch(registered -> registered == channel)) {
+    if (channel.isDisconnect()
+        || channels.stream().anyMatch(registered -> registered == channel)) {
       return;
     }
     channel.markRegisteredPeer();
     channels.add(channel);
+    // Cleanup may have completed between the precheck and insertion, without taking this lock.
+    if (channel.isDisconnect()) {
+      channels.removeIf(registered -> registered == channel);
+      return;
+    }
 
     log.info("Add peer {}, total channels: {}", channel.getInetSocketAddress(), channels.size());
   }
