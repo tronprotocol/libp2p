@@ -195,7 +195,7 @@ public class ChannelManager {
       for (Channel c : channels) {
         if (channel.getNodeId().equals(c.getNodeId())) {
           if (c.getStartTime() > channel.getStartTime()) {
-            c.close();
+            disconnectDuplicatePeer(c);
           } else {
             log.info("Duplicate peer {}, exist peer {}", channel, c);
             return DisconnectCode.DUPLICATE_PEER;
@@ -205,6 +205,22 @@ public class ChannelManager {
     }
 
     return DisconnectCode.NORMAL;
+  }
+
+  // Called under the admission lock. Always queue I/O, even on the current EventLoop.
+  private static void disconnectDuplicatePeer(Channel peer) {
+    peer.getCtx().executor().execute(() -> {
+      boolean sendReason;
+      // A different EventLoop may start this task before the admission caller returns.
+      synchronized (ChannelManager.class) {
+        sendReason = !peer.isDisconnect();
+      }
+      if (sendReason) {
+        peer.send(new P2pDisconnectMessage(DisconnectReason.DUPLICATE_PEER));
+      }
+      peer.close();
+    });
+    channels.removeIf(registered -> registered == peer);
   }
 
   public static synchronized void addPeer(Channel channel) {
@@ -356,8 +372,7 @@ public class ChannelManager {
     channel.setNodeId(nodeId);
     if (nodeId.equals(Hex.toHexString(Parameter.p2pConfig.getNodeID()))) {
       log.warn("Channel {} is myself", channel.getInetSocketAddress());
-      channel.send(new P2pDisconnectMessage(DisconnectReason.DUPLICATE_PEER));
-      channel.close();
+      disconnectDuplicatePeer(channel);
       return;
     }
 
@@ -374,12 +389,10 @@ public class ChannelManager {
     Channel c2 = list.get(1);
     if (c1.getStartTime() > c2.getStartTime()) {
       log.info("Close channel {}, other channel {} is earlier", c1, c2);
-      c1.send(new P2pDisconnectMessage(DisconnectReason.DUPLICATE_PEER));
-      c1.close();
+      disconnectDuplicatePeer(c1);
     } else {
       log.info("Close channel {}, other channel {} is earlier", c2, c1);
-      c2.send(new P2pDisconnectMessage(DisconnectReason.DUPLICATE_PEER));
-      c2.close();
+      disconnectDuplicatePeer(c2);
     }
   }
 

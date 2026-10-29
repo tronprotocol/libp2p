@@ -1,6 +1,7 @@
 package org.tron.p2p.connection;
 
 import com.google.protobuf.ByteString;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -9,6 +10,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -27,6 +29,8 @@ import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.business.handshake.HandshakeService;
 import org.tron.p2p.connection.business.pool.ConnPoolService;
+import org.tron.p2p.connection.business.upgrade.UpgradeController;
+import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.message.MessageType;
 import org.tron.p2p.connection.message.detect.StatusMessage;
 import org.tron.p2p.connection.message.handshake.HelloMessage;
@@ -359,6 +363,93 @@ public class ChannelManagerTest {
   }
 
   @Test
+  public void duplicateHandshakeDisconnectsOutsideAdmissionLock() throws Exception {
+    List<Boolean> writeLocks = new ArrayList<>();
+    Channel newer = channel(new Channel() {
+      @Override
+      public void send(Message message) {
+        if (message.getType() == MessageType.DISCONNECT) {
+          writeLocks.add(Thread.holdsLock(ChannelManager.class));
+        }
+        super.send(message);
+      }
+    }, false, 2);
+    Channel earlier = channel(false, 1);
+    hello(newer, 1);
+    ((EmbeddedChannel) newer.getCtx().channel()).releaseOutbound();
+    List<Boolean> disconnectLocks = observeDisconnectLocks(newer);
+
+    hello(earlier, 1);
+
+    Assert.assertEquals(Collections.singletonList(false), writeLocks);
+    Assert.assertEquals(Collections.singletonList(false), disconnectLocks);
+    Assert.assertTrue(newer.isDisconnect());
+    Assert.assertTrue(earlier.isFinishHandshake());
+    assertRegistered(earlier);
+    assertCounts(0, 1);
+    assertDuplicateDisconnect(newer);
+  }
+
+  @Test
+  public void failedReplacementStillDisconnectsOldPeerOutsideAdmissionLock() throws Exception {
+    Channel newer = channel(true, 2);
+    Channel earlier = channel(new Channel() {
+      @Override
+      public void send(Message message) {
+        if (message.getType() == MessageType.HANDSHAKE_HELLO) {
+          close();
+        } else {
+          super.send(message);
+        }
+      }
+    }, false, 1);
+    hello(newer, 1);
+    List<Boolean> disconnectLocks = observeDisconnectLocks(newer);
+
+    hello(earlier, 1);
+
+    Assert.assertEquals(Collections.singletonList(false), disconnectLocks);
+    Assert.assertTrue(newer.isDisconnect());
+    Assert.assertTrue(earlier.isDisconnect());
+    assertRegistered();
+    assertCounts(0, 0);
+  }
+
+  @Test(timeout = 10000)
+  public void queuedDuplicateDisconnectWaitsForOuterAdmissionLock() throws Exception {
+    Channel newer = channel(true, 2);
+    Channel earlier = channel(false, 1);
+    hello(newer, 1);
+    earlier.setNodeId(newer.getNodeId());
+    List<Boolean> disconnectLocks = observeDisconnectLocks(newer);
+    EmbeddedChannel socket = (EmbeddedChannel) newer.getCtx().channel();
+    Thread worker = new Thread(socket::runPendingTasks, "duplicate-disconnect");
+    worker.setDaemon(true);
+    try {
+      synchronized (ChannelManager.class) {
+        Assert.assertEquals(DisconnectCode.NORMAL, ChannelManager.checkPeer(earlier));
+        worker.start();
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        while (worker.isAlive() && worker.getState() != Thread.State.BLOCKED
+            && System.nanoTime() < deadline) {
+          Thread.yield();
+        }
+        Assert.assertEquals(Thread.State.BLOCKED, worker.getState());
+        Assert.assertTrue(socket.isOpen());
+        Assert.assertTrue(disconnectLocks.isEmpty());
+        assertRegistered();
+      }
+      worker.join(5000);
+      Assert.assertFalse(worker.isAlive());
+      Assert.assertEquals(Collections.singletonList(false), disconnectLocks);
+      Assert.assertTrue(newer.isDisconnect());
+      assertDuplicateDisconnect(newer);
+    } finally {
+      worker.join(5000);
+    }
+  }
+
+  @Test
   public void unregisteredSameAddressCloseKeepsEstablishedChannel() throws Exception {
     Channel established = channel(true, 1);
     hello(established, 1);
@@ -514,6 +605,8 @@ public class ChannelManagerTest {
     Connect.HelloMessage hello = Connect.HelloMessage.newBuilder().setFrom(endpoint)
         .setNetworkId(11111).setVersion(1).setTimestamp(System.currentTimeMillis()).build();
     handshake.processMessage(channel, new HelloMessage(hello.toByteArray()));
+    // Model the next EventLoop turn after the handshake releases the admission lock.
+    sockets.forEach(EmbeddedChannel::runPendingTasks);
   }
 
   private void assertRegistered(Channel... expected) {
@@ -529,6 +622,35 @@ public class ChannelManagerTest {
   private void assertCounts(int outbound, int inbound) {
     Assert.assertEquals(outbound, pool.getOutboundPeerCount().get());
     Assert.assertEquals(inbound, pool.getInboundPeerCount().get());
+  }
+
+  private List<Boolean> observeDisconnectLocks(Channel peer) {
+    List<Boolean> locks = new ArrayList<>();
+    Parameter.handlerList.add(new P2pEventHandler() {
+      @Override
+      public void onDisconnect(Channel channel) {
+        if (channel == peer) {
+          locks.add(Thread.holdsLock(ChannelManager.class));
+        }
+      }
+    });
+    return locks;
+  }
+
+  private void assertDuplicateDisconnect(Channel channel) throws Exception {
+    ByteBuf response = ((EmbeddedChannel) channel.getCtx().channel()).readOutbound();
+    Assert.assertNotNull("Replaced peer did not receive a disconnect reason", response);
+    try {
+      byte[] bytes = new byte[response.readableBytes()];
+      response.readBytes(bytes);
+      Message message = Message.parse(
+          UpgradeController.decodeReceiveData(channel.getVersion(), bytes));
+      Assert.assertEquals(MessageType.DISCONNECT, message.getType());
+      Assert.assertEquals(Connect.DisconnectReason.DUPLICATE_PEER,
+          Connect.P2pDisconnectMessage.parseFrom(message.getData()).getReason());
+    } finally {
+      response.release();
+    }
   }
 
   private static void set(Channel channel, String name, Object value) throws Exception {
