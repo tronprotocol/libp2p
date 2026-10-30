@@ -31,8 +31,8 @@ public class DnsNode extends Node implements Comparable<DnsNode> {
     if (StringUtils.isNotEmpty(hostV4)) {
       this.v4Hex = ipToString(hostV4);
     }
-    if (StringUtils.isNotEmpty(hostV6)) {
-      this.v6Hex = ipToString(hostV6);
+    if (StringUtils.isNotEmpty(this.hostV6)) {
+      this.v6Hex = ipToString(this.hostV6);
     }
   }
 
