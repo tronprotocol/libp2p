@@ -4,16 +4,13 @@ package org.tron.p2p.dns.update;
 import com.aliyun.alidns20150109.models.DescribeDomainRecordsResponseBody.DescribeDomainRecordsResponseBodyDomainRecordsRecord;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
-import org.tron.p2p.dns.DnsNode;
-import org.tron.p2p.dns.tree.Entry;
+import org.tron.p2p.dns.TreeTest;
 import org.tron.p2p.dns.tree.Tree;
 import org.tron.p2p.exception.DnsException;
 
@@ -22,80 +19,64 @@ public class AliClientPublishOrderTest {
   private static final String DOMAIN = "nodes.example.invalid";
 
   @Test
-  public void firstPublishAddsEveryDependencyBeforeTheRoot() throws Exception {
-    RecordingClient client = new RecordingClient();
-    Tree tree = tree();
-
-    client.deploy(DOMAIN, tree);
-
-    assertRootLast(client, tree, "add:@");
-    Assert.assertEquals(tree.toTXT(null).size(), client.calls.size());
-  }
-
-  @Test
-  public void updatePublishesDependenciesThenRootThenDeletesOldRecords() throws Exception {
-    RecordingClient client = new RecordingClient();
-    Tree tree = tree();
-    String dependency = dependency(tree);
-    client.existing.put("@", record("@", "old root"));
-    client.existing.put(dependency, record(dependency, tree.toTXT(null).get(dependency)));
-    client.existing.put("stale", record("stale", "old node"));
-
-    client.deploy(DOMAIN, tree);
-
-    assertRootLast(client, tree, "update:@");
-    Assert.assertTrue(client.calls.contains("update:" + dependency));
-    Assert.assertEquals("delete:stale", client.calls.get(client.calls.size() - 1));
-  }
-
-  @Test
-  public void dependencyFailureDoesNotPublishRootOrDeleteOldRecords() throws Exception {
+  public void publishesDependenciesThenRootThenDeletesOldRecords() throws Exception {
     for (boolean update : new boolean[]{false, true}) {
-      for (boolean throwFailure : new boolean[]{false, true}) {
-        RecordingClient client = new RecordingClient();
-        Tree tree = tree();
-        client.failedName = dependency(tree);
-        client.throwFailure = throwFailure;
+      RecordingClient client = new RecordingClient();
+      Tree tree = tree();
+      String dependency = dependency(tree);
+      if (update) {
         client.existing.put("@", record("@", "old root"));
+        client.existing.put(dependency, record(dependency, tree.toTXT(null).get(dependency)));
         client.existing.put("stale", record("stale", "old node"));
-        if (update) {
-          client.existing.put(client.failedName, record(client.failedName, "old dependency"));
-        }
+      }
 
-        assertPublishFailed(client, tree);
+      client.deploy(DOMAIN, tree);
 
-        Assert.assertTrue(client.calls.contains((update ? "update:" : "add:")
-            + client.failedName));
-        Assert.assertFalse(client.calls.contains("add:@"));
-        Assert.assertFalse(client.calls.contains("update:@"));
-        Assert.assertFalse(client.calls.contains("delete:stale"));
+      assertRootLast(client, tree, update ? "update:@" : "add:@");
+      Assert.assertEquals(tree.toTXT(null).size() + (update ? 1 : 0), client.calls.size());
+      if (update) {
+        Assert.assertTrue(client.calls.contains("update:" + dependency));
+        Assert.assertEquals("delete:stale", client.calls.get(client.calls.size() - 1));
       }
     }
   }
 
   @Test
-  public void rootFailureLeavesOldRecordsAfterWritingDependencies() throws Exception {
-    for (boolean update : new boolean[]{false, true}) {
-      for (boolean throwFailure : new boolean[]{false, true}) {
-        RecordingClient client = new RecordingClient();
-        Tree tree = tree();
-        client.failedName = "@";
-        client.throwFailure = throwFailure;
-        client.existing.put("stale", record("stale", "old node"));
-        if (update) {
-          client.existing.put("@", record("@", "old root"));
+  public void failedWritesDoNotAdvancePublicationOrDeleteOldRecords() throws Exception {
+    for (boolean rootFailure : new boolean[]{false, true}) {
+      for (boolean update : new boolean[]{false, true}) {
+        for (boolean throwFailure : new boolean[]{false, true}) {
+          RecordingClient client = new RecordingClient();
+          Tree tree = tree();
+          client.failedName = rootFailure ? "@" : dependency(tree);
+          client.throwFailure = throwFailure;
+          client.existing.put("stale", record("stale", "old node"));
+          if (update) {
+            client.existing.put("@", record("@", "old root"));
+            client.existing.put(client.failedName, record(client.failedName, "old record"));
+          }
+
+          DnsException error = Assert.assertThrows(DnsException.class,
+              () -> client.deploy(DOMAIN, tree));
+
+          Assert.assertEquals(DnsException.TypeEnum.DEPLOY_DOMAIN_FAILED, error.getType());
+          Assert.assertTrue(client.calls.contains((update ? "update:" : "add:")
+              + client.failedName));
+          Assert.assertFalse(client.calls.contains("delete:stale"));
+          if (rootFailure) {
+            assertRootLast(client, tree, update ? "update:@" : "add:@");
+            Assert.assertEquals(tree.toTXT(null).size(), client.calls.size());
+          } else {
+            Assert.assertFalse(client.calls.contains("add:@"));
+            Assert.assertFalse(client.calls.contains("update:@"));
+          }
         }
-
-        assertPublishFailed(client, tree);
-
-        assertRootLast(client, tree, update ? "update:@" : "add:@");
-        Assert.assertEquals(tree.toTXT(null).size(), client.calls.size());
       }
     }
   }
 
   private static Tree tree() throws Exception {
-    Tree tree = new Tree() {
+    return TreeTest.signedTree(new Tree() {
       @Override
       public Map<String, String> toTXT(String rootDomain) {
         Map<String, String> records = super.toTXT(rootDomain);
@@ -104,16 +85,7 @@ public class AliClientPublishOrderTest {
         rootFirst.putAll(records);
         return rootFirst;
       }
-    };
-    List<String> nodes = new ArrayList<>();
-    for (String ip : Arrays.asList("192.0.2.1", "192.0.2.2")) {
-      nodes.add(Entry.nodesPrefix + DnsNode.compress(Collections.singletonList(
-          new DnsNode(null, ip, null, 18888))));
-    }
-    tree.makeTree(0, nodes, Collections.singletonList(
-        "tree://AKA3AM6LPBYEUDMVNU3BSVQJ5AD45Y7YPOHJLEF6W26QOE4VTUDPE@linked.example.invalid"),
-        "01");
-    return tree;
+    }, "192.0.2.1", "192.0.2.2");
   }
 
   private static String dependency(Tree tree) {
@@ -128,21 +100,10 @@ public class AliClientPublishOrderTest {
   }
 
   private static void assertRootLast(RecordingClient client, Tree tree, String rootCall) {
-    List<String> writes = new ArrayList<>(client.calls);
-    writes.removeIf(call -> call.startsWith("delete:"));
-    Assert.assertEquals(tree.toTXT(null).size(), writes.size());
-    Assert.assertEquals(rootCall, writes.get(writes.size() - 1));
+    Assert.assertEquals(tree.toTXT(null).size() - 1, client.calls.indexOf(rootCall));
     for (String name : tree.toTXT(null).keySet()) {
-      Assert.assertTrue(writes.contains("add:" + name) || writes.contains("update:" + name));
-    }
-  }
-
-  private static void assertPublishFailed(RecordingClient client, Tree tree) {
-    try {
-      client.deploy(DOMAIN, tree);
-      Assert.fail("Expected publishing to stop on a failed write");
-    } catch (DnsException expected) {
-      Assert.assertEquals(DnsException.TypeEnum.DEPLOY_DOMAIN_FAILED, expected.getType());
+      Assert.assertTrue(client.calls.contains("add:" + name)
+          || client.calls.contains("update:" + name));
     }
   }
 

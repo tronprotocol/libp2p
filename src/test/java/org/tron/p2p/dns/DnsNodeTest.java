@@ -18,16 +18,6 @@ import org.tron.p2p.protos.Discover.Endpoint;
 public class DnsNodeTest {
 
   @Test
-  public void unavailableIpv6ZonePreservesTheIpv4Address() throws Exception {
-    DnsNode node = new DnsNode(null, "192.0.2.1",
-        "2001:db8::1%libp2p-missing-interface", 18888);
-
-    Assert.assertEquals("192.0.2.1", node.getHostV4());
-    Assert.assertNull(node.getHostV6());
-    Assert.assertEquals(new DnsNode(null, "192.0.2.1", null, 18888), node);
-  }
-
-  @Test
   public void unavailableIpv6ZoneDoesNotAbortTheNodesRecord() throws Exception {
     EndPoints endpoints = EndPoints.newBuilder()
         .addNodes(Endpoint.newBuilder()
@@ -47,6 +37,7 @@ public class DnsNodeTest {
     Assert.assertEquals("192.0.2.1", nodes.get(0).getHostV4());
     Assert.assertNull(nodes.get(0).getHostV6());
     Assert.assertEquals(18888, nodes.get(0).getPort());
+    Assert.assertEquals(new DnsNode(null, "192.0.2.1", null, 18888), nodes.get(0));
     Assert.assertEquals("2001:db8:0:0:0:0:0:2", nodes.get(1).getHostV6());
     Assert.assertEquals(18889, nodes.get(1).getPort());
   }
