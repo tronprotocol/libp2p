@@ -5,6 +5,8 @@ import com.aliyun.alidns20150109.models.*;
 import com.aliyun.alidns20150109.models.DescribeDomainRecordsResponseBody.DescribeDomainRecordsResponseBodyDomainRecordsRecord;
 import com.aliyun.teaopenapi.models.Config;
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
@@ -165,7 +167,10 @@ public class AliClient implements Publish {
     long addCount = 0;
     long updateCount = 0;
     long deleteCount = 0;
-    for (Map.Entry<String, String> entry : records.entrySet()) {
+    // Publish all dependencies before switching the root.
+    List<Map.Entry<String, String>> orderedRecords = new ArrayList<>(records.entrySet());
+    orderedRecords.sort(Comparator.comparing(entry -> aliyunRoot.equals(entry.getKey())));
+    for (Map.Entry<String, String> entry : orderedRecords) {
       boolean result = true;
       ttl = treeNodeTTL;
       if (entry.getKey().equals(aliyunRoot)) {
