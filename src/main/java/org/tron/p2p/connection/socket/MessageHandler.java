@@ -42,6 +42,11 @@ public class MessageHandler extends ByteToMessageDecoder {
 
   @Override
   protected void decode(ChannelHandlerContext ctx, ByteBuf buffer, List<Object> out) {
+    if (channel.isDisconnect() || !ctx.channel().isActive()) {
+      buffer.skipBytes(buffer.readableBytes());
+      return;
+    }
+
     byte[] data = new byte[buffer.readableBytes()];
     buffer.readBytes(data);
     try {
