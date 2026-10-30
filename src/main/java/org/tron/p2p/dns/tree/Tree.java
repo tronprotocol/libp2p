@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
@@ -150,6 +151,9 @@ public class Tree {
 
   // hash => lower(hash).domain
   public Map<String, String> toTXT(String rootDomain) {
+    if (StringUtils.isNoneEmpty(rootDomain)) {
+      rootDomain = StringUtils.stripEnd(rootDomain, ".").toLowerCase(Locale.ROOT);
+    }
     Map<String, String> dnsRecords = new HashMap<>();
     if (StringUtils.isNoneEmpty(rootDomain)) {
       dnsRecords.put(rootDomain, rootEntry.toFormat());
@@ -159,7 +163,7 @@ public class Tree {
     for (Map.Entry<String, Entry> item : entries.entrySet()) {
       String hash = item.getKey();
       String newKey = StringUtils.isNoneEmpty(rootDomain) ? hash + "." + rootDomain : hash;
-      dnsRecords.put(newKey.toLowerCase(), item.getValue().toString());
+      dnsRecords.put(newKey.toLowerCase(Locale.ROOT), item.getValue().toString());
     }
     return dnsRecords;
   }

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -125,6 +126,7 @@ public class AwsClient implements Publish {
   // uploads the given tree to Route53.
   @Override
   public void deploy(String domain, Tree tree) throws Exception {
+    domain = normalizeDomain(domain);
     checkZone(domain);
 
     Map<String, RecordSet> existing = collectRecords(domain);
@@ -165,6 +167,7 @@ public class AwsClient implements Publish {
   // removes all TXT records of the given domain.
   @Override
   public boolean deleteDomain(String rootDomain) throws Exception {
+    rootDomain = normalizeDomain(rootDomain);
     checkZone(rootDomain);
 
     Map<String, RecordSet> existing = collectRecords(rootDomain);
@@ -180,6 +183,7 @@ public class AwsClient implements Publish {
   // collects all TXT records below the given name. it also update lastSeq
   @Override
   public Map<String, RecordSet> collectRecords(String rootDomain) throws Exception {
+    rootDomain = normalizeDomain(rootDomain);
     Map<String, RecordSet> existing = new HashMap<>();
     ListResourceRecordSetsRequest.Builder request = ListResourceRecordSetsRequest.builder();
     request.hostedZoneId(zoneId);
@@ -205,7 +209,7 @@ public class AwsClient implements Publish {
         }
         RecordSet recordSet = new RecordSet(values.toArray(new String[0]),
             resourceRecordSet.ttl());
-        String name = StringUtils.stripEnd(resourceRecordSet.name(), postfix);
+        String name = normalizeDomain(resourceRecordSet.name());
         existing.put(name, recordSet);
 
         String content = StringUtils.join(values, "");
@@ -303,7 +307,7 @@ public class AwsClient implements Publish {
   // The 'existing' arg is the set of records that already exist on Route53.
   public List<Change> computeChanges(String domain, Map<String, String> records,
       Map<String, RecordSet> existing) {
-
+    domain = normalizeDomain(domain);
     List<Change> changes = new ArrayList<>();
     for (Entry<String, String> entry : records.entrySet()) {
       String path = entry.getKey();
@@ -488,9 +492,13 @@ public class AwsClient implements Publish {
   }
 
   public static boolean isSubdomain(String sub, String root) {
-    String subNoSuffix = postfix + StringUtils.strip(sub, postfix);
-    String rootNoSuffix = postfix + StringUtils.strip(root, postfix);
+    String subNoSuffix = postfix + normalizeDomain(sub);
+    String rootNoSuffix = postfix + normalizeDomain(root);
     return subNoSuffix.endsWith(rootNoSuffix);
+  }
+
+  private static String normalizeDomain(String domain) {
+    return StringUtils.stripEnd(domain, postfix).toLowerCase(Locale.ROOT);
   }
 
   public static class RecordSet {

@@ -5,8 +5,11 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import org.junit.Assert;
@@ -232,5 +235,36 @@ public class TreeTest {
     enrSet5.retainAll(enrSet2); // enrSet1 && enrSet2
     System.out.println("intersectionSize:" + enrSet5.size());
     Assert.assertTrue(enrSet5.size() < enrSet1.size());
+  }
+
+  @Test
+  public void treeRecordNamesAreCanonicalRegardlessOfDefaultLocale() throws Exception {
+    Locale previous = Locale.getDefault();
+    try {
+      Locale.setDefault(new Locale("tr", "TR"));
+      Tree tree = signedTree(new Tree(), "192.0.2.1");
+
+      Map<String, String> records = tree.toTXT("Nodes.Example.INVALID.");
+
+      Assert.assertEquals(tree.getRootEntry().toFormat(), records.get("nodes.example.invalid"));
+      for (Map.Entry<String, Entry> entry : tree.getEntries().entrySet()) {
+        String name = entry.getKey().toLowerCase(Locale.ROOT) + ".nodes.example.invalid";
+        Assert.assertEquals(entry.getValue().toString(), records.get(name));
+      }
+    } finally {
+      Locale.setDefault(previous);
+    }
+  }
+
+  public static Tree signedTree(Tree tree, String... ips) throws Exception {
+    List<String> nodes = new ArrayList<>();
+    for (String ip : ips) {
+      nodes.add(Entry.nodesPrefix + DnsNode.compress(Collections.singletonList(
+          new DnsNode(null, ip, null, 18888))));
+    }
+    tree.makeTree(0, nodes, Collections.singletonList(
+        "tree://AKA3AM6LPBYEUDMVNU3BSVQJ5AD45Y7YPOHJLEF6W26QOE4VTUDPE@linked.example.invalid"),
+        "01");
+    return tree;
   }
 }
