@@ -8,24 +8,32 @@ import io.netty.util.ReferenceCountUtil;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.tron.p2p.P2pConfig;
+import org.tron.p2p.P2pEventHandler;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.Channel;
 import org.tron.p2p.connection.message.Message;
+import org.tron.p2p.connection.message.MessageType;
+import org.tron.p2p.protos.Connect;
 
 public class DecoderDisconnectTest {
 
   private final List<EmbeddedChannel> sockets = new ArrayList<>();
   private P2pConfig previousConfig;
+  private Map<Byte, P2pEventHandler> previousHandlers;
 
   @Before
   public void setUp() {
     previousConfig = Parameter.p2pConfig;
+    previousHandlers = Parameter.handlerMap;
+    Parameter.handlerMap = new HashMap<>();
     Parameter.p2pConfig = new P2pConfig();
     Parameter.p2pConfig.setIp("127.0.0.1");
     Parameter.p2pConfig.setIpv6("");
@@ -37,6 +45,7 @@ public class DecoderDisconnectTest {
       sockets.forEach(EmbeddedChannel::finishAndReleaseAll);
     } finally {
       Parameter.p2pConfig = previousConfig;
+      Parameter.handlerMap = previousHandlers;
     }
   }
 
@@ -55,6 +64,35 @@ public class DecoderDisconnectTest {
     Assert.assertTrue(socket.isActive());
     Assert.assertEquals(1, peer.exceptions);
     Assert.assertEquals(1, peer.messagesSent);
+    Assert.assertEquals(0, batch.refCnt());
+  }
+
+  @Test
+  public void registeredApplicationFramesAreRejectedOnlyOncePerReadBatch() throws Exception {
+    Parameter.handlerMap.put((byte) 0x01, new P2pEventHandler() {
+      @Override
+      public void onMessage(Channel channel, byte[] data) {
+        Assert.fail("Application messages must not be dispatched before HELLO");
+      }
+    });
+    DeferredCloseChannel peer = newPeer();
+    EmbeddedChannel socket = sockets.get(0);
+    ByteBuf batch = Unpooled.buffer(256 * 1024);
+    while (batch.isWritable()) {
+      batch.writeByte(1).writeByte(0x01);
+    }
+
+    socket.writeInbound(batch);
+
+    Assert.assertTrue(peer.isDisconnect());
+    Assert.assertFalse(peer.isFinishHandshake());
+    Assert.assertTrue(socket.isActive());
+    Assert.assertEquals(0, peer.exceptions);
+    Assert.assertEquals(1, peer.closeCalls);
+    Assert.assertEquals(1, peer.messagesSent);
+    Assert.assertEquals(MessageType.DISCONNECT, peer.lastMessage.getType());
+    Assert.assertEquals(Connect.DisconnectReason.BAD_PROTOCOL,
+        Connect.P2pDisconnectMessage.parseFrom(peer.lastMessage.getData()).getReason());
     Assert.assertEquals(0, batch.refCnt());
   }
 
@@ -127,10 +165,13 @@ public class DecoderDisconnectTest {
   private static class DeferredCloseChannel extends Channel {
     private int exceptions;
     private int messagesSent;
+    private int closeCalls;
+    private Message lastMessage;
 
     @Override
     public void close() {
       // Keep the pipeline installed to model transport cleanup pending on the event loop.
+      closeCalls++;
       markDisconnected();
     }
 
@@ -143,6 +184,7 @@ public class DecoderDisconnectTest {
     @Override
     public void send(Message message) {
       messagesSent++;
+      lastMessage = message;
       super.send(message);
     }
   }
