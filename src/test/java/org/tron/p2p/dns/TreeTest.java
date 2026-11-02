@@ -16,6 +16,8 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.tron.p2p.dns.tree.Algorithm;
 import org.tron.p2p.dns.tree.Entry;
+import org.tron.p2p.dns.tree.LinkEntry;
+import org.tron.p2p.dns.tree.RootEntry;
 import org.tron.p2p.dns.tree.Tree;
 import org.tron.p2p.dns.update.PublishConfig;
 import org.tron.p2p.exception.DnsException;
@@ -253,6 +255,19 @@ public class TreeTest {
       }
     } finally {
       Locale.setDefault(previous);
+    }
+  }
+
+  @Test
+  public void signedTreeUrlPreservesPublicKeyWithLeadingZeros() throws Exception {
+    for (String privateKey : new String[] {"2d", "77", "99"}) {
+      Tree tree = new Tree();
+      tree.makeTree(1, Collections.emptyList(), Collections.emptyList(), privateKey);
+      LinkEntry link = LinkEntry.parseEntry(
+          LinkEntry.buildRepresent(tree.getBase32PublicKey(), "nodes.example.invalid"));
+      RootEntry root = RootEntry.parseEntry(tree.getRootEntry().toFormat(),
+          link.getUnCompressHexPublicKey(), link.getDomain());
+      Assert.assertEquals(tree.getRootEntry().toFormat(), root.toFormat());
     }
   }
 

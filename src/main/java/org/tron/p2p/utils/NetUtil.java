@@ -15,6 +15,7 @@ import java.net.URLConnection;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletionService;
@@ -57,6 +58,10 @@ public class NetUtil {
       return false;
     }
     return PATTERN_IPv6.matcher(ip).matches();
+  }
+
+  public static String normalizeDomain(String domain) {
+    return StringUtils.stripEnd(domain, ".").toLowerCase(Locale.ROOT);
   }
 
   public static boolean validPort(int port) {

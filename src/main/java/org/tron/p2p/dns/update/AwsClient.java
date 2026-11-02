@@ -1,12 +1,13 @@
 package org.tron.p2p.dns.update;
 
 
+import static org.tron.p2p.utils.NetUtil.normalizeDomain;
+
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -495,10 +496,6 @@ public class AwsClient implements Publish {
     String subNoSuffix = postfix + normalizeDomain(sub);
     String rootNoSuffix = postfix + normalizeDomain(root);
     return subNoSuffix.endsWith(rootNoSuffix);
-  }
-
-  private static String normalizeDomain(String domain) {
-    return StringUtils.stripEnd(domain, postfix).toLowerCase(Locale.ROOT);
   }
 
   public static class RecordSet {
