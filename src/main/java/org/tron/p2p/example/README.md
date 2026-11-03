@@ -150,6 +150,14 @@ dig nodes.example.org TXT
 At last we can release the tree's url on anywhere later, such as github. So others can download this
 tree to get nodes dynamically.
 
+### 1.2.4 Migration for previously generated tree URLs
+
+The public-key compression fix changes tree URLs for keys whose public X coordinate has leading
+zero hexadecimal digits. Publishers should regenerate the URL with their existing private key and
+verify it against the signed root. If it differs from the old URL, update subscribers' `treeUrls`,
+cross-tree `knownTreeUrls`, and other distributed copies. Upgrading clients or republishing the
+root alone does not fix an incorrect URL. Key rotation is not required.
+
 # 2. Use as a dependency
 
 ## 2.1 Core classes
@@ -311,6 +319,8 @@ String[] urls = new String[] {"tree://APFGGTFOBVE2ZNAB3CSMNNX6RRK3ODIRLP2AA5U4YF
 config.setTreeUrls(Arrays.asList(urls));
 ```
 After that, libp2p will download the nodes from nile.nftderby1.net periodically.
+
+For existing URLs, check the [migration notes](#124-migration-for-previously-generated-tree-urls).
 
 ### 2.3.3 TCP Handler
 

@@ -6,6 +6,10 @@ libp2p is a p2p network SDK implemented in java language. The functional modules
 * support compressed message transmission among nodes
 
 # Note
+
+Previously generated DNS tree URLs may need updating after the public-key compression fix.
+See the [migration notes](src/main/java/org/tron/p2p/example/README.md#124-migration-for-previously-generated-tree-urls).
+
 Starting from version 2.2.7, `libp2p` has removed the logback component and adopted the logger facade. If logging is required, you need to introduce a logging framework manually.  
 Here’s how to include logback in your project using Gradle:
 
