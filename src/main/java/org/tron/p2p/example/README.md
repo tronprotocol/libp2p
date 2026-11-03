@@ -139,6 +139,13 @@ tree://APFGGTFOBVE2ZNAB3CSMNNX6RRK3ODIRLP2AA5U4YFAA6MSYZUYTQ@nodes.example.org
 The compressed public Key APFGGTFOBVE2ZNAB3CSMNNX6RRK3ODIRLP2AA5U4YFAA6MSYZUYTQ is responsed to
 above dns-private key.
 
+#### Changing the DNS signing key
+
+Changing `dnsPrivate` republishes the root even when the node set is unchanged. Verify the new
+root using the new public key, then distribute the new tree URL and update subscribers'
+`treeUrls` and cross-tree `knownTreeUrls`. Account for DNS caching during the transition;
+clients retaining the old URL cannot verify roots signed by the new key.
+
 ### 1.2.3 Verify your dns txt records
 
 You can query dns record by following command and check if a TXT type record exists:
