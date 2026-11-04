@@ -51,7 +51,6 @@ public class AwsClient implements Publish {
   public static final int route53ChangeCountLimit = 1000;
   public static final int maxRetryLimit = 60;
   private int lastSeq = 0;
-  private String serverLinkRoot;
   private Route53Client route53Client;
   private String zoneId;
   private Set<DnsNode> serverNodes;
@@ -150,9 +149,8 @@ public class AwsClient implements Publish {
     treeNodes = new HashSet<>(tree.getDnsNodes());
     set1.removeAll(treeNodes); // dns - tree
     int deleteNodeSize = set1.size();
-    boolean linksChanged = !tree.getRootEntry().getLRoot().equals(serverLinkRoot);
 
-    if (serverNodes.isEmpty() || linksChanged
+    if (serverNodes.isEmpty()
         || (addNodeSize + deleteNodeSize) / (double) serverNodes.size() >= changeThreshold) {
       String comment = String.format("Tree update of %s at seq %d", domain, tree.getSeq());
       log.info(comment);
@@ -249,11 +247,9 @@ public class AwsClient implements Publish {
       page += 1;
     }
 
-    this.serverLinkRoot = null;
     if (rootContent != null) {
       RootEntry rootEntry = RootEntry.parseEntry(rootContent);
       this.lastSeq = rootEntry.getSeq();
-      this.serverLinkRoot = rootEntry.getLRoot();
     }
     this.serverNodes = collectServerNodes;
     return existing;
