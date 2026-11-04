@@ -40,6 +40,8 @@ public class DnsSignerPublicationTest {
   private static final String DOMAIN = "nodes.example.invalid";
   private static final String OLD_KEY = "01";
   private static final String NEW_KEY = "02";
+  private static final String LINK =
+      "tree://AKA3AM6LPBYEUDMVNU3BSVQJ5AD45Y7YPOHJLEF6W26QOE4VTUDPE@linked.example.invalid";
   private final Map<String, String> records = new HashMap<>();
   private final List<String> writes = new ArrayList<>();
   private Publish<?> client;
@@ -100,19 +102,48 @@ public class DnsSignerPublicationTest {
   }
 
   @Test
-  public void nodeChangesBelowThresholdOnlyPublishForNewSigner() throws Exception {
-    for (String key : new String[]{OLD_KEY, NEW_KEY}) {
-      Tree published = tree(OLD_KEY, 11);
+  public void nodeChangesBelowThresholdOnlyPublishForLinkOrSignerChanges() throws Exception {
+    for (String[] links : new String[][]{{}, {LINK}}) {
+      for (String key : new String[]{OLD_KEY, NEW_KEY}) {
+        Tree published = tree(OLD_KEY, 11);
+        load(published);
+        Tree updated = tree(key, 12, links);
+
+        client.deploy(DOMAIN, updated);
+
+        boolean changed = key.equals(NEW_KEY) || links.length > 0;
+        Assert.assertEquals(changed, !writes.isEmpty());
+        Assert.assertEquals((changed ? updated : published).getRootEntry().toFormat(),
+            root().toFormat());
+        assertSigner(key, true);
+      }
+    }
+  }
+
+  @Test
+  public void linkOnlyChangesPublishOnceWithUnchangedNodesAndSigner() throws Exception {
+    for (boolean addLink : new boolean[]{false, true}) {
+      Tree withLinks = tree(OLD_KEY, 1, LINK);
+      Tree withoutLinks = tree(OLD_KEY, 1);
+      Tree published = addLink ? withoutLinks : withLinks;
+      Tree updated = addLink ? withLinks : withoutLinks;
       load(published);
-      Tree updated = tree(key, 12);
 
       client.deploy(DOMAIN, updated);
 
-      boolean changedSigner = key.equals(NEW_KEY);
-      Assert.assertEquals(changedSigner, !writes.isEmpty());
-      Assert.assertEquals((changedSigner ? updated : published).getRootEntry().toFormat(),
-          root().toFormat());
-      assertSigner(key, true);
+      Assert.assertEquals(published.getRootEntry().getERoot(), updated.getRootEntry().getERoot());
+      Assert.assertNotEquals(published.getRootEntry().getLRoot(),
+          updated.getRootEntry().getLRoot());
+      Assert.assertEquals(updated.toTXT(null), records);
+      Assert.assertTrue(writes.contains("@"));
+      Assert.assertEquals(8, root().getSeq());
+      assertSigner(OLD_KEY, true);
+
+      writes.clear();
+      client.deploy(DOMAIN, tree(OLD_KEY, 1, addLink ? new String[]{LINK} : new String[0]));
+
+      Assert.assertTrue(writes.isEmpty());
+      Assert.assertEquals(updated.getRootEntry().toFormat(), root().toFormat());
     }
   }
 
@@ -129,28 +160,33 @@ public class DnsSignerPublicationTest {
   }
 
   @Test
-  public void failedKeyChangeCanRetryThePublishedSigner() throws Exception {
-    Tree published = tree(OLD_KEY, 1);
-    load(published);
-    failRootWrite = true;
+  public void failedLinkOrSignerChangeCanRetry() throws Exception {
+    for (boolean changeSigner : new boolean[]{false, true}) {
+      Tree published = tree(OLD_KEY, 1);
+      load(published);
+      String key = changeSigner ? NEW_KEY : OLD_KEY;
+      Tree updated = tree(key, 1, changeSigner ? new String[0] : new String[]{LINK});
+      failRootWrite = true;
 
-    Assert.assertThrows(Exception.class, () -> client.deploy(DOMAIN, tree(NEW_KEY, 1)));
+      Assert.assertThrows(Exception.class, () -> client.deploy(DOMAIN, updated));
 
-    Assert.assertEquals(published.getRootEntry().toFormat(), root().toFormat());
-    failRootWrite = false;
-    client.deploy(DOMAIN, tree(NEW_KEY, 1));
+      Assert.assertEquals(published.getRootEntry().toFormat(), root().toFormat());
+      failRootWrite = false;
+      client.deploy(DOMAIN, updated);
 
-    Assert.assertEquals(8, root().getSeq());
-    assertSigner(NEW_KEY, true);
+      Assert.assertEquals(8, root().getSeq());
+      assertSigner(key, true);
+      Assert.assertEquals(updated.toTXT(null), records);
+    }
   }
 
   @Test
-  public void missingRootDoesNotReusePreviouslyCollectedSigner() throws Exception {
-    load(tree(OLD_KEY, 1));
+  public void missingRootDoesNotReusePreviouslyCollectedRoot() throws Exception {
+    load(tree(OLD_KEY, 1, LINK));
     client.collectRecords(DOMAIN);
     records.remove("@");
 
-    client.deploy(DOMAIN, tree(OLD_KEY, 1));
+    client.deploy(DOMAIN, tree(OLD_KEY, 1, LINK));
 
     Assert.assertEquals(Collections.singletonList("@"), writes);
     assertSigner(OLD_KEY, true);
@@ -214,14 +250,14 @@ public class DnsSignerPublicationTest {
         Algorithm.verifySignature(publicKey, root.toString(), root.getSignature()));
   }
 
-  private static Tree tree(String privateKey, int nodeCount) throws Exception {
+  private static Tree tree(String privateKey, int nodeCount, String... links) throws Exception {
     List<String> nodes = new ArrayList<>();
     for (int i = 0; i < nodeCount; i++) {
       nodes.add(Entry.nodesPrefix + DnsNode.compress(Collections.singletonList(
           new DnsNode(null, "192.0.2." + (i + 1), null, 18888))));
     }
     Tree tree = new Tree();
-    tree.makeTree(7, nodes, Collections.emptyList(), privateKey);
+    tree.makeTree(7, nodes, Arrays.asList(links), privateKey);
     return tree;
   }
 
