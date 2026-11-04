@@ -156,6 +156,57 @@ public class DnsSignerPublicationTest {
     assertSigner(OLD_KEY, true);
   }
 
+  @Test
+  public void unrecoverableSignerIsReplacedOnce() throws Exception {
+    // Cover an invalid recovery header and invalid curve data with a valid header.
+    for (int recoveryId : new int[]{42, 27}) {
+      load(tree(OLD_KEY, 1));
+      client.collectRecords(DOMAIN);
+      corruptRootSignature(recoveryId);
+      Tree updated = tree(OLD_KEY, 1);
+
+      client.deploy(DOMAIN, updated);
+
+      Assert.assertEquals(Collections.singletonList("@"), writes);
+      Assert.assertEquals(8, root().getSeq());
+      assertSigner(OLD_KEY, true);
+
+      writes.clear();
+      client.deploy(DOMAIN, tree(OLD_KEY, 1));
+
+      Assert.assertTrue(writes.isEmpty());
+      Assert.assertEquals(updated.getRootEntry().toFormat(), root().toFormat());
+    }
+  }
+
+  @Test
+  public void failedUnrecoverableSignerReplacementCanRetry() throws Exception {
+    load(tree(OLD_KEY, 1));
+    String corrupted = corruptRootSignature(42);
+    failRootWrite = true;
+
+    Assert.assertThrows(Exception.class, () -> client.deploy(DOMAIN, tree(OLD_KEY, 1)));
+
+    Assert.assertEquals(corrupted, records.get("@"));
+    Assert.assertTrue(writes.isEmpty());
+    failRootWrite = false;
+    client.deploy(DOMAIN, tree(OLD_KEY, 1));
+
+    Assert.assertEquals(Collections.singletonList("@"), writes);
+    Assert.assertEquals(8, root().getSeq());
+    assertSigner(OLD_KEY, true);
+  }
+
+  private String corruptRootSignature(int recoveryId) throws Exception {
+    RootEntry root = root();
+    byte[] signature = new byte[65];
+    signature[64] = (byte) recoveryId;
+    root.setSignature(signature);
+    String corrupted = root.toFormat();
+    records.put("@", corrupted);
+    return corrupted;
+  }
+
   private void assertSigner(String privateKey, boolean expected) throws Exception {
     RootEntry root = root();
     String publicKey = Algorithm.generateKeyPair(privateKey).getPublicKey().toString(16);

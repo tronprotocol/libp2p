@@ -161,8 +161,13 @@ public class AliClient implements Publish {
     if (rootContent != null) {
       RootEntry rootEntry = RootEntry.parseEntry(rootContent);
       this.lastSeq = rootEntry.getSeq();
-      this.serverPublicKey = Algorithm.recoverPublicKey(rootEntry.toString(),
-          rootEntry.getSignature());
+      try {
+        this.serverPublicKey = Algorithm.recoverPublicKey(rootEntry.toString(),
+            rootEntry.getSignature());
+      } catch (Exception e) {
+        log.warn("Cannot recover existing root signer for {}, treating signer as unknown: {}",
+            domain, e.getMessage());
+      }
     }
     this.serverNodes = collectServerNodes;
     return records;
