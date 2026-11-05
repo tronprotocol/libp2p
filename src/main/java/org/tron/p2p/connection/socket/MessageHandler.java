@@ -3,6 +3,7 @@ package org.tron.p2p.connection.socket;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
+import java.util.Arrays;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.tron.p2p.connection.Channel;
@@ -81,8 +82,9 @@ public class MessageHandler extends ByteToMessageDecoder {
       }
       channel.processException(e);
     } catch (Throwable t) {
-      log.error("Decode message from {} failed, message:{}", channel.getInetSocketAddress(),
-          ByteArray.toHexString(data));
+      byte[] prefix = Arrays.copyOf(data, Math.min(data.length, 256));
+      log.error("Decode message from {} failed, length:{}, prefix:{}",
+          channel.getInetSocketAddress(), data.length, ByteArray.toHexString(prefix));
       throw t;
     }
   }
