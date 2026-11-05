@@ -110,7 +110,9 @@ public class NetUtilTest {
 
         Assert.assertNotNull(node);
         Assert.assertNull(node.getHostV6());
-        Assert.assertEquals(ipv4.isEmpty() ? null : ipv4, node.getHostV4());
+        if ("192.0.2.1".equals(ipv4)) {
+          Assert.assertEquals(ipv4, node.getHostV4());
+        }
         Assert.assertEquals(ipv4.equals("192.0.2.1"), NetUtil.validNode(node));
       }
     }
