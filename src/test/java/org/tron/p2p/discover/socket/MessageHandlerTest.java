@@ -1,5 +1,6 @@
 package org.tron.p2p.discover.socket;
 
+import com.google.protobuf.ByteString;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.channel.socket.DatagramPacket;
@@ -25,6 +26,7 @@ import org.tron.p2p.discover.message.kad.NeighborsMessage;
 import org.tron.p2p.discover.message.kad.PingMessage;
 import org.tron.p2p.discover.protocol.kad.KadService;
 import org.tron.p2p.discover.protocol.kad.NodeHandler;
+import org.tron.p2p.protos.Discover;
 
 public class MessageHandlerTest {
 
@@ -138,12 +140,40 @@ public class MessageHandlerTest {
     config.setIpv6(longIpv6);
     startPipeline(new KadService());
 
-    for (String ipv6 : new String[]{null, "2001:db8::1", longIpv6,
-        longIpv6 + "%2147483647"}) {
+    for (String ipv6 : new String[]{null, "2001:db8::1", longIpv6}) {
       assertNeighborsFit(neighbors(ipv6), Long.MAX_VALUE);
     }
     assertNeighborsFit(neighbors(longIpv6, null), Long.MAX_VALUE);
     assertNeighborsFit(Collections.emptyList(), 1L);
+  }
+
+  @Test
+  public void scopedIpv6NeighborsRequireValidIpv4() throws Exception {
+    Node from = new Node(new byte[64], "192.0.2.1", null, 18888);
+    for (String zone : new String[]{"2147483647", "eth0"}) {
+      for (String ipv4 : new String[]{"192.0.2.2", "", "invalid"}) {
+        Discover.Endpoint neighbor = Discover.Endpoint.newBuilder()
+            .setNodeId(ByteString.copyFrom(new byte[64]))
+            .setAddress(ByteString.copyFromUtf8(ipv4))
+            .setAddressIpv6(ByteString.copyFromUtf8("fe80::1%" + zone))
+            .setPort(18888).build();
+        Discover.Neighbours payload = Discover.Neighbours.newBuilder()
+            .setFrom(KadMessage.getEndpointFromNode(from)).addNeighbours(neighbor)
+            .setTimestamp(1L).build();
+
+        List<Object> decoded = decode(new NeighborsMessage(payload.toByteArray()).getSendData());
+
+        if (ipv4.equals("192.0.2.2")) {
+          Assert.assertEquals(1, decoded.size());
+          NeighborsMessage reply = (NeighborsMessage) ((UdpEvent) decoded.get(0)).getMessage();
+          Node node = reply.getNodes().get(0);
+          Assert.assertEquals(ipv4, node.getHostV4());
+          Assert.assertNull(node.getHostV6());
+        } else {
+          Assert.assertTrue(decoded.isEmpty());
+        }
+      }
+    }
   }
 
   @Test

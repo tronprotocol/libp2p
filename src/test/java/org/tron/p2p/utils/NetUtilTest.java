@@ -1,5 +1,6 @@
 package org.tron.p2p.utils;
 
+import com.google.protobuf.ByteString;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -93,6 +94,30 @@ public class NetUtilTest {
         .setPort(100).build();
     Node node = NetUtil.getNode(endpoint);
     Assert.assertEquals(100, node.getPort());
+  }
+
+  @Test
+  public void testGetNodeDiscardsRemoteIpv6Zones() {
+    for (String zone : new String[]{"1", "2147483647", "eth0"}) {
+      for (String ipv4 : new String[]{"192.0.2.1", "", "invalid"}) {
+        Discover.Endpoint endpoint = Discover.Endpoint.newBuilder()
+            .setNodeId(ByteString.copyFrom(new byte[64]))
+            .setAddress(ByteString.copyFromUtf8(ipv4))
+            .setAddressIpv6(ByteString.copyFromUtf8("2001:db8::1%" + zone))
+            .setPort(18888).build();
+
+        Node node = NetUtil.getNode(endpoint);
+
+        Assert.assertNotNull(node);
+        Assert.assertNull(node.getHostV6());
+        Assert.assertEquals(ipv4.isEmpty() ? null : ipv4, node.getHostV4());
+        Assert.assertEquals(ipv4.equals("192.0.2.1"), NetUtil.validNode(node));
+      }
+    }
+
+    Node local = new Node(new byte[64], null, "2001:db8::1%2147483647", 18888);
+    Assert.assertTrue(local.getHostV6().endsWith("%2147483647"));
+    Assert.assertTrue(NetUtil.validNode(local));
   }
 
   @Test
