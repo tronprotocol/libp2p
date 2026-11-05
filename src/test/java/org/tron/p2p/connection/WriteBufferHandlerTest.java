@@ -55,14 +55,14 @@ public class WriteBufferHandlerTest {
   }
 
   @Test
-  public void globalLimitEvictsLargestPeerInsteadOfLatestSender() throws Exception {
+  public void globalLimitEvictsLargestPeerInsteadOfFirstOrLatestSender() throws Exception {
     WriteBufferHandler.Budget budget = new WriteBufferHandler.Budget(100, 80);
     TestPeer largest = peer(budget);
     TestPeer middle = peer(budget);
     TestPeer latest = peer(budget);
     ByteBuf largestData = Unpooled.buffer(50).writeZero(50);
-    ChannelFuture pending = largest.send(largestData);
     middle.send(20);
+    ChannelFuture pending = largest.send(largestData);
     latest.send(10);
 
     Assert.assertFalse(largest.socket.isOpen());
@@ -103,6 +103,56 @@ public class WriteBufferHandlerTest {
     Assert.assertFalse(peer.socket.isOpen());
     Assert.assertTrue(result.isDone());
     Assert.assertFalse(result.isSuccess());
+  }
+
+  @Test
+  public void framedPendingBytesEqualToPeerLimitAreAccepted() throws Exception {
+    TestPeer peer = peer(new WriteBufferHandler.Budget(50, 200));
+    ChannelFuture first = peer.send(30);
+    // The two frames occupy (30 + 1) + (18 + 1) = 50 bytes.
+    ChannelFuture atLimit = peer.send(18);
+
+    Assert.assertTrue(peer.socket.isOpen());
+    Assert.assertFalse(first.isDone());
+    Assert.assertFalse(atLimit.isDone());
+  }
+
+  @Test
+  public void peerEvictionWaitsForItsWritesBeforeGlobalEviction() throws Exception {
+    WriteBufferHandler.Budget budget = new WriteBufferHandler.Budget(50, 80);
+    TestPeer evicted = peer(budget);
+    TestPeer healthy = peer(budget);
+    DelayedClose close = new DelayedClose();
+    evicted.socket.pipeline().addFirst(close);
+    try {
+      ChannelFuture pending = evicted.send(30);
+      ChannelFuture rejected = evicted.send(30);
+      Assert.assertEquals(1, close.calls);
+      Assert.assertTrue(evicted.socket.isOpen());
+      Assert.assertFalse(pending.isDone());
+      Assert.assertTrue(rejected.isDone());
+      Assert.assertFalse(rejected.isSuccess());
+
+      ChannelFuture first = healthy.send(30);
+      // The evicted peer still holds 31 bytes; this reaches 31 + 31 + 18 = 80 bytes.
+      ChannelFuture atGlobalLimit = healthy.send(17);
+      Assert.assertTrue(healthy.socket.isOpen());
+      Assert.assertFalse(first.isDone());
+      Assert.assertFalse(atGlobalLimit.isDone());
+      Assert.assertEquals(1, close.calls);
+
+      close.complete();
+      Assert.assertFalse(evicted.socket.isOpen());
+      Assert.assertTrue(pending.isDone());
+      Assert.assertFalse(pending.isSuccess());
+      Assert.assertTrue(healthy.socket.isOpen());
+      Assert.assertFalse(first.isDone());
+      Assert.assertFalse(atGlobalLimit.isDone());
+    } finally {
+      if (evicted.socket.pipeline().context(close) != null) {
+        evicted.socket.pipeline().remove(close);
+      }
+    }
   }
 
   @Test
