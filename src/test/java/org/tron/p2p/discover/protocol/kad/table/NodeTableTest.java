@@ -1,13 +1,18 @@
 package org.tron.p2p.discover.protocol.kad.table;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.tron.p2p.P2pConfig;
+import org.tron.p2p.base.Parameter;
 import org.tron.p2p.discover.Node;
 import org.tron.p2p.utils.NetUtil;
 
 import java.net.InetSocketAddress;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -17,6 +22,7 @@ public class NodeTableTest {
   private NodeTable nodeTable;
   private String[] ips;
   private List<byte[]> ids;
+  private P2pConfig previousConfig;
 
   @Test
   public void test() {
@@ -51,6 +57,9 @@ public class NodeTableTest {
    */
   @Before
   public void init() {
+    previousConfig = Parameter.p2pConfig;
+    Parameter.p2pConfig = new P2pConfig();
+    Parameter.p2pConfig.setIp("127.0.0.1");
     ids = new ArrayList<>();
     for (int i = 0; i < KademliaOptions.BUCKET_SIZE + 1; i++) {
       byte[] id = new byte[64];
@@ -88,6 +97,11 @@ public class NodeTableTest {
     ips[16] = "127.0.0.18";
   }
 
+  @After
+  public void tearDown() {
+    Parameter.p2pConfig = previousConfig;
+  }
+
   @Test
   public void addNodeTest() {
     Node node = new Node(ids.get(0), ips[0], null, 18888, 18888);
@@ -112,12 +126,20 @@ public class NodeTableTest {
   @Test
   public void addNode_bucketFullTest() throws Exception {
     for (int i = 0; i < KademliaOptions.BUCKET_SIZE; i++) {
-      TimeUnit.MILLISECONDS.sleep(10);
       addNode(new Node(ids.get(i), ips[i], null, 18888, 18888));
     }
-    Node lastSeen = nodeTable.addNode(new Node(ids.get(16), ips[16], null, 18888, 18888));
-    Assert.assertTrue(null != lastSeen);
-    Assert.assertEquals(ips[15], lastSeen.getHostV4());
+    Field modified = NodeEntry.class.getDeclaredField("modified");
+    modified.setAccessible(true);
+    for (NodeEntry entry : nodeTable.getAllNodes()) {
+      modified.setLong(entry, Arrays.asList(ips).indexOf(entry.getNode().getHostV4()));
+    }
+    Node candidate = new Node(ids.get(16), ips[16], null, 18888, 18888);
+    Assert.assertEquals(ips[0], nodeTable.addNode(candidate).getHostV4());
+
+    nodeTable.touchNode(new Node(ids.get(0), ips[0], null, 18888, 18888));
+    Assert.assertEquals(ips[1], nodeTable.addNode(candidate).getHostV4());
+    Assert.assertEquals(KademliaOptions.BUCKET_SIZE, nodeTable.getNodesCount());
+    Assert.assertFalse(nodeTable.contains(candidate));
   }
 
   public void addNode(Node n) {

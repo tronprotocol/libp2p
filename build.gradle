@@ -47,13 +47,13 @@ buildscript {
 dependencies {
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
 
-    implementation group: 'org.xerial.snappy', name: 'snappy-java', version: '1.1.10.5'
+    implementation group: 'org.xerial.snappy', name: 'snappy-java', version: '1.1.10.12'
     implementation group: 'com.google.protobuf', name: 'protobuf-java', version: protobufVersion
     implementation group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
     implementation group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.36'
-    implementation group: 'org.bouncycastle', name: 'bcprov-jdk18on', version: '1.84'
-    implementation group: 'org.bouncycastle', name: 'bcpkix-jdk18on', version: '1.84'
+    implementation group: 'org.bouncycastle', name: 'bcprov-jdk18on', version: '1.86'
+    implementation group: 'org.bouncycastle', name: 'bcpkix-jdk18on', version: '1.86'
 
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.18.0'
     implementation group: 'commons-cli', name: 'commons-cli', version: '1.5.0'

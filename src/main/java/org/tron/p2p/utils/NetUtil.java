@@ -88,9 +88,14 @@ public class NetUtil {
   }
 
   public static Node getNode(Discover.Endpoint endpoint) {
+    String hostV6 = ByteArray.toStr(endpoint.getAddressIpv6().toByteArray());
+    // Zone identifiers refer to the sender's local interfaces and cannot be reused remotely.
+    if (StringUtils.contains(hostV6, '%')) {
+      hostV6 = null;
+    }
     return new Node(endpoint.getNodeId().toByteArray(),
         ByteArray.toStr(endpoint.getAddress().toByteArray()),
-        ByteArray.toStr(endpoint.getAddressIpv6().toByteArray()), endpoint.getPort());
+        hostV6, endpoint.getPort());
   }
 
   public static byte[] getNodeId() {
