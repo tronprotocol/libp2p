@@ -3,6 +3,7 @@ package org.tron.p2p.dns.update;
 
 import static org.tron.p2p.utils.NetUtil.normalizeDomain;
 
+import java.math.BigInteger;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,6 +15,7 @@ import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.tron.p2p.dns.DnsNode;
+import org.tron.p2p.dns.tree.Algorithm;
 import org.tron.p2p.dns.tree.LinkEntry;
 import org.tron.p2p.dns.tree.NodesEntry;
 import org.tron.p2p.dns.tree.RootEntry;
@@ -51,6 +53,8 @@ public class AwsClient implements Publish {
   public static final int route53ChangeCountLimit = 1000;
   public static final int maxRetryLimit = 60;
   private int lastSeq = 0;
+  private String serverLinkRoot;
+  private BigInteger serverPublicKey;
   private Route53Client route53Client;
   private String zoneId;
   private Set<DnsNode> serverNodes;
@@ -149,8 +153,14 @@ public class AwsClient implements Publish {
     treeNodes = new HashSet<>(tree.getDnsNodes());
     set1.removeAll(treeNodes); // dns - tree
     int deleteNodeSize = set1.size();
+    RootEntry rootEntry = tree.getRootEntry();
+    boolean linksChanged = !rootEntry.getLRoot().equals(serverLinkRoot);
+    // Sequence changes alter signatures even when the signer stays the same.
+    boolean signerChanged = serverPublicKey == null
+        || !serverPublicKey.equals(Algorithm.recoverPublicKey(rootEntry.toString(),
+            rootEntry.getSignature()));
 
-    if (serverNodes.isEmpty()
+    if (serverNodes.isEmpty() || linksChanged || signerChanged
         || (addNodeSize + deleteNodeSize) / (double) serverNodes.size() >= changeThreshold) {
       String comment = String.format("Tree update of %s at seq %d", domain, tree.getSeq());
       log.info(comment);
@@ -181,7 +191,7 @@ public class AwsClient implements Publish {
     return true;
   }
 
-  // collects all TXT records below the given name. it also update lastSeq
+  // Collect TXT records and recover the published sequence, link root and signing public key.
   @Override
   public Map<String, RecordSet> collectRecords(String rootDomain) throws Exception {
     rootDomain = normalizeDomain(rootDomain);
@@ -247,9 +257,19 @@ public class AwsClient implements Publish {
       page += 1;
     }
 
+    this.serverLinkRoot = null;
+    this.serverPublicKey = null;
     if (rootContent != null) {
       RootEntry rootEntry = RootEntry.parseEntry(rootContent);
       this.lastSeq = rootEntry.getSeq();
+      this.serverLinkRoot = rootEntry.getLRoot();
+      try {
+        this.serverPublicKey = Algorithm.recoverPublicKey(rootEntry.toString(),
+            rootEntry.getSignature());
+      } catch (Exception e) {
+        log.warn("Cannot recover existing root signer for {}, treating signer as unknown: {}",
+            rootDomain, e.getMessage());
+      }
     }
     this.serverNodes = collectServerNodes;
     return existing;
