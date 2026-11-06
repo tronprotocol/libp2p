@@ -116,19 +116,20 @@ public class NodeHandler {
   }
 
   public void handlePong(PongMessage msg) {
+    boolean compatible;
     synchronized (this) {
       if (!waitForPong) {
         return;
       }
       waitForPong = false;
       cancelPongTimeout();
+      node.setNetworkId(msg.getNetworkId());
+      compatible = node.isConnectible(Parameter.p2pConfig.getNetworkId());
+      if (compatible) {
+        pingTrials.set(3);
+      }
     }
-    node.setNetworkId(msg.getNetworkId());
-    if (!node.isConnectible(Parameter.p2pConfig.getNetworkId())) {
-      changeState(State.DEAD);
-    } else {
-      changeState(State.ALIVE);
-    }
+    changeState(compatible ? State.ALIVE : State.DEAD);
   }
 
   public void handleNeighbours(NeighborsMessage msg, InetSocketAddress sender) {
