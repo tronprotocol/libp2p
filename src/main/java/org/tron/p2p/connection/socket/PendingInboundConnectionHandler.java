@@ -21,19 +21,13 @@ public final class PendingInboundConnectionHandler extends ChannelInboundHandler
 
   private static final Map<InetAddress, Integer> pendingByIp = new HashMap<>();
   private static int pendingConnections;
-  private static int pendingTrustedConnections;
-  // Also used by trusted connections when the reserve is full.
-  private static int pendingSharedConnections;
 
   private final InetAddress address;
-  // True if the connection occupies capacity from the trusted pool.
-  private final boolean trusted;
   private final AtomicBoolean released = new AtomicBoolean();
   private volatile ScheduledFuture<?> timeoutTask;
 
-  private PendingInboundConnectionHandler(InetAddress address, boolean trusted) {
+  private PendingInboundConnectionHandler(InetAddress address) {
     this.address = address;
-    this.trusted = trusted;
   }
 
   static DisconnectCode tryAdd(Channel socket) {
@@ -50,23 +44,18 @@ public final class PendingInboundConnectionHandler extends ChannelInboundHandler
     PendingInboundConnectionHandler handler;
     synchronized (PendingInboundConnectionHandler.class) {
       int count = pendingByIp.getOrDefault(address, 0);
-      boolean useTrustedSlot = trusted
-          && pendingTrustedConnections < Parameter.MAX_PENDING_TRUSTED_INBOUND_CONNECTIONS;
-      if (count >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS_WITH_SAME_IP || (!useTrustedSlot
-          && pendingSharedConnections >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS)) {
+      int limit = trusted ? Parameter.MAX_TOTAL_PENDING_INBOUND_CONNECTIONS
+          : Parameter.MAX_PENDING_INBOUND_CONNECTIONS;
+      if (count >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS_WITH_SAME_IP
+          || pendingConnections >= limit) {
         log.debug(
             "Reject pending inbound connection from {}, trusted: {}, pending: {}, same IP: {}",
             remoteAddress, trusted, pendingConnections, count);
         return count >= Parameter.MAX_PENDING_INBOUND_CONNECTIONS_WITH_SAME_IP
             ? DisconnectCode.MAX_CONNECTION_WITH_SAME_IP : DisconnectCode.TOO_MANY_PEERS;
       }
-      handler = new PendingInboundConnectionHandler(address, useTrustedSlot);
+      handler = new PendingInboundConnectionHandler(address);
       pendingConnections++;
-      if (useTrustedSlot) {
-        pendingTrustedConnections++;
-      } else {
-        pendingSharedConnections++;
-      }
       pendingByIp.put(address, count + 1);
     }
 
@@ -157,11 +146,6 @@ public final class PendingInboundConnectionHandler extends ChannelInboundHandler
     }
     synchronized (PendingInboundConnectionHandler.class) {
       pendingConnections--;
-      if (trusted) {
-        pendingTrustedConnections--;
-      } else {
-        pendingSharedConnections--;
-      }
       int remaining = pendingByIp.get(address) - 1;
       if (remaining == 0) {
         pendingByIp.remove(address);
