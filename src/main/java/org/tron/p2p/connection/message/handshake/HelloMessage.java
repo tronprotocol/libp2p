@@ -18,6 +18,7 @@ public class HelloMessage extends Message {
   public HelloMessage(byte[] data) throws Exception {
     super(MessageType.HANDSHAKE_HELLO, data);
     this.helloMessage = ProtoUtil.parseFrom(Connect.HelloMessage.parser(), data);
+    this.data = this.helloMessage.toByteArray();
   }
 
   public HelloMessage(DisconnectCode code, long time) {
@@ -62,7 +63,8 @@ public class HelloMessage extends Message {
   @Override
   public boolean valid() {
     ByteString ipv6 = helloMessage.getFrom().getAddressIpv6();
-    return (ipv6.isEmpty() || NetUtil.validIpV6(ipv6.toStringUtf8()))
+    return ipv6.size() <= NetUtil.MAX_IPV6_ADDRESS_LENGTH
+        && (ipv6.isEmpty() || NetUtil.validIpV6(ipv6.toStringUtf8()))
         && NetUtil.validNode(getFrom());
   }
 }

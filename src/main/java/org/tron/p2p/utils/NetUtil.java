@@ -34,7 +34,7 @@ import org.tron.p2p.protos.Discover;
 @Slf4j(topic = "net")
 public class NetUtil {
 
-  private static final int MAX_IPV6_ADDRESS_LENGTH = 45;
+  public static final int MAX_IPV6_ADDRESS_LENGTH = 45;
 
   public static final Pattern PATTERN_IPv4 =
       Pattern.compile("^(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|[1-9])\\"

@@ -48,9 +48,11 @@ public class HelloMessageTest {
     Arrays.fill(padding, (byte) 'a');
     ByteString scoped = ByteString.copyFromUtf8("fe80::1%")
         .concat(ByteString.copyFrom(padding));
+    ByteString scoped46 = ByteString.copyFromUtf8("fe80::1%")
+        .concat(ByteString.copyFrom(padding, 0, 38));
 
     for (ByteString ipv6 : new ByteString[]{ByteString.copyFromUtf8("not-an-ip"),
-        ByteString.copyFrom(padding), scoped}) {
+        ByteString.copyFrom(padding), scoped, scoped46}) {
       Connect.HelloMessage hello = Connect.HelloMessage.newBuilder()
           .setFrom(from.setAddressIpv6(ipv6)).build();
       byte[] wire = ArrayUtils.add(hello.toByteArray(), 0, MessageType.HANDSHAKE_HELLO.getType());
@@ -108,7 +110,8 @@ public class HelloMessageTest {
     Assert.assertTrue(parsedProto.getUnknownFields().asMap().isEmpty());
     Assert.assertEquals(11111, parsed.getNetworkId());
     Assert.assertEquals(18888, parsed.getFrom().getPort());
-    Assert.assertArrayEquals(hello.toByteArray(), parsed.getData());
-    Assert.assertArrayEquals(wire, parsed.getSendData());
+    Assert.assertArrayEquals(parsedProto.toByteArray(), parsed.getData());
+    Assert.assertArrayEquals(ArrayUtils.add(parsedProto.toByteArray(), 0,
+        MessageType.HANDSHAKE_HELLO.getType()), parsed.getSendData());
   }
 }

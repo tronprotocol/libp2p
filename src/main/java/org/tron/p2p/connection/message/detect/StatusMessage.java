@@ -1,5 +1,6 @@
 package org.tron.p2p.connection.message.detect;
 
+import com.google.protobuf.ByteString;
 import org.tron.p2p.base.Parameter;
 import org.tron.p2p.connection.ChannelManager;
 import org.tron.p2p.connection.message.Message;
@@ -16,6 +17,7 @@ public class StatusMessage extends Message {
   public StatusMessage(byte[] data) throws Exception {
     super(MessageType.STATUS, data);
     this.statusMessage = ProtoUtil.parseFrom(Connect.StatusMessage.parser(), data);
+    this.data = this.statusMessage.toByteArray();
   }
 
   public StatusMessage() {
@@ -57,6 +59,9 @@ public class StatusMessage extends Message {
 
   @Override
   public boolean valid() {
-    return NetUtil.validNode(getFrom());
+    ByteString ipv6 = statusMessage.getFrom().getAddressIpv6();
+    return ipv6.size() <= NetUtil.MAX_IPV6_ADDRESS_LENGTH
+        && (ipv6.isEmpty() || NetUtil.validIpV6(ipv6.toStringUtf8()))
+        && NetUtil.validNode(getFrom());
   }
 }
