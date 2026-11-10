@@ -34,6 +34,13 @@ import org.tron.p2p.protos.Discover;
 @Slf4j(topic = "net")
 public class NetUtil {
 
+  // Longest IPv4 text: "255.255.255.255"
+  public static final int MAX_IPV4_ADDRESS_LENGTH = 15;
+
+  // Longest unscoped IPv6 text: "ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255".
+  // Any scope suffix must also fit within this limit.
+  public static final int MAX_IPV6_ADDRESS_LENGTH = 45;
+
   public static final Pattern PATTERN_IPv4 =
       Pattern.compile("^(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|[1-9])\\"
           + ".(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)\\"
@@ -47,14 +54,14 @@ public class NetUtil {
   private static final String IPADDRESS_LOCALHOST = "127.0.0.1";
 
   public static boolean validIpV4(String ip) {
-    if (StringUtils.isEmpty(ip)) {
+    if (StringUtils.isEmpty(ip) || ip.length() > MAX_IPV4_ADDRESS_LENGTH) {
       return false;
     }
     return PATTERN_IPv4.matcher(ip).matches();
   }
 
   public static boolean validIpV6(String ip) {
-    if (StringUtils.isEmpty(ip)) {
+    if (StringUtils.isEmpty(ip) || ip.length() > MAX_IPV6_ADDRESS_LENGTH) {
       return false;
     }
     return PATTERN_IPv6.matcher(ip).matches();

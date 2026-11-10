@@ -10,6 +10,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -53,6 +54,17 @@ public class NetUtilTest {
     Assert.assertFalse(flag);
     flag = NetUtil.validIpV6("fe80::1%e t h0");
     Assert.assertFalse(flag);
+  }
+
+  @Test
+  public void testValidIpv6Length() {
+    String ipv6 = "ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255";
+    Assert.assertEquals(45, ipv6.length());
+    Assert.assertTrue(NetUtil.validIpV6(ipv6));
+
+    char[] scope = new char[38];
+    Arrays.fill(scope, 'a');
+    Assert.assertFalse(NetUtil.validIpV6("fe80::1%" + new String(scope)));
   }
 
   @Test
