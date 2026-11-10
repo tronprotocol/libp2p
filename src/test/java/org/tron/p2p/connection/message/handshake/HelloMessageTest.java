@@ -13,6 +13,7 @@ import org.tron.p2p.P2pConfig;
 import org.tron.p2p.connection.business.handshake.DisconnectCode;
 import org.tron.p2p.connection.message.Message;
 import org.tron.p2p.connection.message.MessageType;
+import org.tron.p2p.exception.P2pException;
 import org.tron.p2p.protos.Connect;
 import org.tron.p2p.protos.Discover;
 
@@ -80,6 +81,49 @@ public class HelloMessageTest {
         .setFrom(from.clearAddress().setAddressIpv6(ByteString.copyFromUtf8("2001:db8::1")))
         .build();
     Assert.assertTrue(new HelloMessage(hello.toByteArray()).valid());
+  }
+
+  @Test
+  public void testOversizedHelloIpv4IsRejected() throws Exception {
+    Discover.Endpoint.Builder from = Discover.Endpoint.newBuilder()
+        .setNodeId(ByteString.copyFrom(new byte[64]))
+        .setAddressIpv6(ByteString.copyFromUtf8("2001:db8::1"))
+        .setPort(18888);
+    byte[] padding = new byte[1024 * 1024];
+    Arrays.fill(padding, (byte) 'a');
+
+    for (int length : new int[]{16, padding.length}) {
+      Connect.HelloMessage hello = Connect.HelloMessage.newBuilder()
+          .setFrom(from.setAddress(ByteString.copyFrom(padding, 0, length))).build();
+      byte[] wire = ArrayUtils.add(hello.toByteArray(), 0, MessageType.HANDSHAKE_HELLO.getType());
+
+      P2pException error = Assert.assertThrows(P2pException.class, () -> Message.parse(wire));
+
+      Assert.assertEquals(P2pException.TypeEnum.BAD_MESSAGE, error.getType());
+    }
+  }
+
+  @Test
+  public void testHelloIpv4BoundaryAndIpv6Fallback() throws Exception {
+    Discover.Endpoint.Builder from = Discover.Endpoint.newBuilder()
+        .setNodeId(ByteString.copyFrom(new byte[64]))
+        .setAddress(ByteString.copyFromUtf8("255.255.255.255"))
+        .setPort(18888);
+    Connect.HelloMessage hello = Connect.HelloMessage.newBuilder().setFrom(from).build();
+    HelloMessage parsed = (HelloMessage) Message.parse(
+        ArrayUtils.add(hello.toByteArray(), 0, MessageType.HANDSHAKE_HELLO.getType()));
+    Assert.assertEquals("255.255.255.255", parsed.getFrom().getHostV4());
+
+    for (String ipv4 : new String[]{"", "not-an-ip", "999.999.999.999"}) {
+      hello = Connect.HelloMessage.newBuilder()
+          .setFrom(from.setAddress(ByteString.copyFromUtf8(ipv4))
+              .setAddressIpv6(ByteString.copyFromUtf8("2001:db8::1")))
+          .build();
+      parsed = (HelloMessage) Message.parse(
+          ArrayUtils.add(hello.toByteArray(), 0, MessageType.HANDSHAKE_HELLO.getType()));
+      Assert.assertNull(parsed.getFrom().getHostV4());
+      Assert.assertNotNull(parsed.getFrom().getHostV6());
+    }
   }
 
   @Test

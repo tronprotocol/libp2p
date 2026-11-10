@@ -59,8 +59,10 @@ public class StatusMessage extends Message {
 
   @Override
   public boolean valid() {
-    ByteString ipv6 = statusMessage.getFrom().getAddressIpv6();
-    return ipv6.size() <= NetUtil.MAX_IPV6_ADDRESS_LENGTH
+    Discover.Endpoint from = statusMessage.getFrom();
+    ByteString ipv6 = from.getAddressIpv6();
+    return from.getAddress().size() <= NetUtil.MAX_IPV4_ADDRESS_LENGTH
+        && ipv6.size() <= NetUtil.MAX_IPV6_ADDRESS_LENGTH
         && (ipv6.isEmpty() || NetUtil.validIpV6(ipv6.toStringUtf8()))
         && NetUtil.validNode(getFrom());
   }

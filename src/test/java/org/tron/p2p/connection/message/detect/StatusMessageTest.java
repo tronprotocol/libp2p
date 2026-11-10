@@ -72,6 +72,41 @@ public class StatusMessageTest {
     Assert.assertTrue(Message.parse(wire(ipv6Only)).valid());
   }
 
+  @Test
+  public void oversizedStatusIpv4IsRejected() throws Exception {
+    byte[] padding = new byte[1024 * 1024];
+    Arrays.fill(padding, (byte) 'a');
+    for (int length : new int[]{16, padding.length}) {
+      Connect.StatusMessage status = Connect.StatusMessage.newBuilder()
+          .setFrom(endpoint().setAddress(ByteString.copyFrom(padding, 0, length))
+              .setAddressIpv6(ByteString.copyFromUtf8("2001:db8::1")))
+          .build();
+
+      P2pException error = Assert.assertThrows(P2pException.class,
+          () -> Message.parse(wire(status)));
+
+      Assert.assertEquals(P2pException.TypeEnum.BAD_MESSAGE, error.getType());
+    }
+  }
+
+  @Test
+  public void statusIpv4BoundaryAndIpv6Fallback() throws Exception {
+    Connect.StatusMessage status = Connect.StatusMessage.newBuilder()
+        .setFrom(endpoint().setAddress(ByteString.copyFromUtf8("255.255.255.255"))).build();
+    StatusMessage parsed = (StatusMessage) Message.parse(wire(status));
+    Assert.assertEquals("255.255.255.255", parsed.getFrom().getHostV4());
+
+    for (String ipv4 : new String[]{"", "not-an-ip", "999.999.999.999"}) {
+      status = Connect.StatusMessage.newBuilder()
+          .setFrom(endpoint().setAddress(ByteString.copyFromUtf8(ipv4))
+              .setAddressIpv6(ByteString.copyFromUtf8("2001:db8::1")))
+          .build();
+      parsed = (StatusMessage) Message.parse(wire(status));
+      Assert.assertNull(parsed.getFrom().getHostV4());
+      Assert.assertNotNull(parsed.getFrom().getHostV6());
+    }
+  }
+
   private Discover.Endpoint.Builder endpoint() {
     return Discover.Endpoint.newBuilder().setNodeId(ByteString.copyFrom(new byte[64]))
         .setAddress(ByteString.copyFromUtf8("127.0.0.1")).setPort(18888);
