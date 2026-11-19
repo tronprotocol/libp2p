@@ -314,17 +314,46 @@ public class PendingInboundConnectionHandlerTest {
   public void pingTrafficCannotExtendHandshakeDeadline() throws Exception {
     EmbeddedChannel socket = inbound(REMOTE_IP);
     Channel channel = initializeProtocol(socket);
-    for (int i = 0; i < 3; i++) {
-      advance(socket, 3);
-      receive(socket, new PingMessage().getSendData());
-      Assert.assertEquals(MessageType.KEEP_ALIVE_PONG,
-          Message.parse(readOutbound(socket)).getType());
-      Assert.assertTrue(socket.isOpen());
-      Assert.assertFalse(channel.isFinishHandshake());
-    }
+    // Embedded time does not advance the monotonic clock used by the PING rate limit.
+    advance(socket, Parameter.HANDSHAKE_TIMEOUT_SECONDS - 1);
+    receive(socket, new PingMessage().getSendData());
+    Assert.assertEquals(MessageType.KEEP_ALIVE_PONG,
+        Message.parse(readOutbound(socket)).getType());
+    Assert.assertTrue(socket.isOpen());
+    Assert.assertFalse(channel.isFinishHandshake());
     advance(socket, 1);
     Assert.assertFalse(socket.isOpen());
     Assert.assertTrue(ChannelManager.getAllChannels().isEmpty());
+    Assert.assertEquals(0, connectCallbacks);
+  }
+
+  @Test
+  public void pingBurstClosesConnectionAndReleasesPendingReservation() throws Exception {
+    EmbeddedChannel socket = inbound(REMOTE_IP);
+    Channel channel = initializeProtocol(socket);
+    receive(socket, new PingMessage().getSendData());
+    Assert.assertEquals(MessageType.KEEP_ALIVE_PONG,
+        Message.parse(readOutbound(socket)).getType());
+
+    Message response = null;
+    // Allow Guava's saved idle permit, but stop immediately when the connection closes.
+    for (int i = 0; i < 2 && socket.isOpen(); i++) {
+      receive(socket, new PingMessage().getSendData());
+      response = Message.parse(readOutbound(socket));
+      if (socket.isOpen()) {
+        Assert.assertEquals(MessageType.KEEP_ALIVE_PONG, response.getType());
+      }
+    }
+
+    Assert.assertFalse(socket.isOpen());
+    Assert.assertTrue(channel.isDisconnect());
+    Assert.assertNotNull(response);
+    Assert.assertEquals(MessageType.DISCONNECT, response.getType());
+    Assert.assertEquals(Connect.DisconnectReason.BAD_PROTOCOL,
+        Connect.P2pDisconnectMessage.parseFrom(response.getData()).getReason());
+    Field count = PendingInboundConnectionHandler.class.getDeclaredField("pendingConnections");
+    count.setAccessible(true);
+    Assert.assertEquals(0, count.getInt(null));
     Assert.assertEquals(0, connectCallbacks);
   }
 
