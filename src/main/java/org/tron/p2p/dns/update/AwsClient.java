@@ -1,6 +1,7 @@
 package org.tron.p2p.dns.update;
 
 
+import static org.tron.p2p.dns.tree.Entry.rootPrefix;
 import static org.tron.p2p.utils.NetUtil.normalizeDomain;
 
 import java.math.BigInteger;
@@ -226,7 +227,12 @@ public class AwsClient implements Publish {
         String content = StringUtils.join(values, "");
         content = StringUtils.strip(content, symbol);
         if (rootDomain.equalsIgnoreCase(name)) {
-          rootContent = content;
+          for (String value : values) {
+            String txt = StringUtils.strip(value, symbol);
+            if (txt.startsWith(rootPrefix)) {
+              rootContent = txt;
+            }
+          }
         }
         if (content.startsWith(org.tron.p2p.dns.tree.Entry.nodesPrefix)) {
           NodesEntry nodesEntry;
@@ -346,10 +352,22 @@ public class AwsClient implements Publish {
       } else {
         RecordSet recordSet = existing.get(path);
         String preValue = StringUtils.join(recordSet.values, "");
+        List<String> newValues = new ArrayList<>();
+        if (path.equalsIgnoreCase(domain)) {
+          preValue = "";
+          for (String oldValue : recordSet.values) {
+            if (StringUtils.strip(oldValue, symbol).startsWith(rootPrefix)) {
+              preValue = oldValue;
+            } else {
+              newValues.add(oldValue);
+            }
+          }
+        }
+        newValues.add(newValue);
 
         if (!preValue.equalsIgnoreCase(newValue) || recordSet.ttl != ttl) {
           log.info("Updating {} from [{}] to [{}]", path, preValue, newValue);
-          if (path.equalsIgnoreCase(domain)) {
+          if (path.equalsIgnoreCase(domain) && !preValue.isEmpty()) {
             try {
               RootEntry oldRoot = RootEntry.parseEntry(StringUtils.strip(preValue, symbol));
               RootEntry newRoot = RootEntry.parseEntry(StringUtils.strip(newValue, symbol));
@@ -359,7 +377,8 @@ public class AwsClient implements Publish {
               //ignore
             }
           }
-          Change change = newTXTChange(ChangeAction.UPSERT, path, ttl, newValue);
+          Change change = newTXTChange(ChangeAction.UPSERT, path, ttl,
+              newValues.toArray(new String[0]));
           changes.add(change);
         }
       }
