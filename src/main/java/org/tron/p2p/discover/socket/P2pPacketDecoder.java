@@ -1,19 +1,40 @@
 package org.tron.p2p.discover.socket;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import java.util.List;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.handler.codec.MessageToMessageDecoder;
-import lombok.extern.slf4j.Slf4j;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
+import java.util.function.Predicate;
+import org.bouncycastle.util.encoders.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.tron.p2p.base.Constant;
 import org.tron.p2p.discover.message.Message;
 import org.tron.p2p.exception.P2pException;
-import org.tron.p2p.utils.ByteArray;
 
-@Slf4j(topic = "net")
 public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
+
+  private static final long LOG_INTERVAL_NANOS = TimeUnit.MINUTES.toNanos(1);
+  private static final int MAX_LOG_DATA_BYTES = 16;
+
+  private final Logger logger;
+  private final LongSupplier nanoTime;
+  // Each decoder belongs to one channel. Only that channel's event loop updates these counters.
+  private final EnumMap<DropReason, DropCounter> drops = new EnumMap<>(DropReason.class);
+
+  public P2pPacketDecoder() {
+    this(LoggerFactory.getLogger("net"), System::nanoTime);
+  }
+
+  P2pPacketDecoder(Logger logger, LongSupplier nanoTime) {
+    this.logger = logger;
+    this.nanoTime = nanoTime;
+  }
 
   @Override
   public void decode(ChannelHandlerContext ctx, DatagramPacket packet, List<Object> out)
@@ -21,7 +42,9 @@ public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
     ByteBuf buf = packet.content();
     int length = buf.readableBytes();
     if (length <= 1 || length >= Constant.MAX_DISCOVERY_PACKET_SIZE) {
-      log.warn("UDP rcv bad packet, from {} length = {}", packet.sender(), length);
+      if (shouldLog(DropReason.INVALID_LENGTH)) {
+        logger.warn("UDP rcv bad packet, from {} length = {}", packet.sender(), length);
+      }
       return;
     }
     byte[] encoded = new byte[length];
@@ -30,21 +53,80 @@ public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
       UdpEvent event = new UdpEvent(Message.parse(encoded), packet.sender());
       out.add(event);
     } catch (P2pException pe) {
-      if (pe.getType().equals(P2pException.TypeEnum.BAD_MESSAGE)) {
-        log.error("Message validation failed, type {}, len {}, address {}", encoded[0],
-            encoded.length, packet.sender());
-      } else {
-        log.info("Parse msg failed, type {}, len {}, address {}", encoded[0], encoded.length,
+      if (pe.getType() == P2pException.TypeEnum.BAD_MESSAGE) {
+        if (shouldLog(DropReason.INVALID_MESSAGE)) {
+          logger.error("Message validation failed, type {}, len {}, address {}", encoded[0],
+              length, packet.sender());
+        }
+      } else if (shouldLog(DropReason.PARSE_FAILURE)) {
+        logger.info("Parse msg failed, type {}, len {}, address {}", encoded[0], length,
             packet.sender());
       }
     } catch (InvalidProtocolBufferException e) {
-      log.warn("An exception occurred while parsing the message, type {}, len {}, address {}, "
-              + "data {}, cause: {}", encoded[0], encoded.length, packet.sender(),
-          ByteArray.toHexString(encoded), e.getMessage());
+      if (shouldLog(DropReason.INVALID_PROTOBUF)) {
+        logger.warn("An exception occurred while parsing the message, type {}, len {}, address {}, "
+                + "data {}, cause: {}", encoded[0], length, packet.sender(), dataPreview(encoded),
+            e.getClass().getSimpleName());
+      }
     } catch (Exception e) {
-      log.error("An exception occurred while parsing the message, type {}, len {}, address {}, "
-              + "data {}", encoded[0], encoded.length, packet.sender(),
-          ByteArray.toHexString(encoded), e);
+      if (shouldLog(DropReason.UNEXPECTED_ERROR)) {
+        logger.error("An exception occurred while parsing the message, type {}, len {}, address {}, "
+                + "data {}", encoded[0], length, packet.sender(), dataPreview(encoded));
+      }
     }
+  }
+
+  private static String dataPreview(byte[] encoded) {
+    int length = Integer.min(encoded.length, MAX_LOG_DATA_BYTES);
+    String hex = Hex.toHexString(encoded, 0, length);
+    return length < encoded.length ? hex + "..." : hex;
+  }
+
+  private boolean shouldLog(DropReason reason) {
+    if (!reason.enabled.test(logger)) {
+      return false;
+    }
+    DropCounter counter = drops.computeIfAbsent(reason, ignored -> new DropCounter());
+    long now = nanoTime.getAsLong();
+    counter.total++;
+    if (counter.lastReportedTotal != 0 && now - counter.lastLogTime < LOG_INTERVAL_NANOS) {
+      return false;
+    }
+    long suppressed = counter.total - counter.lastReportedTotal - 1;
+    counter.lastReportedTotal = counter.total;
+    counter.lastLogTime = now;
+    if (suppressed > 0) {
+      // Keep counts on a separate line so existing packet log parsers still match.
+      reason.summary.log(logger, "Suppressed UDP discovery logs: reason={}, suppressed={}, total={}",
+          reason, suppressed, counter.total);
+    }
+    return true;
+  }
+
+  private enum DropReason {
+    INVALID_LENGTH(Logger::isWarnEnabled, Logger::warn),
+    INVALID_MESSAGE(Logger::isErrorEnabled, Logger::error),
+    PARSE_FAILURE(Logger::isInfoEnabled, Logger::info),
+    INVALID_PROTOBUF(Logger::isWarnEnabled, Logger::warn),
+    UNEXPECTED_ERROR(Logger::isErrorEnabled, Logger::error);
+
+    private final Predicate<Logger> enabled;
+    private final SummaryLogger summary;
+
+    DropReason(Predicate<Logger> enabled, SummaryLogger summary) {
+      this.enabled = enabled;
+      this.summary = summary;
+    }
+  }
+
+  @FunctionalInterface
+  private interface SummaryLogger {
+    void log(Logger logger, String template, Object... arguments);
+  }
+
+  private static final class DropCounter {
+    private long total;
+    private long lastReportedTotal;
+    private long lastLogTime;
   }
 }
