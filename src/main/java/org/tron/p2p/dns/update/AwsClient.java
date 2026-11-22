@@ -118,6 +118,11 @@ public class AwsClient implements Publish {
 
   @Override
   public void testConnect() throws Exception {
+    if (StringUtils.isNotEmpty(zoneId)) {
+      route53Client.listResourceRecordSets(ListResourceRecordSetsRequest.builder()
+          .hostedZoneId(zoneId).maxItems("1").build());
+      return;
+    }
     ListHostedZonesByNameRequest.Builder request = ListHostedZonesByNameRequest.builder();
     while (true) {
       ListHostedZonesByNameResponse response = route53Client.listHostedZonesByName(request.build());

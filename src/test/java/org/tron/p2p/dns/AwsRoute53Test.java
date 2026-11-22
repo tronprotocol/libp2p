@@ -29,15 +29,73 @@ import software.amazon.awssdk.services.route53.model.HostedZone;
 import software.amazon.awssdk.services.route53.model.ListHostedZonesByNameResponse;
 import software.amazon.awssdk.services.route53.model.ListResourceRecordSetsRequest;
 import software.amazon.awssdk.services.route53.model.ListResourceRecordSetsResponse;
+import software.amazon.awssdk.services.route53.model.NoSuchHostedZoneException;
 import software.amazon.awssdk.services.route53.model.RRType;
 import software.amazon.awssdk.services.route53.model.ResourceRecord;
 import software.amazon.awssdk.services.route53.model.ResourceRecordSet;
+import software.amazon.awssdk.services.route53.model.Route53Exception;
 
 public class AwsRoute53Test {
 
   private static final String DOMAIN = "nodes.example.invalid";
   private static final String MIXED_DOMAIN = "Nodes.Example.INVALID.";
   private static final String ZONE_ID = "ZTEST";
+
+  @Test
+  public void testConnectChecksOnlyConfiguredZoneWithOneRecord() throws Exception {
+    RecordingAwsClient client = new RecordingAwsClient(ZONE_ID);
+    client.zoneFailure = Route53Exception.builder().statusCode(403).message("AccessDenied").build();
+    client.recordsTruncated = true;
+
+    client.testConnect();
+
+    Assert.assertEquals(0, client.zoneQueries);
+    Assert.assertEquals(1, client.recordQueries);
+    Assert.assertEquals(ZONE_ID, client.requestedZone);
+    Assert.assertEquals("1", client.requestedMaxItems);
+    Assert.assertTrue(client.changes.isEmpty());
+  }
+
+  @Test
+  public void testConnectPropagatesConfiguredZoneReadFailures() throws Exception {
+    for (RuntimeException failure : new RuntimeException[]{
+        Route53Exception.builder().statusCode(403).message("AccessDenied").build(),
+        Route53Exception.builder().statusCode(403).message("InvalidClientTokenId").build(),
+        NoSuchHostedZoneException.builder().message("NoSuchHostedZone").build()}) {
+      RecordingAwsClient client = new RecordingAwsClient(ZONE_ID);
+      client.recordFailure = failure;
+
+      Assert.assertSame(failure, Assert.assertThrows(RuntimeException.class, client::testConnect));
+      Assert.assertEquals(0, client.zoneQueries);
+      Assert.assertEquals(1, client.recordQueries);
+      Assert.assertEquals(ZONE_ID, client.requestedZone);
+      Assert.assertEquals("1", client.requestedMaxItems);
+    }
+  }
+
+  @Test
+  public void testConnectListsZonesWhenZoneIdIsMissing() throws Exception {
+    for (String zoneId : new String[]{null, ""}) {
+      RecordingAwsClient client = new RecordingAwsClient(zoneId);
+
+      client.testConnect();
+
+      Assert.assertEquals(1, client.zoneQueries);
+      Assert.assertEquals(0, client.recordQueries);
+      Assert.assertTrue(client.changes.isEmpty());
+    }
+  }
+
+  @Test
+  public void testConnectPropagatesListingFailureWhenZoneIdIsMissing() throws Exception {
+    RecordingAwsClient client = new RecordingAwsClient(null);
+    client.zoneFailure = Route53Exception.builder().statusCode(403).message("AccessDenied").build();
+
+    Assert.assertSame(client.zoneFailure,
+        Assert.assertThrows(Route53Exception.class, client::testConnect));
+    Assert.assertEquals(1, client.zoneQueries);
+    Assert.assertEquals(0, client.recordQueries);
+  }
 
   @Test
   public void testChangeSort() {
@@ -262,7 +320,12 @@ public class AwsRoute53Test {
     private List<ResourceRecordSet> records = Collections.emptyList();
     private List<Change> changes = new ArrayList<>();
     private int zoneQueries;
+    private int recordQueries;
     private String requestedZone;
+    private String requestedMaxItems;
+    private RuntimeException zoneFailure;
+    private RuntimeException recordFailure;
+    private boolean recordsTruncated;
 
     private RecordingAwsClient(String zoneId) throws Exception {
       super("test-key", "test-secret", zoneId, "us-east-1", 0.1);
@@ -273,14 +336,23 @@ public class AwsRoute53Test {
           new Class<?>[]{Route53Client.class}, (proxy, method, args) -> {
             if (method.getName().equals("listHostedZonesByName")) {
               zoneQueries++;
+              if (zoneFailure != null) {
+                throw zoneFailure;
+              }
               return ListHostedZonesByNameResponse.builder().isTruncated(false)
                   .hostedZones(HostedZone.builder().id("/hostedzone/" + ZONE_ID)
                       .name("EXAMPLE.INVALID.").build()).build();
             }
             if (method.getName().equals("listResourceRecordSets")) {
-              requestedZone = ((ListResourceRecordSetsRequest) args[0]).hostedZoneId();
+              recordQueries++;
+              ListResourceRecordSetsRequest request = (ListResourceRecordSetsRequest) args[0];
+              requestedZone = request.hostedZoneId();
+              requestedMaxItems = request.maxItems();
               Assert.assertEquals(ZONE_ID, requestedZone);
-              return ListResourceRecordSetsResponse.builder().isTruncated(false)
+              if (recordFailure != null) {
+                throw recordFailure;
+              }
+              return ListResourceRecordSetsResponse.builder().isTruncated(recordsTruncated)
                   .resourceRecordSets(records).build();
             }
             throw new AssertionError("Unexpected Route53 call: " + method.getName());
