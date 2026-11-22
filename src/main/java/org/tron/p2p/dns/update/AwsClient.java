@@ -424,15 +424,21 @@ public class AwsClient implements Publish {
   }
 
   private static int getChangeOrder(Change change) {
+    // Publish the root after its dependencies and before deleting old records.
+    if ((change.action() == ChangeAction.CREATE || change.action() == ChangeAction.UPSERT)
+        && change.resourceRecordSet().resourceRecords().stream()
+            .anyMatch(record -> StringUtils.strip(record.value(), symbol).startsWith(rootPrefix))) {
+      return 3;
+    }
     switch (change.action()) {
       case CREATE:
         return 1;
       case UPSERT:
         return 2;
       case DELETE:
-        return 3;
-      default:
         return 4;
+      default:
+        return 5;
     }
   }
 

@@ -25,6 +25,10 @@ import org.tron.p2p.exception.DnsException;
 import software.amazon.awssdk.services.route53.Route53Client;
 import software.amazon.awssdk.services.route53.model.Change;
 import software.amazon.awssdk.services.route53.model.ChangeAction;
+import software.amazon.awssdk.services.route53.model.ChangeInfo;
+import software.amazon.awssdk.services.route53.model.ChangeResourceRecordSetsRequest;
+import software.amazon.awssdk.services.route53.model.ChangeResourceRecordSetsResponse;
+import software.amazon.awssdk.services.route53.model.ChangeStatus;
 import software.amazon.awssdk.services.route53.model.HostedZone;
 import software.amazon.awssdk.services.route53.model.ListHostedZonesByNameResponse;
 import software.amazon.awssdk.services.route53.model.ListResourceRecordSetsRequest;
@@ -95,6 +99,52 @@ public class AwsRoute53Test {
         Assert.assertThrows(Route53Exception.class, client::testConnect));
     Assert.assertEquals(1, client.zoneQueries);
     Assert.assertEquals(0, client.recordQueries);
+  }
+
+  @Test
+  public void rootFollowsDependenciesAndPrecedesDeletesAcrossBatches() throws Exception {
+    List<DnsNode> nodes = new ArrayList<>();
+    for (int i = 1; i <= 1025; i++) {
+      nodes.add(new DnsNode(null, "10.0." + (i >> 8) + "." + (i & 255), null, 18888));
+    }
+    Tree tree = new Tree();
+    tree.makeTree(1, Tree.merge(nodes, 5), Collections.emptyList(), AlgorithmTest.privateKey);
+    Map<String, String> records = tree.toTXT(DOMAIN);
+
+    for (boolean rootExists : new boolean[]{false, true}) {
+      RecordingAwsClient client = new RecordingAwsClient(ZONE_ID);
+      Map<String, RecordSet> existing = new HashMap<>();
+      if (rootExists) {
+        Tree old = TreeTest.signedTree(new Tree(), "192.0.2.1");
+        existing.put(DOMAIN, new RecordSet(new String[]{"\"verification=abc\"",
+            "\"" + old.getRootEntry().toFormat() + "\""}, Publish.rootTTL));
+        String dependency = records.keySet().stream().filter(name -> name.compareTo(DOMAIN) > 0)
+            .findFirst().get();
+        existing.put(dependency, new RecordSet(new String[]{records.get(dependency)}, 0));
+        existing.put("stale." + DOMAIN, new RecordSet(new String[]{"old TXT"}, Publish.treeNodeTTL));
+      }
+      List<Change> changes = client.computeChanges(DOMAIN, records, existing);
+
+      boolean rootSeen = false;
+      for (Change change : changes) {
+        if (change.resourceRecordSet().name().equals(DOMAIN)) {
+          rootSeen = true;
+          Assert.assertEquals(rootExists ? ChangeAction.UPSERT : ChangeAction.CREATE, change.action());
+        } else if (change.action() == ChangeAction.DELETE) {
+          Assert.assertTrue("Old records must be deleted after the root changes", rootSeen);
+        } else {
+          Assert.assertFalse("Dependencies must be published before the root", rootSeen);
+        }
+      }
+      Assert.assertTrue(rootSeen);
+
+      client.failBatch = 2;
+      Assert.assertThrows(Route53Exception.class, () -> client.submitChanges(changes, "test"));
+      Assert.assertEquals(1, client.batches.size());
+      Assert.assertTrue(client.batches.get(0).stream().noneMatch(change ->
+          change.resourceRecordSet().name().equals(DOMAIN)
+              || change.action() == ChangeAction.DELETE));
+    }
   }
 
   @Test
@@ -326,6 +376,8 @@ public class AwsRoute53Test {
     private RuntimeException zoneFailure;
     private RuntimeException recordFailure;
     private boolean recordsTruncated;
+    private int failBatch;
+    private final List<List<Change>> batches = new ArrayList<>();
 
     private RecordingAwsClient(String zoneId) throws Exception {
       super("test-key", "test-secret", zoneId, "us-east-1", 0.1);
@@ -355,6 +407,15 @@ public class AwsRoute53Test {
               return ListResourceRecordSetsResponse.builder().isTruncated(recordsTruncated)
                   .resourceRecordSets(records).build();
             }
+            if (method.getName().equals("changeResourceRecordSets")) {
+              if (batches.size() + 1 == failBatch) {
+                throw Route53Exception.builder().statusCode(503).message("Injected batch failure").build();
+              }
+              batches.add(new ArrayList<>(((ChangeResourceRecordSetsRequest) args[0])
+                  .changeBatch().changes()));
+              return ChangeResourceRecordSetsResponse.builder().changeInfo(ChangeInfo.builder()
+                  .id("/change/CTEST").status(ChangeStatus.PENDING).build()).build();
+            }
             throw new AssertionError("Unexpected Route53 call: " + method.getName());
           }));
     }
@@ -362,6 +423,9 @@ public class AwsRoute53Test {
     @Override
     public void submitChanges(List<Change> changes, String comment) {
       this.changes = new ArrayList<>(changes);
+      if (failBatch > 0) {
+        super.submitChanges(changes, comment);
+      }
     }
   }
 }
