@@ -592,6 +592,7 @@ public class PendingInboundConnectionHandlerTest {
       Assert.assertTrue(socket.isOpen());
       Assert.assertNull(socket.pipeline().get(PendingInboundConnectionHandler.class));
       Assert.assertNotNull(socket.pipeline().get(MessageHandler.class));
+      Assert.assertEquals(1024, socket.config().getRecvByteBufAllocator().newHandle().guess());
     }
     Assert.assertFalse(inbound(REMOTE_IP).isOpen());
   }
