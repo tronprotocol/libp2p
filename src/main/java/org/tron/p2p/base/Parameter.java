@@ -32,6 +32,8 @@ public class Parameter {
   public static final int NODE_DETECT_TIMEOUT = 2000;
 
   // Absolute limit for all inbound connections waiting for HELLO, including trusted IPs.
+  // Assumes the effective soft RLIMIT_NOFILE leaves room for these sockets in addition to
+  // peak application FD usage and operating headroom; libp2p does not change the process limit.
   public static final int MAX_TOTAL_PENDING_INBOUND_CONNECTIONS = 1024;
 
   // Reserve eight pending HELLO slots for trusted IPs above the ordinary admission threshold.
