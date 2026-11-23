@@ -333,6 +333,9 @@ public class AwsClient implements Publish {
         try {
           Thread.sleep(changePollIntervalMillis);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException("Interrupted while waiting for Route53 change "
+              + response.changeInfo().id(), e);
         }
       }
     }

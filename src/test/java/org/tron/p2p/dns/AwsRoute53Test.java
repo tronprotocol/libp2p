@@ -192,6 +192,27 @@ public class AwsRoute53Test {
     }
   }
 
+  @Test
+  public void interruptedWaitPreservesInterruptAndStopsPolling() throws Exception {
+    RecordingAwsClient client = new RecordingAwsClient(ZONE_ID);
+    client.submitBatches = true;
+    client.pendingPolls = 1;
+    List<Change> changes = changesAcrossBatches(client, ChangeAction.CREATE);
+    try {
+      Thread.currentThread().interrupt();
+      IllegalStateException failure = Assert.assertThrows(IllegalStateException.class,
+          () -> client.submitChanges(changes, "test"));
+
+      Assert.assertTrue(failure.getCause() instanceof InterruptedException);
+      Assert.assertTrue(failure.getMessage().contains("/change/CTEST1"));
+      Assert.assertTrue(Thread.currentThread().isInterrupted());
+      Assert.assertEquals(Arrays.asList("submit /change/CTEST1", "submit /change/CTEST2",
+          "PENDING /change/CTEST1"), client.events);
+    } finally {
+      Thread.interrupted();
+    }
+  }
+
   private static List<Change> changesAcrossBatches(AwsClient client, ChangeAction rootAction)
       throws Exception {
     List<Change> changes = new ArrayList<>();
