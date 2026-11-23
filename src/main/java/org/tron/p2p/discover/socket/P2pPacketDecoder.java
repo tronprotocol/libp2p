@@ -1,18 +1,18 @@
 package org.tron.p2p.discover.socket;
 
+import com.google.common.util.concurrent.RateLimiter;
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.handler.codec.MessageToMessageDecoder;
+import java.net.InetSocketAddress;
 import java.util.EnumMap;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.function.LongSupplier;
-import java.util.function.Predicate;
+import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.util.encoders.Hex;
-import org.slf4j.Logger;
 import org.tron.p2p.base.Constant;
 import org.tron.p2p.discover.message.Message;
 import org.tron.p2p.exception.P2pException;
@@ -20,19 +20,21 @@ import org.tron.p2p.exception.P2pException;
 @Slf4j(topic = "net")
 public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
 
-  private static final long LOG_INTERVAL_NANOS = TimeUnit.MINUTES.toNanos(1);
+  private static final double SAMPLES_PER_SECOND = 1.0 / 60;
   private static final int MAX_LOG_DATA_BYTES = 16;
 
-  private final LongSupplier nanoTime;
   // Each decoder belongs to one channel. Only that channel's event loop updates these counters.
   private final EnumMap<DropReason, DropCounter> drops = new EnumMap<>(DropReason.class);
 
   public P2pPacketDecoder() {
-    this(System::nanoTime);
+    this(reason -> new DropCounter(RateLimiter.create(SAMPLES_PER_SECOND)::tryAcquire,
+        reason.level.enabled, reason.level.write));
   }
 
-  P2pPacketDecoder(LongSupplier nanoTime) {
-    this.nanoTime = nanoTime;
+  P2pPacketDecoder(Function<DropReason, DropCounter> newCounter) {
+    for (DropReason reason : DropReason.values()) {
+      drops.put(reason, newCounter.apply(reason));
+    }
   }
 
   @Override
@@ -41,9 +43,7 @@ public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
     ByteBuf buf = packet.content();
     int length = buf.readableBytes();
     if (length <= 1 || length >= Constant.MAX_DISCOVERY_PACKET_SIZE) {
-      if (shouldLog(DropReason.INVALID_LENGTH)) {
-        log.warn("UDP rcv bad packet, from {} length = {}", packet.sender(), length);
-      }
+      logDrop(DropReason.INVALID_LENGTH, packet, length, null, null);
       return;
     }
     byte[] encoded = new byte[length];
@@ -52,26 +52,13 @@ public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
       UdpEvent event = new UdpEvent(Message.parse(encoded), packet.sender());
       out.add(event);
     } catch (P2pException pe) {
-      if (pe.getType() == P2pException.TypeEnum.BAD_MESSAGE) {
-        if (shouldLog(DropReason.INVALID_MESSAGE)) {
-          log.error("Message validation failed, type {}, len {}, address {}", encoded[0],
-              length, packet.sender());
-        }
-      } else if (shouldLog(DropReason.PARSE_FAILURE)) {
-        log.info("Parse msg failed, type {}, len {}, address {}", encoded[0], length,
-            packet.sender());
-      }
+      DropReason reason = pe.getType() == P2pException.TypeEnum.BAD_MESSAGE
+          ? DropReason.INVALID_MESSAGE : DropReason.PARSE_FAILURE;
+      logDrop(reason, packet, length, encoded, pe);
     } catch (InvalidProtocolBufferException e) {
-      if (shouldLog(DropReason.INVALID_PROTOBUF)) {
-        log.warn("An exception occurred while parsing the message, type {}, len {}, address {}, "
-                + "data {}, cause: {}", encoded[0], length, packet.sender(), dataPreview(encoded),
-            e.getClass().getSimpleName());
-      }
+      logDrop(DropReason.INVALID_PROTOBUF, packet, length, encoded, e);
     } catch (Exception e) {
-      if (shouldLog(DropReason.UNEXPECTED_ERROR)) {
-        log.error("An exception occurred while parsing the message, type {}, len {}, address {}, "
-                + "data {}", encoded[0], length, packet.sender(), dataPreview(encoded));
-      }
+      logDrop(DropReason.UNEXPECTED_ERROR, packet, length, encoded, e);
     }
   }
 
@@ -81,51 +68,89 @@ public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
     return length < encoded.length ? hex + "..." : hex;
   }
 
-  private boolean shouldLog(DropReason reason) {
-    if (!reason.enabled.test(log)) {
-      return false;
+  private void logDrop(DropReason reason, DatagramPacket packet, int length, byte[] encoded,
+      Exception cause) {
+    DropCounter counter = drops.get(reason);
+    if (!counter.enabled.getAsBoolean()) {
+      return;
     }
-    DropCounter counter = drops.computeIfAbsent(reason, ignored -> new DropCounter());
-    long now = nanoTime.getAsLong();
-    counter.total++;
-    if (counter.lastReportedTotal != 0 && now - counter.lastLogTime < LOG_INTERVAL_NANOS) {
-      return false;
+    counter.totalWhileEnabled++;
+    if (!counter.tryAcquire.getAsBoolean()) {
+      counter.suppressed++;
+      return;
     }
-    long suppressed = counter.total - counter.lastReportedTotal - 1;
-    counter.lastReportedTotal = counter.total;
-    counter.lastLogTime = now;
-    if (suppressed > 0) {
-      // Keep counts on a separate line so existing packet log parsers still match.
-      reason.summary.log(log, "Suppressed UDP discovery logs: reason={}, suppressed={}, total={}",
-          reason, suppressed, counter.total);
-    }
-    return true;
+    counter.reportSuppressed(reason);
+    reason.sample.write(counter.write, packet.sender(), length, encoded, cause);
   }
 
-  private enum DropReason {
-    INVALID_LENGTH(Logger::isWarnEnabled, Logger::warn),
-    INVALID_MESSAGE(Logger::isErrorEnabled, Logger::error),
-    PARSE_FAILURE(Logger::isInfoEnabled, Logger::info),
-    INVALID_PROTOBUF(Logger::isWarnEnabled, Logger::warn),
-    UNEXPECTED_ERROR(Logger::isErrorEnabled, Logger::error);
+  enum LogLevel {
+    INFO(log::isInfoEnabled, log::info),
+    WARN(log::isWarnEnabled, log::warn),
+    ERROR(log::isErrorEnabled, log::error);
 
-    private final Predicate<Logger> enabled;
-    private final SummaryLogger summary;
+    private final BooleanSupplier enabled;
+    private final LogWriter write;
 
-    DropReason(Predicate<Logger> enabled, SummaryLogger summary) {
+    LogLevel(BooleanSupplier enabled, LogWriter write) {
       this.enabled = enabled;
-      this.summary = summary;
+      this.write = write;
+    }
+  }
+
+  enum DropReason {
+    INVALID_LENGTH(LogLevel.WARN, (out, sender, length, data, cause) ->
+        out.log("UDP rcv bad packet, from {} length = {}", sender, length)),
+    INVALID_MESSAGE(LogLevel.ERROR, (out, sender, length, data, cause) ->
+        out.log("Message validation failed, type {}, len {}, address {}", data[0], length, sender)),
+    PARSE_FAILURE(LogLevel.INFO, (out, sender, length, data, cause) ->
+        out.log("Parse msg failed, type {}, len {}, address {}", data[0], length, sender)),
+    INVALID_PROTOBUF(LogLevel.WARN, (out, sender, length, data, cause) ->
+        out.log("An exception occurred while parsing the message, type {}, len {}, address {}, "
+                + "data {}, cause: {}", data[0], length, sender, dataPreview(data),
+            cause.getClass().getSimpleName())),
+    UNEXPECTED_ERROR(LogLevel.ERROR, (out, sender, length, data, cause) ->
+        out.log("An exception occurred while parsing the message, type {}, len {}, address {}, "
+            + "data {}", data[0], length, sender, dataPreview(data)));
+
+    final LogLevel level;
+    private final SampleWriter sample;
+
+    DropReason(LogLevel level, SampleWriter sample) {
+      this.level = level;
+      this.sample = sample;
     }
   }
 
   @FunctionalInterface
-  private interface SummaryLogger {
-    void log(Logger logger, String template, Object... arguments);
+  interface LogWriter {
+    void log(String template, Object... arguments);
   }
 
-  private static final class DropCounter {
-    private long total;
-    private long lastReportedTotal;
-    private long lastLogTime;
+  @FunctionalInterface
+  private interface SampleWriter {
+    void write(LogWriter output, InetSocketAddress sender, int length, byte[] encoded,
+        Exception cause);
+  }
+
+  static final class DropCounter {
+    private final BooleanSupplier tryAcquire;
+    private final BooleanSupplier enabled;
+    private final LogWriter write;
+    private long totalWhileEnabled;
+    private long suppressed;
+
+    DropCounter(BooleanSupplier tryAcquire, BooleanSupplier enabled, LogWriter write) {
+      this.tryAcquire = tryAcquire;
+      this.enabled = enabled;
+      this.write = write;
+    }
+
+    private void reportSuppressed(DropReason reason) {
+      if (suppressed > 0) {
+        write.log("Suppressed UDP discovery logs: reason={}, suppressed={}, total={}",
+            reason, suppressed, totalWhileEnabled);
+        suppressed = 0;
+      }
+    }
   }
 }

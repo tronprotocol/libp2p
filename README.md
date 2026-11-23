@@ -27,6 +27,9 @@ $ ./gradlew clean --refresh-dependencies --write-verification-metadata sha256
 ```
 3. Rename or copy logback.xml.example in src/main/resources to logback.xml.
 
+The `net` logger samples UDP discovery rejections by reason. In each summary,
+`suppressed` counts samples skipped since the previous summary, and `total`
+counts rejected packets for that decoder and reason while its log level was enabled.
 
 # Build
 Building libp2p requires `git`, `JDK 17` or `Oracle JDK 1.8` to be installed, other JDK versions are not supported yet. Make sure you operate on `Linux` and `MacOS` operating systems.

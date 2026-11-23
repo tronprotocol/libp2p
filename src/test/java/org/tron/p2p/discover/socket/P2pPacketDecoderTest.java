@@ -3,7 +3,6 @@ package org.tron.p2p.discover.socket;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.google.protobuf.ByteString;
@@ -11,23 +10,18 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.channel.socket.DatagramPacket;
 import java.net.InetSocketAddress;
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.TimeUnit;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
-import org.slf4j.event.EventRecodingLogger;
-import org.slf4j.event.Level;
-import org.slf4j.event.SubstituteLoggingEvent;
-import org.slf4j.helpers.MessageFormatter;
-import org.slf4j.helpers.SubstituteLogger;
 import org.tron.p2p.discover.message.MessageType;
 import org.tron.p2p.discover.message.kad.PingMessage;
+import org.tron.p2p.discover.socket.P2pPacketDecoder.DropCounter;
+import org.tron.p2p.discover.socket.P2pPacketDecoder.DropReason;
+import org.tron.p2p.discover.socket.P2pPacketDecoder.LogLevel;
 import org.tron.p2p.protos.Discover;
 import org.tron.p2p.utils.ByteArray;
 
@@ -42,39 +36,35 @@ public class P2pPacketDecoderTest {
   private static final InetSocketAddress LOCAL = new InetSocketAddress("127.0.0.1", 18888);
   private static final InetSocketAddress PEER = new InetSocketAddress("127.0.0.1", 18889);
   private static final InetSocketAddress OTHER_PEER = new InetSocketAddress("127.0.0.2", 18888);
-  private final SubstituteLogger logger = (SubstituteLogger) LoggerFactory.getLogger("net");
-  private final Queue<SubstituteLoggingEvent> logs = new ConcurrentLinkedQueue<>();
-  private final EnumSet<Level> enabledLevels = EnumSet.of(Level.INFO, Level.WARN, Level.ERROR);
-  private long now;
-  private final P2pPacketDecoder decoder = new P2pPacketDecoder(() -> now);
+  private final Queue<LogEntry> logs = new ArrayDeque<>();
+  private final EnumSet<LogLevel> enabledLevels = EnumSet.allOf(LogLevel.class);
+  private final EnumSet<DropReason> usedPermits = EnumSet.noneOf(DropReason.class);
+  private final P2pPacketDecoder decoder = new P2pPacketDecoder(reason -> new DropCounter(
+      () -> usedPermits.add(reason), () -> enabledLevels.contains(reason.level),
+      (template, arguments) -> logs.add(new LogEntry(reason.level, template, arguments))));
   private final EmbeddedChannel channel = new EmbeddedChannel(decoder);
-
-  @Before
-  public void captureLogs() {
-    logger.setDelegate(new EventRecodingLogger(logger, logs) {
-      @Override
-      public boolean isInfoEnabled() {
-        return enabledLevels.contains(Level.INFO);
-      }
-
-      @Override
-      public boolean isWarnEnabled() {
-        return enabledLevels.contains(Level.WARN);
-      }
-
-      @Override
-      public boolean isErrorEnabled() {
-        return enabledLevels.contains(Level.ERROR);
-      }
-    });
-  }
 
   @After
   public void tearDown() {
+    channel.finishAndReleaseAll();
+  }
+
+  @Test
+  public void invalidLengthSampleUsesLengthAtDecodeEntry() throws Exception {
+    DatagramPacket input = packet(new byte[] {1, 2}, PEER);
     try {
-      channel.finishAndReleaseAll();
+      input.content().skipBytes(1);
+      P2pPacketDecoder readingDecoder = new P2pPacketDecoder(reason -> new DropCounter(() -> {
+        // Consume the last byte between the length check and the sample write.
+        input.content().skipBytes(1);
+        return true;
+      }, () -> true, (template, arguments) ->
+          logs.add(new LogEntry(reason.level, template, arguments))));
+      readingDecoder.decode(null, input, Collections.emptyList());
+      assertEquals(0, input.content().readableBytes());
+      assertLog(LogLevel.WARN, BAD_LENGTH, PEER, 1);
     } finally {
-      logger.setDelegate(null);
+      input.release();
     }
   }
 
@@ -83,45 +73,51 @@ public class P2pPacketDecoderTest {
     byte[] empty = new byte[0];
     byte[] unknown = {(byte) 0xff, 0};
     assertFalse(channel.writeInbound(packet(empty, PEER)));
-    assertLog(Level.WARN, BAD_LENGTH, PEER, 0);
+    assertLog(LogLevel.WARN, BAD_LENGTH, PEER, 0);
 
     assertFalse(channel.writeInbound(packet(empty, OTHER_PEER)));
     assertFalse(channel.writeInbound(packet(unknown, PEER)));
-    assertLog(Level.INFO, PARSE_FAILURE, -1, 2, PEER);
-    now = TimeUnit.MINUTES.toNanos(1) - 1;
+    assertLog(LogLevel.INFO, PARSE_FAILURE, -1, 2, PEER);
     assertFalse(channel.writeInbound(packet(unknown, OTHER_PEER)));
     assertFalse(channel.writeInbound(packet(empty, PEER)));
     assertTrue(logs.isEmpty());
 
-    now++;
+    usedPermits.clear();
     assertFalse(channel.writeInbound(packet(empty, OTHER_PEER)));
-    assertLog(Level.WARN, SUMMARY, "INVALID_LENGTH", 2, 4);
-    assertLog(Level.WARN, BAD_LENGTH, OTHER_PEER, 0);
+    assertLog(LogLevel.WARN, SUMMARY, "INVALID_LENGTH", 2, 4);
+    assertLog(LogLevel.WARN, BAD_LENGTH, OTHER_PEER, 0);
     assertFalse(channel.writeInbound(packet(unknown, PEER)));
-    assertLog(Level.INFO, SUMMARY, "PARSE_FAILURE", 1, 3);
-    assertLog(Level.INFO, PARSE_FAILURE, -1, 2, PEER);
-    now += TimeUnit.MINUTES.toNanos(1);
+    assertLog(LogLevel.INFO, SUMMARY, "PARSE_FAILURE", 1, 3);
+    assertLog(LogLevel.INFO, PARSE_FAILURE, -1, 2, PEER);
+    usedPermits.clear();
     assertFalse(channel.writeInbound(packet(empty, PEER)));
-    assertLog(Level.WARN, BAD_LENGTH, PEER, 0);
+    assertLog(LogLevel.WARN, BAD_LENGTH, PEER, 0);
+    assertTrue(logs.isEmpty());
+
+    assertFalse(channel.writeInbound(packet(empty, OTHER_PEER)));
+    usedPermits.clear();
+    assertFalse(channel.writeInbound(packet(empty, PEER)));
+    assertLog(LogLevel.WARN, SUMMARY, "INVALID_LENGTH", 1, 7);
+    assertLog(LogLevel.WARN, BAD_LENGTH, PEER, 0);
     assertTrue(logs.isEmpty());
   }
 
   @Test
-  public void disabledWarnLeavesPendingCountsAndWindowUntouched() throws Exception {
+  public void disabledWarnPreservesPendingCountsAndAvailablePermit() throws Exception {
     byte[] input = Arrays.copyOf(validPing(), 16);
     String data = ByteArray.toHexString(input);
     assertProtobufErrorPreview(input, data);
     assertFalse(channel.writeInbound(packet(input, PEER)));
-    now += TimeUnit.MINUTES.toNanos(1);
+    usedPermits.clear();
 
-    enabledLevels.remove(Level.WARN);
+    enabledLevels.remove(LogLevel.WARN);
     assertFalse(channel.writeInbound(packet(input, PEER)));
     assertTrue(logs.isEmpty());
 
-    enabledLevels.add(Level.WARN);
+    enabledLevels.add(LogLevel.WARN);
     assertFalse(channel.writeInbound(packet(input, PEER)));
-    assertLog(Level.WARN, SUMMARY, "INVALID_PROTOBUF", 1, 3);
-    assertLog(Level.WARN, EXCEPTION + ", cause: {}", 1, input.length, PEER, data,
+    assertLog(LogLevel.WARN, SUMMARY, "INVALID_PROTOBUF", 1, 3);
+    assertLog(LogLevel.WARN, EXCEPTION + ", cause: {}", 1, input.length, PEER, data,
         "InvalidProtocolBufferException");
     assertTrue(logs.isEmpty());
   }
@@ -136,15 +132,15 @@ public class P2pPacketDecoderTest {
     assertFalse(channel.writeInbound(packet(input, PEER)));
     assertTrue(logs.isEmpty());
 
-    enabledLevels.add(Level.ERROR);
+    enabledLevels.add(LogLevel.ERROR);
     assertFalse(channel.writeInbound(packet(unknown, PEER)));
     assertFalse(channel.writeInbound(packet(input, PEER)));
-    assertLog(Level.ERROR, template, 1, input.length, PEER);
+    assertLog(LogLevel.ERROR, template, 1, input.length, PEER);
     assertFalse(channel.writeInbound(packet(input, PEER)));
-    now += TimeUnit.MINUTES.toNanos(1);
+    usedPermits.clear();
     assertFalse(channel.writeInbound(packet(input, PEER)));
-    assertLog(Level.ERROR, SUMMARY, "INVALID_MESSAGE", 1, 3);
-    assertLog(Level.ERROR, template, 1, input.length, PEER);
+    assertLog(LogLevel.ERROR, SUMMARY, "INVALID_MESSAGE", 1, 3);
+    assertLog(LogLevel.ERROR, template, 1, input.length, PEER);
     assertTrue(logs.isEmpty());
   }
 
@@ -159,7 +155,7 @@ public class P2pPacketDecoderTest {
         ByteArray.toHexString(incomplete).substring(0, 32) + "...");
     assertFalse(channel.writeInbound(packet(incomplete, OTHER_PEER)));
     assertFalse(channel.writeInbound(packet(missingEndpoint, PEER)));
-    assertLog(Level.ERROR, "Message validation failed, type {}, len {}, address {}", 1,
+    assertLog(LogLevel.ERROR, "Message validation failed, type {}, len {}, address {}", 1,
         missingEndpoint.length, PEER);
     assertFalse(channel.writeInbound(packet(missingEndpoint, OTHER_PEER)));
 
@@ -176,9 +172,9 @@ public class P2pPacketDecoderTest {
     byte[] ping = validPing();
     String hex = ByteArray.toHexString(ping);
     assertProtobufErrorPreview(Arrays.copyOf(ping, 15), hex.substring(0, 30));
-    now += TimeUnit.MINUTES.toNanos(1);
+    usedPermits.clear();
     assertProtobufErrorPreview(Arrays.copyOf(ping, 16), hex.substring(0, 32));
-    now += TimeUnit.MINUTES.toNanos(1);
+    usedPermits.clear();
     assertProtobufErrorPreview(Arrays.copyOf(ping, 17), hex.substring(0, 32) + "...");
     assertTrue(logs.isEmpty());
   }
@@ -187,21 +183,21 @@ public class P2pPacketDecoderTest {
   public void unexpectedExceptionLogsBoundedData() throws Exception {
     byte[] ping = validPing();
     String data = ByteArray.toHexString(ping).substring(0, 32) + "...";
-    enabledLevels.remove(Level.INFO);
-    enabledLevels.remove(Level.WARN);
+    enabledLevels.remove(LogLevel.INFO);
+    enabledLevels.remove(LogLevel.WARN);
     DatagramPacket packet = packet(ping, PEER);
     try {
       // Reject the output event to exercise the unexpected exception path with a valid input.
       decoder.decode(null, packet, Collections.emptyList());
-      assertLog(Level.ERROR, EXCEPTION, 1, ping.length, PEER, data);
+      assertLog(LogLevel.ERROR, EXCEPTION, 1, ping.length, PEER, data);
       packet.content().resetReaderIndex();
       decoder.decode(null, packet, Collections.emptyList());
       assertTrue(logs.isEmpty());
-      now += TimeUnit.MINUTES.toNanos(1);
+      usedPermits.clear();
       packet.content().resetReaderIndex();
       decoder.decode(null, packet, Collections.emptyList());
-      assertLog(Level.ERROR, SUMMARY, "UNEXPECTED_ERROR", 1, 3);
-      assertLog(Level.ERROR, EXCEPTION, 1, ping.length, PEER, data);
+      assertLog(LogLevel.ERROR, SUMMARY, "UNEXPECTED_ERROR", 1, 3);
+      assertLog(LogLevel.ERROR, EXCEPTION, 1, ping.length, PEER, data);
       assertTrue(logs.isEmpty());
     } finally {
       packet.release();
@@ -210,20 +206,32 @@ public class P2pPacketDecoderTest {
 
   private void assertProtobufErrorPreview(byte[] input, String expectedData) {
     assertFalse(channel.writeInbound(packet(input, PEER)));
-    assertLog(Level.WARN, EXCEPTION + ", cause: {}", 1, input.length, PEER, expectedData,
+    assertLog(LogLevel.WARN, EXCEPTION + ", cause: {}", 1, input.length, PEER, expectedData,
         "InvalidProtocolBufferException");
   }
 
-  private void assertLog(Level level, String template, Object... arguments) {
+  private void assertLog(LogLevel level, String template, Object... arguments) {
     assertFalse("Expected a log event for " + template, logs.isEmpty());
-    SubstituteLoggingEvent event = logs.remove();
-    assertEquals("net", event.getLoggerName());
-    assertEquals(level, event.getLevel());
-    assertNull(event.getThrowable());
-    assertEquals(template, event.getMessage());
-    assertEquals(arguments.length, event.getArgumentArray().length);
-    assertEquals(MessageFormatter.arrayFormat(template, arguments).getMessage(),
-        MessageFormatter.arrayFormat(event.getMessage(), event.getArgumentArray()).getMessage());
+    LogEntry entry = logs.remove();
+    assertEquals(level, entry.level);
+    assertEquals(template, entry.template);
+    assertEquals(arguments.length, entry.arguments.length);
+    for (int i = 0; i < arguments.length; i++) {
+      assertEquals("argument " + i, String.valueOf(arguments[i]),
+          String.valueOf(entry.arguments[i]));
+    }
+  }
+
+  private static final class LogEntry {
+    final LogLevel level;
+    final String template;
+    final Object[] arguments;
+
+    LogEntry(LogLevel level, String template, Object[] arguments) {
+      this.level = level;
+      this.template = template;
+      this.arguments = arguments;
+    }
   }
 
   private static byte[] validPing() throws Exception {
