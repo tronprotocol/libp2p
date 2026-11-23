@@ -59,6 +59,7 @@ public class AwsClient implements Publish {
   private Route53Client route53Client;
   private String zoneId;
   private Set<DnsNode> serverNodes;
+  private long changePollIntervalMillis = 15 * 1000;
   private static final String symbol = "\"";
   private static final String postfix = ".";
   private double changeThreshold;
@@ -322,11 +323,15 @@ public class AwsClient implements Publish {
       while (true) {
         GetChangeResponse changeResponse = route53Client.getChange(request.build());
         count += 1;
-        if (changeResponse.changeInfo().status() == ChangeStatus.INSYNC || count >= maxRetryLimit) {
+        if (changeResponse.changeInfo().status() == ChangeStatus.INSYNC) {
           break;
         }
+        if (count >= maxRetryLimit) {
+          throw new IllegalStateException("Timed out waiting for Route53 change "
+              + response.changeInfo().id() + " to reach INSYNC");
+        }
         try {
-          Thread.sleep(15 * 1000);
+          Thread.sleep(changePollIntervalMillis);
         } catch (InterruptedException e) {
         }
       }

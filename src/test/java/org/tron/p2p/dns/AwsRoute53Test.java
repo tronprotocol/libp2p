@@ -29,6 +29,8 @@ import software.amazon.awssdk.services.route53.model.ChangeInfo;
 import software.amazon.awssdk.services.route53.model.ChangeResourceRecordSetsRequest;
 import software.amazon.awssdk.services.route53.model.ChangeResourceRecordSetsResponse;
 import software.amazon.awssdk.services.route53.model.ChangeStatus;
+import software.amazon.awssdk.services.route53.model.GetChangeRequest;
+import software.amazon.awssdk.services.route53.model.GetChangeResponse;
 import software.amazon.awssdk.services.route53.model.HostedZone;
 import software.amazon.awssdk.services.route53.model.ListHostedZonesByNameResponse;
 import software.amazon.awssdk.services.route53.model.ListResourceRecordSetsRequest;
@@ -139,12 +141,71 @@ public class AwsRoute53Test {
       Assert.assertTrue(rootSeen);
 
       client.failBatch = 2;
+      client.submitBatches = true;
       Assert.assertThrows(Route53Exception.class, () -> client.submitChanges(changes, "test"));
       Assert.assertEquals(1, client.batches.size());
       Assert.assertTrue(client.batches.get(0).stream().noneMatch(change ->
           change.resourceRecordSet().name().equals(DOMAIN)
               || change.action() == ChangeAction.DELETE));
     }
+  }
+
+  @Test
+  public void batchesAreSubmittedBeforeWaitingForInsync() throws Exception {
+    for (ChangeAction rootAction : new ChangeAction[]{ChangeAction.CREATE, ChangeAction.UPSERT}) {
+      RecordingAwsClient client = new RecordingAwsClient(ZONE_ID);
+      client.submitBatches = true;
+      client.pendingPolls = 1;
+
+      client.submitChanges(changesAcrossBatches(client, rootAction), "test");
+
+      Assert.assertEquals(Arrays.asList("submit /change/CTEST1", "submit /change/CTEST2",
+          "PENDING /change/CTEST1", "INSYNC /change/CTEST1", "INSYNC /change/CTEST2"),
+          client.events);
+      Assert.assertEquals(2, client.batches.size());
+      Assert.assertTrue(client.batches.get(0).stream().noneMatch(change ->
+          change.resourceRecordSet().name().equals(DOMAIN)
+              || change.action() == ChangeAction.DELETE));
+      Assert.assertTrue(client.batches.get(1).stream().anyMatch(change ->
+          change.resourceRecordSet().name().equals(DOMAIN) && change.action() == rootAction));
+      Assert.assertTrue(client.batches.get(1).stream().anyMatch(change ->
+          change.action() == ChangeAction.DELETE));
+    }
+  }
+
+  @Test
+  public void pendingAtRetryLimitFailsPublication() throws Exception {
+    for (int pendingBatch : new int[]{1, 2}) {
+      RecordingAwsClient client = new RecordingAwsClient(ZONE_ID);
+      client.submitBatches = true;
+      client.pendingBatch = pendingBatch;
+      client.pendingPolls = AwsClient.maxRetryLimit;
+
+      IllegalStateException failure = Assert.assertThrows(IllegalStateException.class,
+          () -> client.submitChanges(changesAcrossBatches(client, ChangeAction.CREATE), "test"));
+
+      Assert.assertTrue(failure.getMessage().contains("Timed out"));
+      Assert.assertTrue(failure.getMessage().contains("/change/CTEST" + pendingBatch));
+      Assert.assertEquals(2, client.batches.size());
+      Assert.assertEquals(AwsClient.maxRetryLimit, client.events.stream()
+          .filter(event -> event.equals("PENDING /change/CTEST" + pendingBatch)).count());
+    }
+  }
+
+  private static List<Change> changesAcrossBatches(AwsClient client, ChangeAction rootAction)
+      throws Exception {
+    List<Change> changes = new ArrayList<>();
+    for (int i = 0; i < AwsClient.route53ChangeCountLimit; i++) {
+      changes.add(client.newTXTChange(ChangeAction.CREATE, "dep" + i + "." + DOMAIN,
+          Publish.treeNodeTTL, "\"tree-branch:\""));
+    }
+    Tree tree = TreeTest.signedTree(new Tree(), "192.0.2.1");
+    changes.add(client.newTXTChange(rootAction, DOMAIN, Publish.rootTTL,
+        "\"" + tree.getRootEntry().toFormat() + "\""));
+    changes.add(client.newTXTChange(ChangeAction.DELETE, "stale." + DOMAIN,
+        Publish.treeNodeTTL, "\"old TXT\""));
+    AwsClient.sortChanges(changes);
+    return changes;
   }
 
   @Test
@@ -377,10 +438,17 @@ public class AwsRoute53Test {
     private RuntimeException recordFailure;
     private boolean recordsTruncated;
     private int failBatch;
+    private boolean submitBatches;
+    private int pendingBatch = 1;
+    private int pendingPolls;
+    private final List<String> events = new ArrayList<>();
     private final List<List<Change>> batches = new ArrayList<>();
 
     private RecordingAwsClient(String zoneId) throws Exception {
       super("test-key", "test-secret", zoneId, "us-east-1", 0.1);
+      Field interval = AwsClient.class.getDeclaredField("changePollIntervalMillis");
+      interval.setAccessible(true);
+      interval.setLong(this, 0);
       Field field = AwsClient.class.getDeclaredField("route53Client");
       field.setAccessible(true);
       ((Route53Client) field.get(this)).close();
@@ -413,8 +481,18 @@ public class AwsRoute53Test {
               }
               batches.add(new ArrayList<>(((ChangeResourceRecordSetsRequest) args[0])
                   .changeBatch().changes()));
+              String id = "/change/CTEST" + batches.size();
+              events.add("submit " + id);
               return ChangeResourceRecordSetsResponse.builder().changeInfo(ChangeInfo.builder()
-                  .id("/change/CTEST").status(ChangeStatus.PENDING).build()).build();
+                  .id(id).status(ChangeStatus.PENDING).build()).build();
+            }
+            if (method.getName().equals("getChange")) {
+              String id = ((GetChangeRequest) args[0]).id();
+              ChangeStatus status = id.equals("/change/CTEST" + pendingBatch) && pendingPolls-- > 0
+                  ? ChangeStatus.PENDING : ChangeStatus.INSYNC;
+              events.add(status + " " + id);
+              return GetChangeResponse.builder().changeInfo(ChangeInfo.builder()
+                  .id(id).status(status).build()).build();
             }
             throw new AssertionError("Unexpected Route53 call: " + method.getName());
           }));
@@ -423,7 +501,7 @@ public class AwsRoute53Test {
     @Override
     public void submitChanges(List<Change> changes, String comment) {
       this.changes = new ArrayList<>(changes);
-      if (failBatch > 0) {
+      if (submitBatches) {
         super.submitChanges(changes, comment);
       }
     }
