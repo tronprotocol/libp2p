@@ -6,9 +6,11 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.handler.codec.MessageToMessageDecoder;
+import io.netty.util.concurrent.ScheduledFuture;
 import java.net.InetSocketAddress;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
@@ -20,14 +22,15 @@ import org.tron.p2p.exception.P2pException;
 @Slf4j(topic = "net")
 public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
 
-  private static final double SAMPLES_PER_SECOND = 1.0 / 60;
+  private static final int REPORT_INTERVAL_SECONDS = 60;
   private static final int MAX_LOG_DATA_BYTES = 16;
 
-  // Each decoder belongs to one channel. Only that channel's event loop updates these counters.
+  // Only the channel's event loop updates the counters and reports summaries.
   private final EnumMap<DropReason, DropCounter> drops = new EnumMap<>(DropReason.class);
+  private ScheduledFuture<?> summaryTask;
 
   public P2pPacketDecoder() {
-    this(reason -> new DropCounter(RateLimiter.create(SAMPLES_PER_SECOND)::tryAcquire,
+    this(reason -> new DropCounter(RateLimiter.create(1.0 / REPORT_INTERVAL_SECONDS)::tryAcquire,
         reason.level.enabled, reason.level.write));
   }
 
@@ -35,6 +38,25 @@ public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
     for (DropReason reason : DropReason.values()) {
       drops.put(reason, newCounter.apply(reason));
     }
+  }
+
+  @Override
+  public void handlerAdded(ChannelHandlerContext ctx) {
+    summaryTask = ctx.executor().scheduleWithFixedDelay(this::flushSummaries,
+        REPORT_INTERVAL_SECONDS, REPORT_INTERVAL_SECONDS, TimeUnit.SECONDS);
+  }
+
+  @Override
+  public void handlerRemoved(ChannelHandlerContext ctx) {
+    if (summaryTask != null) {
+      summaryTask.cancel(false);
+      summaryTask = null;
+    }
+    flushSummaries();
+  }
+
+  private void flushSummaries() {
+    drops.forEach((reason, counter) -> counter.reportSuppressed(reason));
   }
 
   @Override
@@ -146,7 +168,7 @@ public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
     }
 
     private void reportSuppressed(DropReason reason) {
-      if (suppressed > 0) {
+      if (suppressed > 0 && enabled.getAsBoolean()) {
         write.log("Suppressed UDP discovery logs: reason={}, suppressed={}, total={}",
             reason, suppressed, totalWhileEnabled);
         suppressed = 0;

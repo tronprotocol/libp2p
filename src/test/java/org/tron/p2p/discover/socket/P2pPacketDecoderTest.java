@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Queue;
+import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Test;
 import org.tron.p2p.discover.message.MessageType;
@@ -123,6 +124,57 @@ public class P2pPacketDecoderTest {
   }
 
   @Test
+  public void reportsIdleBurstOnceWithoutConsumingASamplePermit() {
+    channel.freezeTime();
+    byte[] empty = new byte[0];
+    assertFalse(channel.writeInbound(packet(empty, PEER)));
+    assertLog(LogLevel.WARN, BAD_LENGTH, PEER, 0);
+    assertFalse(channel.writeInbound(packet(empty, PEER)));
+    assertFalse(channel.writeInbound(packet(empty, OTHER_PEER)));
+    usedPermits.clear();
+
+    advanceReportingInterval();
+    assertLog(LogLevel.WARN, SUMMARY, "INVALID_LENGTH", 2, 3);
+    advanceReportingInterval();
+    assertTrue(logs.isEmpty());
+    assertFalse(channel.writeInbound(packet(empty, PEER)));
+    assertLog(LogLevel.WARN, BAD_LENGTH, PEER, 0);
+    assertTrue(logs.isEmpty());
+  }
+
+  @Test
+  public void reportsPendingCountsWhenLevelIsReenabledDuringIdle() {
+    channel.freezeTime();
+    byte[] unknown = {(byte) 0xff, 0};
+    assertFalse(channel.writeInbound(packet(unknown, PEER)));
+    assertLog(LogLevel.INFO, PARSE_FAILURE, -1, 2, PEER);
+    assertFalse(channel.writeInbound(packet(unknown, PEER)));
+    enabledLevels.remove(LogLevel.INFO);
+    assertFalse(channel.writeInbound(packet(unknown, PEER)));
+    advanceReportingInterval();
+    assertTrue(logs.isEmpty());
+
+    enabledLevels.add(LogLevel.INFO);
+    advanceReportingInterval();
+    assertLog(LogLevel.INFO, SUMMARY, "PARSE_FAILURE", 1, 2);
+    assertTrue(logs.isEmpty());
+  }
+
+  @Test
+  public void removingDecoderFlushesPendingSummaryAndCancelsTimer() {
+    channel.freezeTime();
+    byte[] empty = new byte[0];
+    assertFalse(channel.writeInbound(packet(empty, PEER)));
+    assertLog(LogLevel.WARN, BAD_LENGTH, PEER, 0);
+    assertFalse(channel.writeInbound(packet(empty, PEER)));
+
+    channel.pipeline().remove(decoder);
+    assertLog(LogLevel.WARN, SUMMARY, "INVALID_LENGTH", 1, 2);
+    assertEquals(-1L, channel.runScheduledPendingTasks());
+    assertTrue(logs.isEmpty());
+  }
+
+  @Test
   public void errorOnlyLoggingReportsValidationSamplesAndCountsAtError() throws Exception {
     byte[] input = new PingMessage(Discover.PingMessage.newBuilder()
         .setTimestamp(1).build().toByteArray()).getSendData();
@@ -202,6 +254,11 @@ public class P2pPacketDecoderTest {
     } finally {
       packet.release();
     }
+  }
+
+  private void advanceReportingInterval() {
+    channel.advanceTimeBy(1, TimeUnit.MINUTES);
+    channel.runScheduledPendingTasks();
   }
 
   private void assertProtobufErrorPreview(byte[] input, String expectedData) {

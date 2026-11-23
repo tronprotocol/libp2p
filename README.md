@@ -30,6 +30,8 @@ $ ./gradlew clean --refresh-dependencies --write-verification-metadata sha256
 The `net` logger samples UDP discovery rejections by reason. In each summary,
 `suppressed` counts samples skipped since the previous summary, and `total`
 counts rejected packets for that decoder and reason while its log level was enabled.
+Pending counts are reported before the next sample, on a one-minute timer, or
+when the decoder is removed, provided the log level is enabled.
 
 # Build
 Building libp2p requires `git`, `JDK 17` or `Oracle JDK 1.8` to be installed, other JDK versions are not supported yet. Make sure you operate on `Linux` and `MacOS` operating systems.
