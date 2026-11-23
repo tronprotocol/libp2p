@@ -54,7 +54,6 @@ public class P2pChannelInitializer extends ChannelInitializer<NioSocketChannel> 
       // Keep incomplete pre-HELLO frames from retaining a normal 256 KiB receive buffer.
       ch.config().setRecvByteBufAllocator(new P2pRecvByteBufAllocator(channel));
       ch.config().setOption(ChannelOption.SO_RCVBUF, 256 * 1024);
-      ch.config().setOption(ChannelOption.SO_BACKLOG, 1024);
 
       // Route STATUS-probe and regular peer cleanup separately.
       ch.closeFuture().addListener((ChannelFutureListener) future -> {
