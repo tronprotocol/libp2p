@@ -78,10 +78,14 @@ public class LookUpTxt {
     return lookUpTxt(hash + "." + domain);
   }
 
-  // only get first Record.
-  // as dns server has dns cache, we may get the name's latest TXTRecord ttl later after it changes
   public static TXTRecord lookUpTxt(String name) throws TextParseException, UnknownHostException {
-    TXTRecord txt = null;
+    Record[] records = lookUpTxtRecords(name);
+    return records == null || records.length == 0 ? null : (TXTRecord) records[records.length - 1];
+  }
+
+  // DNS caches may retain the previous TXT records until their TTL expires.
+  public static Record[] lookUpTxtRecords(String name)
+      throws TextParseException, UnknownHostException {
     log.info("LookUp name: {}", name);
     Lookup lookup = createLookup(name, Type.TXT);
     int times = 0;
@@ -113,10 +117,7 @@ public class LookUpTxt {
       log.error("Failed to lookUp name:{}", name);
       return null;
     }
-    for (Record item : records) {
-      txt = (TXTRecord) item;
-    }
-    return txt;
+    return records;
   }
 
   /**
