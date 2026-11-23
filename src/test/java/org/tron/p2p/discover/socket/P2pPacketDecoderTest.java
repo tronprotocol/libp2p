@@ -11,14 +11,17 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.channel.socket.DatagramPacket;
 import java.net.InetSocketAddress;
-import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
+import org.slf4j.event.EventRecodingLogger;
 import org.slf4j.event.Level;
 import org.slf4j.event.SubstituteLoggingEvent;
 import org.slf4j.helpers.MessageFormatter;
@@ -39,31 +42,40 @@ public class P2pPacketDecoderTest {
   private static final InetSocketAddress LOCAL = new InetSocketAddress("127.0.0.1", 18888);
   private static final InetSocketAddress PEER = new InetSocketAddress("127.0.0.1", 18889);
   private static final InetSocketAddress OTHER_PEER = new InetSocketAddress("127.0.0.2", 18888);
-  private final Queue<SubstituteLoggingEvent> logs = new ArrayDeque<>();
+  private final SubstituteLogger logger = (SubstituteLogger) LoggerFactory.getLogger("net");
+  private final Queue<SubstituteLoggingEvent> logs = new ConcurrentLinkedQueue<>();
   private final EnumSet<Level> enabledLevels = EnumSet.of(Level.INFO, Level.WARN, Level.ERROR);
-  private final SubstituteLogger logger = new SubstituteLogger("net", logs, false) {
-    @Override
-    public boolean isInfoEnabled() {
-      return enabledLevels.contains(Level.INFO);
-    }
-
-    @Override
-    public boolean isWarnEnabled() {
-      return enabledLevels.contains(Level.WARN);
-    }
-
-    @Override
-    public boolean isErrorEnabled() {
-      return enabledLevels.contains(Level.ERROR);
-    }
-  };
   private long now;
-  private final P2pPacketDecoder decoder = new P2pPacketDecoder(logger, () -> now);
+  private final P2pPacketDecoder decoder = new P2pPacketDecoder(() -> now);
   private final EmbeddedChannel channel = new EmbeddedChannel(decoder);
 
+  @Before
+  public void captureLogs() {
+    logger.setDelegate(new EventRecodingLogger(logger, logs) {
+      @Override
+      public boolean isInfoEnabled() {
+        return enabledLevels.contains(Level.INFO);
+      }
+
+      @Override
+      public boolean isWarnEnabled() {
+        return enabledLevels.contains(Level.WARN);
+      }
+
+      @Override
+      public boolean isErrorEnabled() {
+        return enabledLevels.contains(Level.ERROR);
+      }
+    });
+  }
+
   @After
-  public void closeChannel() {
-    channel.finishAndReleaseAll();
+  public void tearDown() {
+    try {
+      channel.finishAndReleaseAll();
+    } finally {
+      logger.setDelegate(null);
+    }
   }
 
   @Test
@@ -203,6 +215,7 @@ public class P2pPacketDecoderTest {
   }
 
   private void assertLog(Level level, String template, Object... arguments) {
+    assertFalse("Expected a log event for " + template, logs.isEmpty());
     SubstituteLoggingEvent event = logs.remove();
     assertEquals("net", event.getLoggerName());
     assertEquals(level, event.getLevel());

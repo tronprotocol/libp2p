@@ -10,29 +10,28 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
+import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.tron.p2p.base.Constant;
 import org.tron.p2p.discover.message.Message;
 import org.tron.p2p.exception.P2pException;
 
+@Slf4j(topic = "net")
 public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
 
   private static final long LOG_INTERVAL_NANOS = TimeUnit.MINUTES.toNanos(1);
   private static final int MAX_LOG_DATA_BYTES = 16;
 
-  private final Logger logger;
   private final LongSupplier nanoTime;
   // Each decoder belongs to one channel. Only that channel's event loop updates these counters.
   private final EnumMap<DropReason, DropCounter> drops = new EnumMap<>(DropReason.class);
 
   public P2pPacketDecoder() {
-    this(LoggerFactory.getLogger("net"), System::nanoTime);
+    this(System::nanoTime);
   }
 
-  P2pPacketDecoder(Logger logger, LongSupplier nanoTime) {
-    this.logger = logger;
+  P2pPacketDecoder(LongSupplier nanoTime) {
     this.nanoTime = nanoTime;
   }
 
@@ -43,7 +42,7 @@ public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
     int length = buf.readableBytes();
     if (length <= 1 || length >= Constant.MAX_DISCOVERY_PACKET_SIZE) {
       if (shouldLog(DropReason.INVALID_LENGTH)) {
-        logger.warn("UDP rcv bad packet, from {} length = {}", packet.sender(), length);
+        log.warn("UDP rcv bad packet, from {} length = {}", packet.sender(), length);
       }
       return;
     }
@@ -55,22 +54,22 @@ public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
     } catch (P2pException pe) {
       if (pe.getType() == P2pException.TypeEnum.BAD_MESSAGE) {
         if (shouldLog(DropReason.INVALID_MESSAGE)) {
-          logger.error("Message validation failed, type {}, len {}, address {}", encoded[0],
+          log.error("Message validation failed, type {}, len {}, address {}", encoded[0],
               length, packet.sender());
         }
       } else if (shouldLog(DropReason.PARSE_FAILURE)) {
-        logger.info("Parse msg failed, type {}, len {}, address {}", encoded[0], length,
+        log.info("Parse msg failed, type {}, len {}, address {}", encoded[0], length,
             packet.sender());
       }
     } catch (InvalidProtocolBufferException e) {
       if (shouldLog(DropReason.INVALID_PROTOBUF)) {
-        logger.warn("An exception occurred while parsing the message, type {}, len {}, address {}, "
+        log.warn("An exception occurred while parsing the message, type {}, len {}, address {}, "
                 + "data {}, cause: {}", encoded[0], length, packet.sender(), dataPreview(encoded),
             e.getClass().getSimpleName());
       }
     } catch (Exception e) {
       if (shouldLog(DropReason.UNEXPECTED_ERROR)) {
-        logger.error("An exception occurred while parsing the message, type {}, len {}, address {}, "
+        log.error("An exception occurred while parsing the message, type {}, len {}, address {}, "
                 + "data {}", encoded[0], length, packet.sender(), dataPreview(encoded));
       }
     }
@@ -83,7 +82,7 @@ public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
   }
 
   private boolean shouldLog(DropReason reason) {
-    if (!reason.enabled.test(logger)) {
+    if (!reason.enabled.test(log)) {
       return false;
     }
     DropCounter counter = drops.computeIfAbsent(reason, ignored -> new DropCounter());
@@ -97,7 +96,7 @@ public class P2pPacketDecoder extends MessageToMessageDecoder<DatagramPacket> {
     counter.lastLogTime = now;
     if (suppressed > 0) {
       // Keep counts on a separate line so existing packet log parsers still match.
-      reason.summary.log(logger, "Suppressed UDP discovery logs: reason={}, suppressed={}, total={}",
+      reason.summary.log(log, "Suppressed UDP discovery logs: reason={}, suppressed={}, total={}",
           reason, suppressed, counter.total);
     }
     return true;
