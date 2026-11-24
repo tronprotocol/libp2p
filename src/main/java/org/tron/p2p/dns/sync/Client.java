@@ -109,6 +109,8 @@ public class Client {
     return parseRoot(linkEntry, LookUpTxt.lookUpTxtRecords(linkEntry.getDomain()));
   }
 
+  // Unrelated TXT records, such as domain ownership verification, may share the root name.
+  // Check all candidates until a root verifies against the configured public key.
   static RootEntry parseRoot(LinkEntry linkEntry, Record[] records) throws DnsException {
     if (records == null) {
       throw new DnsException(TypeEnum.LOOK_UP_ROOT_FAILED, "domain: " + linkEntry.getDomain());

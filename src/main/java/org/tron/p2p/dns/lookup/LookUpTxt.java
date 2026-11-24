@@ -10,9 +10,9 @@ import java.time.Duration;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import lombok.extern.slf4j.Slf4j;
@@ -80,7 +80,8 @@ public class LookUpTxt {
 
   public static TXTRecord lookUpTxt(String name) throws TextParseException, UnknownHostException {
     Record[] records = lookUpTxtRecords(name);
-    return records == null || records.length == 0 ? null : (TXTRecord) records[records.length - 1];
+    return (records == null || records.length == 0) ? null
+        : (TXTRecord) records[records.length - 1];
   }
 
   // DNS caches may retain the previous TXT records until their TTL expires.
@@ -122,9 +123,9 @@ public class LookUpTxt {
 
   /**
    * Resolves a domain name to an IP address. Resolution order:
-   *   <li>OS name resolver ({@link InetAddress}) — reads {@code /etc/hosts} first,
-   *       so LAN IP mappings configured there are returned immediately without a DNS query.</li>
-   *   <li>Random public DNS server (fallback, retried up to {@link #maxRetryTimes} times).</li>
+   * <li>OS name resolver ({@link InetAddress}) — reads {@code /etc/hosts} first,
+   * so LAN IP mappings configured there are returned immediately without a DNS query.</li>
+   * <li>Random public DNS server (fallback, retried up to {@link #maxRetryTimes} times).</li>
    *
    * @param domain the domain name to resolve (e.g. {@code "nodes.example.com"})
    * @param useIPv4 {@code true} to query A records (IPv4); {@code false} to query AAAA records (IPv6)
