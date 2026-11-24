@@ -141,7 +141,7 @@ public class PendingInboundConnectionHandlerTest {
   public void ordinaryPendingLimitIsIndependentOfPeerLimit() {
     config.setMaxConnections(0);
     for (int i = 0; i < Parameter.MAX_PENDING_INBOUND_CONNECTIONS; i++) {
-      Assert.assertTrue(inbound("192.0.2." + (i + 1)).isOpen());
+      Assert.assertTrue(inbound(testIp("192.0", i + 1)).isOpen());
     }
     Assert.assertFalse(inbound("198.51.100.1").isOpen());
     Assert.assertTrue(ChannelManager.getAllChannels().isEmpty());
@@ -180,8 +180,8 @@ public class PendingInboundConnectionHandlerTest {
     InetAddress trusted = InetAddress.getByName("198.51.100.1");
     config.getTrustNodes().add(trusted);
     for (int i = 1; i <= Parameter.MAX_PENDING_INBOUND_CONNECTIONS / 2; i++) {
-      Assert.assertTrue(inbound("192.0.2." + i).isOpen());
-      Assert.assertTrue(inbound("192.0.2." + i).isOpen());
+      Assert.assertTrue(inbound(testIp("192.0", i)).isOpen());
+      Assert.assertTrue(inbound(testIp("192.0", i)).isOpen());
     }
     Assert.assertFalse(inbound("203.0.113.1").isOpen());
     Assert.assertTrue(inbound(trusted.getHostAddress()).isOpen());
@@ -189,9 +189,9 @@ public class PendingInboundConnectionHandlerTest {
 
   @Test
   public void trustedPendingConnectionsCountTowardOrdinaryThreshold() throws Exception {
-    fillTrustedPending(28);
+    fillTrustedPending(Parameter.MAX_PENDING_INBOUND_CONNECTIONS - 4);
     for (int i = 1; i <= 4; i++) {
-      Assert.assertTrue(inbound("192.0.2." + i).isOpen());
+      Assert.assertTrue(inbound(testIp("192.0", i)).isOpen());
     }
     Assert.assertFalse(inbound("203.0.113.1").isOpen());
   }
@@ -199,7 +199,7 @@ public class PendingInboundConnectionHandlerTest {
   @Test
   public void trustedConnectionsUseHigherTotalPendingLimit() throws Exception {
     for (int i = 1; i <= Parameter.MAX_PENDING_INBOUND_CONNECTIONS; i++) {
-      Assert.assertTrue(inbound("192.0.2." + i).isOpen());
+      Assert.assertTrue(inbound(testIp("192.0", i)).isOpen());
     }
     fillTrustedPending(Parameter.MAX_TOTAL_PENDING_INBOUND_CONNECTIONS
         - Parameter.MAX_PENDING_INBOUND_CONNECTIONS);
@@ -269,7 +269,7 @@ public class PendingInboundConnectionHandlerTest {
   @Test(timeout = 20000)
   public void concurrentTrustedReservationsRespectTotalLimit() throws Exception {
     for (int i = 0; i < Parameter.MAX_PENDING_INBOUND_CONNECTIONS * 2; i++) {
-      config.getTrustNodes().add(InetAddress.getByName("192.0.2." + (i + 1)));
+      config.getTrustNodes().add(InetAddress.getByName(testIp("192.0", i + 1)));
     }
     assertConcurrentLimit(false, Parameter.MAX_TOTAL_PENDING_INBOUND_CONNECTIONS);
   }
@@ -372,8 +372,8 @@ public class PendingInboundConnectionHandlerTest {
   public void partialFrameTrafficCannotExtendHandshakeDeadline() {
     EmbeddedChannel socket = inbound(REMOTE_IP);
     initializeProtocol(socket);
-    // A valid length prefix for 1024 bytes, with an incomplete payload.
-    ByteBuf partial = Unpooled.wrappedBuffer(new byte[]{(byte) 0x80, 8, 1});
+    // A valid length prefix for 512 bytes, with an incomplete payload.
+    ByteBuf partial = Unpooled.wrappedBuffer(new byte[]{(byte) 0x80, 4, 1});
     socket.writeInbound(partial);
     for (int i = 0; i < 3; i++) {
       advance(socket, 3);
@@ -592,6 +592,7 @@ public class PendingInboundConnectionHandlerTest {
       Assert.assertTrue(socket.isOpen());
       Assert.assertNull(socket.pipeline().get(PendingInboundConnectionHandler.class));
       Assert.assertNotNull(socket.pipeline().get(MessageHandler.class));
+      Assert.assertEquals(1024, socket.config().getRecvByteBufAllocator().newHandle().guess());
     }
     Assert.assertFalse(inbound(REMOTE_IP).isOpen());
   }
@@ -599,7 +600,7 @@ public class PendingInboundConnectionHandlerTest {
   @Test(timeout = 20000)
   public void bannedPeerReceivesHelloWithoutReservingCapacity() throws Exception {
     for (int i = 1; i <= Parameter.MAX_PENDING_INBOUND_CONNECTIONS; i++) {
-      Assert.assertTrue(inbound("192.0.2." + i).isOpen());
+      Assert.assertTrue(inbound(testIp("192.0", i)).isOpen());
     }
     InetAddress address = InetAddress.getByName("127.0.0.1");
     ChannelManager.banNode(address, TimeUnit.MINUTES.toMillis(1));
@@ -611,7 +612,7 @@ public class PendingInboundConnectionHandlerTest {
   @Test(timeout = 20000)
   public void ordinaryPendingThresholdReturnsTooManyPeers() throws Exception {
     for (int i = 1; i <= Parameter.MAX_PENDING_INBOUND_CONNECTIONS; i++) {
-      Assert.assertTrue(inbound("192.0.2." + i).isOpen());
+      Assert.assertTrue(inbound(testIp("192.0", i)).isOpen());
     }
     assertAdmissionRejection(DisconnectCode.TOO_MANY_PEERS);
   }
@@ -767,10 +768,14 @@ public class PendingInboundConnectionHandlerTest {
 
   private void fillTrustedPending(int count) throws Exception {
     for (int i = 1; i <= count; i++) {
-      String ip = "198.51.100." + i;
+      String ip = testIp("198.51", i);
       config.getTrustNodes().add(InetAddress.getByName(ip));
       Assert.assertTrue(inbound(ip).isOpen());
     }
+  }
+
+  private String testIp(String prefix, int index) {
+    return prefix + "." + (index / 256) + "." + (index % 256);
   }
 
   private void clearDisconnectCooldown(String ip) {
@@ -826,7 +831,7 @@ public class PendingInboundConnectionHandlerTest {
     List<Future<Boolean>> results = new ArrayList<>();
     try {
       for (int i = 0; i < Parameter.MAX_PENDING_INBOUND_CONNECTIONS * 2; i++) {
-        String ip = sameIp ? REMOTE_IP : "192.0.2." + (i + 1);
+        String ip = sameIp ? REMOTE_IP : testIp("192.0", i + 1);
         results.add(executor.submit(() -> {
           Assert.assertTrue(start.await(5, TimeUnit.SECONDS));
           return inbound(ip).isOpen();
