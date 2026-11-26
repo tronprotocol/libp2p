@@ -263,13 +263,13 @@ public class OutboundHandshakeTimeoutHandlerTest {
 
   @Test
   public void deadlineStartsWhenSocketBecomesActive() throws Exception {
-    EmbeddedChannel socket = new EmbeddedChannel(false, false);
+    InactiveEmbeddedChannel socket = new InactiveEmbeddedChannel();
     sockets.add(socket);
     socket.freezeTime();
     socket.pipeline().addLast(new OutboundHandshakeTimeoutHandler());
     advance(socket, Parameter.HANDSHAKE_TIMEOUT_SECONDS + 1);
     Assert.assertTrue(socket.isOpen());
-    socket.register();
+    socket.activate();
     advance(socket, Parameter.HANDSHAKE_TIMEOUT_SECONDS - 1);
     Assert.assertTrue(socket.isOpen());
     advance(socket, 1);
@@ -384,13 +384,13 @@ public class OutboundHandshakeTimeoutHandlerTest {
 
   @Test
   public void statusDeadlineStartsWhenSocketBecomesActive() throws Exception {
-    EmbeddedChannel socket = new EmbeddedChannel(false, false);
+    InactiveEmbeddedChannel socket = new InactiveEmbeddedChannel();
     sockets.add(socket);
     socket.freezeTime();
     socket.pipeline().addLast(new OutboundStatusTimeoutHandler());
     advance(socket, Parameter.NODE_DETECT_TIMEOUT, TimeUnit.MILLISECONDS);
     Assert.assertTrue(socket.isOpen());
-    socket.register();
+    socket.activate();
     advance(socket, Parameter.NODE_DETECT_TIMEOUT - 1, TimeUnit.MILLISECONDS);
     Assert.assertTrue(socket.isOpen());
     advance(socket, 1, TimeUnit.MILLISECONDS);
@@ -462,6 +462,21 @@ public class OutboundHandshakeTimeoutHandlerTest {
         server.close().syncUninterruptibly();
       }
       group.shutdownGracefully(0, 5, TimeUnit.SECONDS).syncUninterruptibly();
+    }
+  }
+
+  // Netty 4.2 requires registration before its embedded clock can be controlled.
+  private static final class InactiveEmbeddedChannel extends EmbeddedChannel {
+    private boolean active;
+
+    @Override
+    public boolean isActive() {
+      return active && super.isActive();
+    }
+
+    private void activate() {
+      active = true;
+      pipeline().fireChannelActive();
     }
   }
 

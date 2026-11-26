@@ -1,5 +1,5 @@
 group 'io.github.tronprotocol'
-version '2.2.9'
+version '2.3.0'
 
 buildscript {
     repositories {
@@ -18,8 +18,9 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'application'
 apply plugin: 'maven-publish'
 
-def protobufVersion = "3.25.8"
-def grpcVersion = "1.81.0"
+def protobufVersion = "3.25.9"
+def grpcVersion = "1.86.0"
+def nettyVersion = "4.2.21.Final"
 def protocGenVersion = '1.60.0' // https://github.com/grpc/grpc-java/pull/11371 , 1.64.x is not supported CentOS 7.
 
 mainClassName = 'org.tron.p2p.example.StartApp'
@@ -50,6 +51,13 @@ dependencies {
     implementation group: 'org.xerial.snappy', name: 'snappy-java', version: '1.1.10.12'
     implementation group: 'com.google.protobuf', name: 'protobuf-java', version: protobufVersion
     implementation group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
+    implementation platform("io.netty:netty-bom:$nettyVersion")
+    // Netty 4.2 provides protobuf framing in a separate module.
+    implementation group: 'io.netty', name: 'netty-codec-protobuf', version: nettyVersion
+    // Declare gRPC's Netty entry modules so Maven POM consumers also get the patched versions.
+    implementation group: 'io.netty', name: 'netty-codec-http2', version: nettyVersion
+    implementation group: 'io.netty', name: 'netty-handler-proxy', version: nettyVersion
+    implementation group: 'io.netty', name: 'netty-transport-native-unix-common', version: nettyVersion
     implementation group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.36'
     implementation group: 'org.bouncycastle', name: 'bcprov-jdk18on', version: '1.86'
@@ -81,8 +89,11 @@ dependencies {
         exclude group: 'pull-parser', module: 'pull-parser'
         exclude group: 'xpp3', module: 'xpp3'
     }
-    implementation('com.squareup.okio:okio:1.17.6') {
-        because 'Fix CVE-2023-3635 in the Aliyun SDK HTTP dependency chain'
+    implementation('com.squareup.okhttp3:okhttp:4.12.1') {
+        because 'Fix sensitive header disclosure in the Aliyun SDK HTTP dependency chain'
+    }
+    implementation('com.squareup.okio:okio:3.6.0') {
+        because 'Use the Java 8 compatible Okio version required by OkHttp 4.12.x'
     }
 
     //If logging is required, uncomment this dependency
@@ -106,6 +117,7 @@ protobuf {
         artifact = "com.google.protobuf:protoc:$protobufVersion"
     }
 
+    //noinspection GroovyAssignabilityCheck
     plugins {
         grpc {
             artifact = "io.grpc:protoc-gen-grpc-java:$protocGenVersion"
