@@ -1,6 +1,8 @@
 package org.tron.p2p.discover.protocol.kad;
 
-import org.checkerframework.checker.units.qual.N;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -11,10 +13,6 @@ import org.tron.p2p.discover.Node;
 import org.tron.p2p.discover.message.kad.PingMessage;
 import org.tron.p2p.discover.message.kad.PongMessage;
 import org.tron.p2p.utils.NetUtil;
-
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
 
 public class NodeHandlerTest {
 

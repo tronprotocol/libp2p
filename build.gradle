@@ -51,9 +51,12 @@ dependencies {
     implementation group: 'org.xerial.snappy', name: 'snappy-java', version: '1.1.10.12'
     implementation group: 'com.google.protobuf', name: 'protobuf-java', version: protobufVersion
     implementation group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
-    implementation platform("io.netty:netty-bom:$nettyVersion")
+    implementation group: 'com.google.guava', name: 'guava', version: '33.7.2-jre'
+    implementation platform(group: 'io.netty', name: 'netty-bom', version: nettyVersion)
     // Netty 4.2 provides protobuf framing in a separate module.
-    implementation group: 'io.netty', name: 'netty-codec-protobuf', version: nettyVersion
+    implementation(group: 'io.netty', name: 'netty-codec-protobuf', version: nettyVersion) {
+        exclude group: 'com.google.protobuf.nano', module: 'protobuf-javanano'
+    }
     // Declare gRPC's Netty entry modules so Maven POM consumers also get the patched versions.
     implementation group: 'io.netty', name: 'netty-codec-http2', version: nettyVersion
     implementation group: 'io.netty', name: 'netty-handler-proxy', version: nettyVersion
@@ -89,10 +92,10 @@ dependencies {
         exclude group: 'pull-parser', module: 'pull-parser'
         exclude group: 'xpp3', module: 'xpp3'
     }
-    implementation('com.squareup.okhttp3:okhttp:4.12.1') {
+    implementation(group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.12.1') {
         because 'Fix sensitive header disclosure in the Aliyun SDK HTTP dependency chain'
     }
-    implementation('com.squareup.okio:okio:3.6.0') {
+    implementation(group: 'com.squareup.okio', name: 'okio', version: '3.6.0') {
         because 'Use the Java 8 compatible Okio version required by OkHttp 4.12.x'
     }
 
